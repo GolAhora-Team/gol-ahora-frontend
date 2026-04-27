@@ -16,13 +16,16 @@
 
   * npx expo install expo-linear-gradient expo-navigation-bar expo-status-bar
   * npx expo install expo-linear-gradient expo-navigation-bar expo-status-bar @react-navigation/native @react-navigation/native-stack react-native-screens react-native-safe-area-context @expo/vector-icons
-
+  * npx expo install @react-native-community/datetimepicker
 **Iniciar la aplicación**:
 
   * npx expo start
+
 
 ## Ramas
 
 * **Main**: Versión estable en producción. (No tocar directamente).
 * **develop**: Rama de integración.
 * **feature/**: Ramas de trabajo.
+
+Ejemplo: feat/nombre-mejora.
