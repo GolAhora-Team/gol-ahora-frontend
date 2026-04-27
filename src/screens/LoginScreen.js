@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, 
   SafeAreaView, ScrollView, Dimensions, Platform, 
-  KeyboardAvoidingView, StatusBar, Alert 
+  KeyboardAvoidingView, StatusBar 
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,7 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [focusedInput, setFocusedInput] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -25,38 +26,33 @@ const LoginScreen = ({ navigation }) => {
     }
   }, []);
 
-  // LÓGICA DE CONEXIÓN CON EL DASHBOARD
   const handleLogin = () => {
     const passCorrecta = "1234";
     const usuarioLimpio = email.toLowerCase().trim();
+    
+    // Limpiamos mensaje de error previo
+    setErrorMessage('');
 
-    // 1. Validar que no estén vacíos
     if (!email || !password) {
-      Alert.alert("Atención", "Por favor, completa todos los campos.");
+      setErrorMessage("Por favor, completa todos los campos.");
       return;
     }
 
-    if (password !== passCorrecta) {
-      Alert.alert("Error", "Contraseña incorrecta.");
-      return;
-    }
-
-    // 3. Determinar el ROL según el usuario ingresado
     let role = "";
-    if (usuarioLimpio === "admin") {
+    // Validación estricta de credenciales
+    if (usuarioLimpio === "admin" && password === passCorrecta) {
       role = "ADMIN";
-    } else if (usuarioLimpio === "personal") {
+    } else if (usuarioLimpio === "personal" && password === passCorrecta) {
       role = "PERSONAL";
-    } else if (usuarioLimpio === "cliente") {
+    } else if (usuarioLimpio === "cliente" && password === passCorrecta) {
       role = "CLIENTE";
-    } else if (usuarioLimpio === "profe") { 
+    } else if (usuarioLimpio === "profe" && password === passCorrecta) { 
       role = "PROFE";
     } else {
-      Alert.alert("Error", "Usuario no encontrado. Prueba con: admin, empleado o personal.");
+      setErrorMessage("Usuario o contraseña incorrectos.");
       return;
     }
 
-    // 4. Navegar al Dashboard pasando el parámetro 'role'
     navigation.navigate('Dashboard', { role: role });
   };
 
@@ -75,7 +71,6 @@ const LoginScreen = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />
 
@@ -102,12 +97,13 @@ const LoginScreen = ({ navigation }) => {
                         style={styles.input} 
                         placeholder="Ingresa tu usuario" 
                         placeholderTextColor="#999"
-                        onFocus={() => setFocusedInput('user')}
+                        onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
                         onChangeText={setEmail}
                         value={email}
                         autoCapitalize="none"
                         underlineColorAndroid="transparent"
+                        returnKeyType="next"
                       />
                     </View>
                   </View>
@@ -125,19 +121,30 @@ const LoginScreen = ({ navigation }) => {
                         placeholder="Ingresa tu contraseña" 
                         placeholderTextColor="#999"
                         secureTextEntry
-                        onFocus={() => setFocusedInput('pass')}
+                        onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
                         onChangeText={setPassword}
                         value={password}
                         underlineColorAndroid="transparent"
+                        returnKeyType="done"
+                        onSubmitEditing={handleLogin}
+                        blurOnSubmit={true}
                       />
                     </View>
                   </View>
 
+                  {/* MENSAJE DE ERROR DINÁMICO */}
+                  {errorMessage !== '' && (
+                    <View style={styles.errorContainer}>
+                      <MaterialCommunityIcons name="alert-circle" size={18} color="#ef4444" />
+                      <Text style={styles.errorText}>{errorMessage}</Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity 
                     style={styles.mainButton} 
                     activeOpacity={0.8}
-                    onPress={handleLogin} // Conectado aquí
+                    onPress={handleLogin}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
                       <Text style={styles.buttonText}>INGRESAR AL CAMPO</Text>
@@ -156,7 +163,6 @@ const LoginScreen = ({ navigation }) => {
               </View>
             </View>
             <Footer />
-
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -190,7 +196,23 @@ const styles = StyleSheet.create({
     flex: 1, color: '#000', marginLeft: 10, fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } })
   },
-  mainButton: { marginTop: 15, borderRadius: 15, overflow: 'hidden', elevation: 5 },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  mainButton: { marginTop: 10, borderRadius: 15, overflow: 'hidden', elevation: 5 },
   gradientButton: { height: 60, justifyContent: 'center', alignItems: 'center' },
   buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
