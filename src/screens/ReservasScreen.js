@@ -1,94 +1,165 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  SafeAreaView, 
-  ScrollView, 
-  Platform, 
-  StatusBar 
-} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ScreenTemplate from './ScreenTemplate';
+import ReservaCard from '../components/ReservaCard';
+import ReservaFormModal from '../components/ReservaFormModal';
+import { confirmarEliminacion } from '../components/Delete';
 
-import Background from '../components/Background';
-import BackgroundLogin from '../components/BackgroundLogin';
-import Footer from '../components/Footer';
-import HeaderSecondary from '../components/HeaderSecondary';
+export default function ReservaScreen({ route, navigation }) {
+  // --- CAPTURAMOS USUARIO ---
+  const { role: currentUserRole, nombreUsuario: currentUserName } = route.params || { 
+    role: "CLIENTE", 
+    nombreUsuario: "Julián Antunes" 
+  };
 
-export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false }) {
+  const [canchas] = useState([
+    { id: '1', nombre: 'Maracaná 1', enMantenimiento: false },
+    { id: '2', nombre: 'Centenario', enMantenimiento: true },
+    { id: '3', nombre: 'Wembley', enMantenimiento: false },
+  ]);
+
+  const [reservas, setReservas] = useState([
+    { id: '1', canchaId: '1', canchaNombre: 'Maracaná 1', clienteNombre: 'Julián Antunes', horaInicio: '15:00', horaFin: '16:00', duracion: 60, estado: 'confirmado' },
+    { id: '2', canchaId: '3', canchaNombre: 'Wembley', clienteNombre: 'Robert García', horaInicio: '17:00', horaFin: '18:00', duracion: 60, estado: 'confirmado' },
+  ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
-  const handleBack = () => {
-    if (navigation && navigation.goBack) navigation.goBack();
+  // --- REGLA: El form nace con el nombre del usuario si no es STAFF ---
+  const initialForm = { 
+    clienteNombre: (currentUserRole === 'CLIENTE' || currentUserRole === 'PROFE') ? currentUserName : '', 
+    canchaId: '1', 
+    canchaNombre: 'Maracaná 1', 
+    horaInicio: '19:00', 
+    duracion: 60, 
+    estado: 'confirmado' 
+  };
+  
+  const [formData, setFormData] = useState(initialForm);
+
+  // --- LÓGICA DE PERMISOS ---
+  const puedeOperarTurno = (reserva) => {
+    if (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') return true;
+    return reserva.clienteNombre === currentUserName;
+  };
+
+  const getStatusCancha = (canchaId) => {
+    const cancha = canchas.find(c => c.id === canchaId);
+    if (cancha?.enMantenimiento) return { label: 'MANTENIMIENTO', color: '#ef4444', icon: 'tools' };
+    const ahora = "15:30"; 
+    const ocupada = reservas.find(r => r.canchaId === canchaId && ahora >= r.horaInicio && ahora < r.horaFin);
+    if (ocupada) return { label: `OCUPADA (Libera ${ocupada.horaFin})`, color: '#ffb300', icon: 'clock-outline' };
+    return { label: 'LIBRE', color: '#009b3a', icon: 'check-circle-outline' };
+  };
+
+  const handleOpenModal = (reserva = null) => {
+    if (reserva) {
+      if (!puedeOperarTurno(reserva)) {
+        Alert.alert("Acceso denegado", "Solo podés modificar tus propias reservas.");
+        return;
+      }
+      setFormData({ ...reserva });
+      setIsEditing(true);
+    } else {
+      setFormData(initialForm);
+      setIsEditing(false);
+    }
+    setModalVisible(true);
+  };
+
+  const handleSave = () => {
+    try {
+      if (!formData.clienteNombre || !formData.canchaId || !formData.horaInicio) {
+        Alert.alert("Atención", "Completa todos los campos obligatorios.");
+        return;
+      }
+
+      const [hStr, mStr] = formData.horaInicio.split(':');
+      const h = parseInt(hStr, 10);
+      const m = parseInt(mStr, 10);
+      const date = new Date();
+      date.setHours(h, m + formData.duracion);
+      const horaFinStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+      if (isEditing) {
+        setReservas(prev => prev.map(r => r.id === formData.id ? { ...formData, horaFin: horaFinStr } : r));
+      } else {
+        const nueva = { ...formData, id: Date.now().toString(), horaFin: horaFinStr };
+        setReservas(prev => [...prev, nueva]);
+      }
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert("Error", "Ocurrió un problema al procesar la reserva.");
+    }
   };
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <Background />
+    <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.centralContainer}>
-            
-            <View style={styles.headerContainer}>
-              <HeaderSecondary 
-                userRole={userRole} 
-                isWeb={isWeb} 
-                onBack={handleBack} 
-              />
-            </View>
-
-            <View style={styles.pitchContainer}>
-              <BackgroundLogin /> 
-              <View style={styles.innerContent}>
-                {children}
+      {/* MONITOR DE CANCHAS */}
+      <View style={styles.monitorSection}>
+        <Text style={styles.sectionTitle}>MONITOR DE CANCHAS</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {canchas.map(c => {
+            const status = getStatusCancha(c.id);
+            return (
+              <View key={c.id} style={[styles.statusCard, { borderColor: status.color }]}>
+                <MaterialCommunityIcons name={status.icon} size={20} color={status.color} />
+                <View style={styles.statusInfo}>
+                  <Text style={styles.statusCanchaName}>{c.nombre}</Text>
+                  <Text style={[styles.statusLabel, { color: status.color }]}>{status.label}</Text>
+                </View>
               </View>
-            </View>
-
-          </View>
-          
-          <Footer />
+            );
+          })}
         </ScrollView>
-      </SafeAreaView>
-    </View>
+      </View>
+
+      <View style={styles.headerRow}>
+        <Text style={styles.mainTitle}>Cronograma</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
+          <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
+          <Text style={styles.addButtonText}>NUEVA</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {reservas.map(item => (
+          <ReservaCard 
+            key={item.id} 
+            item={item} 
+            canModify={puedeOperarTurno(item)} 
+            onEdit={handleOpenModal} 
+            onDelete={(res) => confirmarEliminacion(res, () => setReservas(prev => prev.filter(r => r.id !== res.id)), "Cancelar Turno")} 
+          />
+        ))}
+      </ScrollView>
+
+      <ReservaFormModal 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        formData={formData} 
+        setFormData={setFormData} 
+        onSave={handleSave} 
+        canchas={canchas} 
+        reservasActuales={reservas}
+        currentUserRole={currentUserRole}
+      />
+    </ScreenTemplate>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1 },
-  safeArea: { 
-    flex: 1, 
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 0 
-  },
-  scrollContent: { 
-    flexGrow: 1, 
-    justifyContent: 'space-between',
-    paddingBottom: 30 
-  },
-  centralContainer: { 
-    width: '100%', 
-    maxWidth: 1400, 
-    alignSelf: 'center', 
-  },
-  headerContainer: {
-    paddingHorizontal: 16, 
-    width: '100%',
-  },
-  pitchContainer: {
-    width: '95%', 
-    alignSelf: 'center',
-    borderRadius: 35, 
-    borderWidth: 1.5, 
-    borderColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden', 
-    backgroundColor: 'rgba(255,255,255,0.03)', 
-    position: 'relative', 
-    marginTop: 15,
-    minHeight: 500, 
-  },
-  innerContent: { 
-    padding: 16,
-    flex: 1 
-  },
+  monitorSection: { marginBottom: 30 },
+  sectionTitle: { color: '#94a3b8', fontWeight: '900', fontSize: 11, letterSpacing: 1.5, marginBottom: 15 },
+  statusCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginRight: 12, borderWidth: 2, minWidth: 160, elevation: 2 },
+  statusInfo: { marginLeft: 10 },
+  statusCanchaName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  statusLabel: { fontSize: 10, fontWeight: '900', marginTop: 2 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  mainTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  addButton: { backgroundColor: '#009b3a', flexDirection: 'row', padding: 10, borderRadius: 12, alignItems: 'center' },
+  addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
 });
