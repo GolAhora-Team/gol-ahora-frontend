@@ -1,22 +1,29 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function UserCard({ item, onEdit, onDelete, canModify }) {
+  // Siguiendo la misma lógica de estilos de CanchaCard
   return (
-    <View style={styles.userCard}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardName}>{item.nombre} {item.apellido}</Text>
-        <Text style={styles.cardInfo}>DNI: {item.dni} • Tel: {item.telefono || 'N/A'}</Text>
-        <Text style={styles.cardMail}>{item.email}</Text>
+    <View style={styles.card}>
+      <View style={styles.infoSide}>
+        <Text style={styles.userName}>{item.nombre} {item.apellido}</Text>
+        
+        <View style={styles.specRow}>
+          <Text style={styles.specText}>DNI: {item.dni} • Tel: {item.telefono}</Text>
+        </View>
+        
+        <Text style={styles.userEmail}>{item.email}</Text>
       </View>
+
       {canModify && (
-        <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => onEdit(item)} style={{ marginRight: 10 }}>
-            <MaterialCommunityIcons name="pencil-circle" size={36} color="#009b3a" />
+        <View style={styles.actionSide}>
+          <TouchableOpacity onPress={() => onEdit(item)} style={styles.actionBtn}>
+            <MaterialCommunityIcons name="pencil" size={24} color="#009b3a" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onDelete(item)}>
-            <MaterialCommunityIcons name="delete-circle" size={36} color="#ff4444" />
+          
+          <TouchableOpacity onPress={() => onDelete(item)} style={styles.actionBtn}>
+            <MaterialCommunityIcons name="trash-can-outline" size={24} color="#ef4444" />
           </TouchableOpacity>
         </View>
       )}
@@ -25,9 +32,40 @@ export default function UserCard({ item, onEdit, onDelete, canModify }) {
 }
 
 const styles = StyleSheet.create({
-  userCard: { backgroundColor: '#fff', borderRadius: 18, padding: 15, marginBottom: 12, flexDirection: 'row', alignItems: 'center', elevation: 3 },
-  cardName: { fontSize: 17, fontWeight: '800', color: '#009b3a' },
-  cardInfo: { fontSize: 11, color: '#64748b', fontWeight: '700', marginTop: 2 },
-  cardMail: { fontSize: 12, color: '#94a3b8', marginTop: 1 },
-  cardActions: { flexDirection: 'row', alignItems: 'center' },
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 20, 
+    padding: 15, 
+    marginBottom: 12, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    elevation: 3 
+  },
+  infoSide: { flex: 1 },
+  userName: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#009b3a' // Lo ponemos en verde como tu captura de pantalla
+  },
+  specRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  specText: { 
+    color: '#1e293b', 
+    fontSize: 13, 
+    fontWeight: '700' 
+  },
+  userEmail: { 
+    color: '#94a3b8', 
+    fontSize: 12, 
+    marginTop: 2,
+    fontWeight: '600'
+  },
+  actionSide: { 
+    flexDirection: 'row', 
+    gap: 8, 
+    alignItems: 'center' 
+  },
+  actionBtn: { 
+    padding: 10, 
+    borderRadius: 8 
+  }
 });
