@@ -1,5 +1,5 @@
 ## Tecnologias y Configuración
-* **Framework:** [React Native] (con Expo SDK 50+)
+* **Framework:** [React Native] (con Expo SDK 54.0.24)
 * **Lenguaje:** JavaScript / ES6
 * **Iconos:** @expo/vector-icons (MaterialCommunityIcons)
 
