@@ -3,31 +3,43 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function UserCard({ item, onEdit, onDelete, canModify }) {
-<<<<<<< HEAD
-  // Siguiendo la misma lógica de estilos de CanchaCard
-=======
+  // Manejo de errores de datos: si no hay item, no renderizamos nada
+  if (!item) return null;
 
->>>>>>> develop
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
-        <Text style={styles.userName}>{item.nombre} {item.apellido}</Text>
+        {/* Usamos valores por defecto por si el backend falla */}
+        <Text style={styles.userName}>
+          {(item.nombre || 'Sin nombre')} {(item.apellido || '')}
+        </Text>
         
         <View style={styles.specRow}>
-          <Text style={styles.specText}>DNI: {item.dni} • Tel: {item.telefono}</Text>
+          <Text style={styles.specText}>
+            DNI: {item.dni || 'N/A'} • Tel: {item.telefono || 'N/A'}
+          </Text>
         </View>
         
-        <Text style={styles.userEmail}>{item.email}</Text>
+        {item.email ? (
+          <Text style={styles.userEmail}>{item.email}</Text>
+        ) : null}
       </View>
 
-      {canModify && (
+      {/* Verificamos el permiso de modificación */}
+      {canModify === true && (
         <View style={styles.actionSide}>
-          <TouchableOpacity onPress={() => onEdit(item)} style={styles.actionBtn}>
-            <MaterialCommunityIcons name="pencil" size={24} color="#009b3a" />
+          <TouchableOpacity 
+            onPress={() => onEdit && onEdit(item)} 
+            style={[styles.actionBtn, { backgroundColor: '#f0fdf4' }]}
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#009b3a" />
           </TouchableOpacity>
           
-          <TouchableOpacity onPress={() => onDelete(item)} style={styles.actionBtn}>
-            <MaterialCommunityIcons name="trash-can-outline" size={24} color="#ef4444" />
+          <TouchableOpacity 
+            onPress={() => onDelete && onDelete(item)} 
+            style={[styles.actionBtn, { backgroundColor: '#fef2f2' }]}
+          >
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#ef4444" />
           </TouchableOpacity>
         </View>
       )}
@@ -43,37 +55,40 @@ const styles = StyleSheet.create({
     marginBottom: 12, 
     flexDirection: 'row', 
     alignItems: 'center', 
-    elevation: 3 
+    elevation: 3,
+    shadowColor: '#000', // Sombra para iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   infoSide: { flex: 1 },
   userName: { 
-    fontSize: 18, 
+    fontSize: 16, // Bajamos un poco el tamaño para pantallas chicas
     fontWeight: '800', 
-<<<<<<< HEAD
-    color: '#009b3a' // Lo ponemos en verde como tu captura de pantalla
-=======
-    color: '#009b3a' 
->>>>>>> develop
+    color: '#009b3a',
   },
   specRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   specText: { 
     color: '#1e293b', 
-    fontSize: 13, 
+    fontSize: 12, 
     fontWeight: '700' 
   },
   userEmail: { 
     color: '#94a3b8', 
-    fontSize: 12, 
+    fontSize: 11, 
     marginTop: 2,
     fontWeight: '600'
   },
   actionSide: { 
     flexDirection: 'row', 
     gap: 8, 
-    alignItems: 'center' 
+    alignItems: 'center',
+    marginLeft: 10
   },
   actionBtn: { 
-    padding: 10, 
-    borderRadius: 8 
+    padding: 8, // Ajustamos el padding para que no sea tan gigante
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)'
   }
 });
