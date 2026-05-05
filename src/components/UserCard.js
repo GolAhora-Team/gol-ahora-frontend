@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function UserCard({ item, onEdit, onDelete, canModify }) {
+<<<<<<< HEAD
   // Siguiendo la misma lógica de estilos de CanchaCard
+=======
+
+>>>>>>> develop
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -45,7 +49,11 @@ const styles = StyleSheet.create({
   userName: { 
     fontSize: 18, 
     fontWeight: '800', 
+<<<<<<< HEAD
     color: '#009b3a' // Lo ponemos en verde como tu captura de pantalla
+=======
+    color: '#009b3a' 
+>>>>>>> develop
   },
   specRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   specText: { 

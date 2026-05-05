@@ -4,8 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 
 export default function ReservaFormModal({ visible, onClose, formData, setFormData, onSave, canchas = [], reservasActuales = [], currentUserRole }) {
-  
-  // Seguridad: Si horaInicio es nulo, usamos un default
+
   const horaActual = formData?.horaInicio || "19:00";
 
   const adjustTime = (type, amount) => {
