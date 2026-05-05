@@ -1,7 +1,8 @@
 ## Tecnologias y Configuración
 * **Framework:** [React Native] (con Expo SDK 54.0.24)
 * **Lenguaje:** JavaScript / ES6
-* **Iconos:** @expo/vector-icons (MaterialCommunityIcons)
+* **Iconos:** @expo/vector-icons (MaterialCommunityIcons) y lucide-react
+* **Reportes:** expo-print y expo-sharing para generación de PDF y exportación
 
 ## Instalación y Configuración
 **Clonar el proyecto**:
