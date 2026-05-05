@@ -9,32 +9,35 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
+import SettingsModal from './SettingsModal';
 
 const Header = ({ title, userRole, isWeb }) => {
   const navigation = useNavigation();
+  
+  // Estados para efectos visuales y modales
   const [pressedSettings, setPressedSettings] = useState(false);
   const [pressedLogout, setPressedLogout] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+
 
   const getBadgeColor = () => {
     switch (userRole) {
       case 'ADMIN': return '#ffb300';
       case 'PERSONAL': return '#ffb300';
-      case 'CLIENTE': return '#ffb300';
       case 'PROFE': return '#ffb300';
+      case 'CLIENTE': return '#ffb300';
       default: return '#ffb300';
     }
   };
 
   const handleLogout = () => {
     if (Platform.OS === 'web') {
-      // Lógica para Web
-      const confirmWeb = window.confirm("¿Estás seguro que deseas cerrar sesión?");
+      const confirmWeb = window.confirm("¿Estás seguro que deseas cerrar sesión en Gol Ahora?");
       if (confirmWeb) navigation.navigate('Login');
     } else {
-      // Lógica para Android/iOS
       Alert.alert(
         "Cerrar Sesión",
-        "¿Estás seguro que deseas cerrar sesión?",
+        "¿Estás seguro que deseas salir del sistema?",
         [
           { text: "Cancelar", style: "cancel" },
           { 
@@ -61,11 +64,13 @@ const Header = ({ title, userRole, isWeb }) => {
       </View>
       
       <View style={styles.headerIcons}>
+      
         <TouchableOpacity 
           style={[styles.headerBtn, pressedSettings && styles.btnActive]} 
           activeOpacity={1}
           onPressIn={() => setPressedSettings(true)}
           onPressOut={() => setPressedSettings(false)}
+          onPress={() => setModalVisible(true)}
         >
           <MaterialCommunityIcons 
             name="cog-outline" 
@@ -73,6 +78,7 @@ const Header = ({ title, userRole, isWeb }) => {
             color={pressedSettings ? "#000" : "#fff"} 
           />
         </TouchableOpacity>
+        
         
         <TouchableOpacity 
           style={[styles.headerBtn, pressedLogout && styles.btnActive]} 
@@ -88,6 +94,14 @@ const Header = ({ title, userRole, isWeb }) => {
           />
         </TouchableOpacity>
       </View>
+
+      
+      <SettingsModal 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        userRole={userRole}
+        userName={title}
+      />
     </View>
   );
 };
@@ -105,6 +119,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.18)',
     marginTop: Platform.OS === 'android' ? 5 : 0,
+    elevation: 5,
   },
   headerWeb: { 
     maxWidth: 1200, 
@@ -122,6 +137,7 @@ const styles = StyleSheet.create({
     fontWeight: '900', 
     letterSpacing: -1,
     lineHeight: 40,
+    textTransform: 'uppercase',
     ...Platform.select({ web: { userSelect: 'none' } })
   },
   roleBadge: { 
@@ -132,7 +148,7 @@ const styles = StyleSheet.create({
     marginTop: 2 
   },
   roleText: { 
-    fontSize: 16, 
+    fontSize: 14, 
     fontWeight: '900', 
     color: '#000', 
     textTransform: 'uppercase',

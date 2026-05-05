@@ -1,94 +1,179 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  SafeAreaView, 
-  ScrollView, 
-  Platform, 
-  StatusBar 
-} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import ScreenTemplate from './ScreenTemplate';
+import { getEstadisticas } from '../components/DataReportes';
 
-import Background from '../components/Background';
-import BackgroundLogin from '../components/BackgroundLogin';
-import Footer from '../components/Footer';
-import HeaderSecondary from '../components/HeaderSecondary';
+export default function ReportesScreen({ route, navigation }) {
+  const { role: currentUserRole } = route.params || { role: "ADMIN" };
+  const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
+  const estadisticas = getEstadisticas();
+  const dataActual = estadisticas[reporteActivo];
 
-export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false }) {
-  
-  const handleBack = () => {
-    if (navigation && navigation.goBack) navigation.goBack();
+  const handleExportExcel = async () => {
+    const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+    let csvContent = `Reporte: ${reporteActivo}\nTotal: ${dataActual.total}\nDetalle: ${dataActual.detalle}\n\nDia,Valor\n`;
+    dataActual.datosSemanales.forEach((v, i) => { csvContent += `${dias[i]},${v}\n` });
+
+    if (Platform.OS === 'web') {
+      const element = document.createElement("a");
+      const file = new Blob([csvContent], { type: 'text/csv' });
+      element.href = URL.createObjectURL(file);
+      element.download = `Gol_Ahora_${reporteActivo}.csv`;
+      element.click();
+    } else {
+      const path = `${FileSystem.documentDirectory}reporte_${reporteActivo}.csv`;
+      await FileSystem.writeAsStringAsync(path, csvContent);
+      await Sharing.shareAsync(path);
+    }
+  };
+
+  const handlePrint = async () => {
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 50px; font-weight: 900; margin: 0; }
+            .subtitle { font-size: 14px; font-weight: bold; margin-top: 5px; }
+            .line { border-bottom: 2px solid #000; margin: 20px 0; }
+            .content { margin-top: 20px; font-size: 18px; line-height: 1.6; }
+            .report-name { font-size: 22px; text-decoration: underline; margin-bottom: 10px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #444; border-top: 1px solid #ccc; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="brand">GOL AHORA</h1>
+            <div class="subtitle">SISTEMA DE GESTIÓN DEPORTIVA</div>
+          </div>
+          <div class="line"></div>
+          <div class="content">
+            <div class="report-name">REPORTE DE ${reporteActivo.toUpperCase()}</div>
+            <p><b>VALOR TOTAL:</b> ${dataActual.total}</p>
+            <p><b>PERIODO:</b> ${dataActual.detalle}</p>
+            <p><b>DESCRIPCIÓN:</b> ${dataActual.descripcion}</p>
+          </div>
+          <div class="footer">
+            Generado por ${currentUserRole} - ${new Date().toLocaleDateString()}
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      await Print.printAsync({ html });
+    } catch (error) {
+      Alert.alert("Error", "No se pudo iniciar la impresión.");
+    }
   };
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <Background />
-      
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.centralContainer}>
-            
-            <View style={styles.headerContainer}>
-              <HeaderSecondary 
-                userRole={userRole} 
-                isWeb={isWeb} 
-                onBack={handleBack} 
-              />
-            </View>
+    <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+      <Text style={styles.title}>Panel de Reportes</Text>
 
-            <View style={styles.pitchContainer}>
-              <BackgroundLogin /> 
-              <View style={styles.innerContent}>
-                {children}
+      <View style={styles.selectorGrid}>
+        {Object.keys(estadisticas).map((key) => (
+          <TouchableOpacity 
+            key={key}
+            style={[styles.selBtn, reporteActivo === key && { backgroundColor: estadisticas[key].color }]} 
+            onPress={() => setReporteActivo(key)}
+          >
+            <MaterialCommunityIcons 
+              name={estadisticas[key].icon} 
+              size={24} 
+              color={reporteActivo === key ? "#fff" : estadisticas[key].color} 
+            />
+            <Text style={[styles.selText, reporteActivo === key && { color: "#fff" }]}>{key}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.mainVisualArea}>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <View style={styles.kpiCard}>
+            <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
+            <View style={{ marginLeft: 15 }}>
+              <Text style={styles.kpiLabel}>{reporteActivo.toUpperCase()}</Text>
+              <Text style={styles.kpiValue}>{dataActual.total}</Text>
+              <Text style={styles.kpiSub}>{dataActual.detalle}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.chartTitle}>Flujo Semanal</Text>
+          <View style={styles.barChart}>
+            {dataActual.datosSemanales.map((val, i) => (
+              <View key={i} style={styles.barWrapper}>
+                <View style={[styles.bar, { height: val, backgroundColor: dataActual.color }]} />
+                <Text style={styles.barDay}>{['L','M','M','J','V','S','D'][i]}</Text>
               </View>
-            </View>
-
+            ))}
           </View>
           
-          <Footer />
+          <Text style={styles.description}>{dataActual.descripcion}</Text>
+          <View style={{ height: 100 }} /> 
         </ScrollView>
-      </SafeAreaView>
-    </View>
+
+        <View style={styles.recuadroRojoAcciones}>
+          <TouchableOpacity 
+            style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+            onPress={handlePrint}
+          >
+            <MaterialCommunityIcons name="printer" size={24} color="#000" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+            onPress={handleExportExcel}
+          >
+            <MaterialCommunityIcons name="microsoft-excel" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScreenTemplate>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1 },
-  safeArea: { 
-    flex: 1, 
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 0 
+  title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20 },
+  selectorGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  selBtn: { backgroundColor: '#fff', width: '31%', padding: 12, borderRadius: 15, alignItems: 'center', elevation: 3 },
+  selText: { fontSize: 10, fontWeight: '800', color: '#1e293b', marginTop: 5 },
+  mainVisualArea: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 25, padding: 20, position: 'relative', overflow: 'hidden' },
+  kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 15, borderRadius: 18, alignItems: 'center', marginBottom: 20 },
+  kpiLabel: { fontSize: 10, fontWeight: '900', color: '#64748b' },
+  kpiValue: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
+  kpiSub: { fontSize: 11, color: '#009b3a', fontWeight: '700' },
+  chartTitle: { color: '#fff', fontWeight: '800', marginBottom: 15, fontSize: 14 },
+  barChart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 120, marginBottom: 10 },
+  barWrapper: { alignItems: 'center' },
+  bar: { width: 12, borderRadius: 6 },
+  barDay: { color: '#94a3b8', fontSize: 10, marginTop: 8, fontWeight: '800' },
+  description: { color: '#cbd5e1', fontSize: 12, marginTop: 20, fontStyle: 'italic', textAlign: 'center' },
+
+  recuadroRojoAcciones: {
+    position: 'absolute',
+    bottom: 25,
+    right: 25,
+    flexDirection: 'row',
+    zIndex: 999,
   },
-  scrollContent: { 
-    flexGrow: 1, 
-    justifyContent: 'space-between',
-    paddingBottom: 30 
-  },
-  centralContainer: { 
-    width: '100%', 
-    maxWidth: 1400, 
-    alignSelf: 'center', 
-  },
-  headerContainer: {
-    paddingHorizontal: 16, 
-    width: '100%',
-  },
-  pitchContainer: {
-    width: '95%', 
-    alignSelf: 'center',
-    borderRadius: 35, 
-    borderWidth: 1.5, 
-    borderColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden', 
-    backgroundColor: 'rgba(255,255,255,0.03)', 
-    position: 'relative', 
-    marginTop: 15,
-    minHeight: 500, 
-  },
-  innerContent: { 
-    padding: 16,
-    flex: 1 
-  },
+  btnFlotante: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+    borderWidth: 2,
+    borderColor: '#000',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  }
 });

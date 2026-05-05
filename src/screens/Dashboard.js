@@ -26,7 +26,7 @@ const ALL_MODULES = [
   { id: "canchas", title: "Canchas", screen: "CanchasScreen", icon: "soccer-field", desc: "F5, F7 y F11", color: "#22c55e" },
   { id: "reservas", title: "Reservas", screen: "ReservasScreen", icon: "calendar-clock", desc: "Agenda de Turnos", color: "#a855f7" },
   { id: "competencias", title: "Competencias", screen: "CompetenciasScreen", icon: "trophy-variant", desc: "Ligas y Torneos", color: "#eab308" },
-  { id: "staff", title: "Cuerpo Técnico", screen: "staffScreen", icon: "account-tie-voice", desc: "Profesores y Entrenadores", color: "#ef4444" },
+  { id: "staff", title: "Cuerpo Técnico", screen: "StaffScreen", icon: "account-tie-voice", desc: "Profesores y Entrenadores", color: "#ef4444" },
   { id: "inscripciones", title: "Inscripciones", screen: "InscripcionesScreen", icon: "soccer", desc: "CLASES Y ENTRENAMIENTOS", color: "#6366f1" },
   { id: "facturacion", title: "Facturación", screen: "FacturacionScreen", icon: "cash-register", desc: "Caja y Cobros", color: "#06b6d4" },
   { id: "reportes", title: "Reportes", screen: "ReportesScreen", icon: "chart-bar", desc: "Estadísticas", color: "#f97316" },
@@ -109,7 +109,7 @@ export default function Dashboard({ route, navigation }) {
 
       case 'PROFE': 
       case 'PROFESORES':
-        const allowedProfe = ['inscripciones', 'reservas', 'staff'];
+        const allowedProfe = ['reservas', 'staff'];
         return ALL_MODULES
           .filter(m => allowedProfe.includes(m.id))
           .map(m => {

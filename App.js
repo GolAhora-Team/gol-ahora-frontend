@@ -13,7 +13,7 @@ import UserScreen from './src/screens/UserScreen';
 import CanchasScreen from './src/screens/CanchasScreen';
 import ReservasScreen from './src/screens/ReservasScreen';
 import CompetenciasScreen from './src/screens/CompetenciasScreen';
-import staffScreen from './src/screens/staffScreen'; 
+import StaffScreen from './src/screens/StaffScreen'; 
 import InscripcionesScreen from './src/screens/InscripcionesScreen';
 import FacturacionScreen from './src/screens/FacturacionScreen';
 import ReportesScreen from './src/screens/ReportesScreen';
@@ -41,7 +41,7 @@ export default function App() {
         <Stack.Screen name="CanchasScreen" component={CanchasScreen} />
         <Stack.Screen name="ReservasScreen" component={ReservasScreen} />
         <Stack.Screen name="CompetenciasScreen" component={CompetenciasScreen} />
-        <Stack.Screen name="staffScreen" component={staffScreen} />
+        <Stack.Screen name="StaffScreen" component={StaffScreen} />
         <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} />
         <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} />
         <Stack.Screen name="ReportesScreen" component={ReportesScreen} />
