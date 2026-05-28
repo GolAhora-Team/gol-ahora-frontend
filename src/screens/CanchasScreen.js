@@ -6,7 +6,7 @@ import ScreenTemplate from './ScreenTemplate';
 // --- IMPORTANTE: VERIFICA ESTAS RUTAS ---
 import CanchaCard from '../components/CanchaCard';
 import CanchaFormModal from '../components/CanchaFormModal';
-import { confirmarEliminacion } from '../components/Delete'; 
+import DeleteModal from '../components/DeleteModal'; 
 
 export default function CanchaScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -19,6 +19,8 @@ export default function CanchaScreen({ route, navigation }) {
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [canchaToDelete, setCanchaToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -32,6 +34,7 @@ export default function CanchaScreen({ route, navigation }) {
 
   // --- LÓGICA DE PERMISOS ---
   const canModify = currentUserRole === 'ADMIN';
+  const canToggleMaintenance = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const canGenerateReport = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
 
   // --- FUNCIONES ---
@@ -59,8 +62,23 @@ export default function CanchaScreen({ route, navigation }) {
     setModalVisible(false);
   };
 
+  const handleToggleMaintenance = (canchaId) => {
+    setCanchas(prev => prev.map(c => c.id === canchaId ? { ...c, enMantenimiento: !c.enMantenimiento } : c));
+  };
+
   const handleGenerateReport = () => {
     Alert.alert("Reporte de Canchas", "Generando inventario técnico... Se enviará a gerencia.");
+  };
+
+  const confirmDelete = (cancha) => {
+    setCanchaToDelete(cancha);
+    setDeleteModalVisible(true);
+  };
+
+  const executeDelete = () => {
+    if (canchaToDelete) {
+      setCanchas(prev => prev.filter(x => x.id !== canchaToDelete.id));
+    }
   };
 
   const filteredCanchas = canchas.filter(c => 
@@ -110,8 +128,10 @@ export default function CanchaScreen({ route, navigation }) {
             key={item.id} 
             item={item} 
             onEdit={handleOpenModal} 
-            onDelete={(c) => confirmarEliminacion(c, () => setCanchas(prev => prev.filter(x => x.id !== c.id)), "Eliminar Cancha")} 
+            onDelete={(c) => confirmDelete(c)} 
+            onToggleMaintenance={() => handleToggleMaintenance(item.id)}
             canModify={canModify} 
+            canToggleMaintenance={canToggleMaintenance}
           />
         ))}
       </ScrollView>
@@ -123,6 +143,14 @@ export default function CanchaScreen({ route, navigation }) {
         formData={formData} 
         setFormData={setFormData} 
         onSave={handleSave} 
+      />
+
+      <DeleteModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={executeDelete}
+        title="Eliminar Cancha"
+        itemName={canchaToDelete ? canchaToDelete.nombre : ''}
       />
     </ScreenTemplate>
   );

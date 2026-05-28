@@ -123,6 +123,11 @@ export default function RegisterScreen({ navigation }) {
                     <CustomInput label="Dirección" iconName="map-marker" />
                     <CustomInput label="Email" iconName="email" keyboardType="email-address" />
                     <CustomInput label="Contacto Emergencia" iconName="alert-circle" />
+
+                    <View style={styles.warningContainer}>
+                      <MaterialCommunityIcons name="information" size={16} color="#009b3a" />
+                      <Text style={styles.warningText}>Importante: Tu DNI será tu usuario para iniciar sesión.</Text>
+                    </View>
                   </ScrollView>
 
                   <TouchableOpacity 
@@ -206,4 +211,6 @@ const styles = StyleSheet.create({
   buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   backLink: { marginTop: 15, alignItems: 'center' },
   backLinkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  warningContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 10, borderRadius: 10, marginTop: 10, borderWidth: 1, borderColor: '#bbf7d0' },
+  warningText: { color: '#009b3a', fontSize: 12, fontWeight: '600', marginLeft: 5 },
 });

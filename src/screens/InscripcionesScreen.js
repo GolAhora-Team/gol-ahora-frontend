@@ -1,15 +1,50 @@
- import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+ import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
+import { claseService } from '../services/claseService';
+import { competicionService } from '../services/competicionService';
 
 export default function InscripcionesScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
 
-  const [actividades, setActividades] = useState([
-    { id: '1', nombre: 'Clase F5 - Juveniles', tipo: 'CLASE', cupo: 18, max: 20, profe: 'Carlos Pérez' },
-    { id: '2', nombre: 'Liga Apertura 2026', tipo: 'LIGA', cupo: 20, max: 20, profe: 'N/A' },
-  ]);
+  const [actividades, setActividades] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadActividades();
+  }, []);
+
+  const loadActividades = async () => {
+    try {
+      setLoading(true);
+      let items = [];
+
+      try {
+        const clases = await claseService.getAll();
+        items = [...items, ...(clases || []).map(c => ({
+          ...c, id: c.id?.toString(), tipo: 'CLASE',
+          cupo: c.cantidadAlumnos || 0, max: c.maxAlumnos || 20,
+          profe: c.profesorNombre || 'N/A'
+        }))];
+      } catch (e) { /* clases puede fallar */ }
+
+      try {
+        const competencias = await competicionService.getAll();
+        items = [...items, ...(competencias || []).map(c => ({
+          ...c, id: c.id?.toString(), tipo: 'LIGA',
+          cupo: c.inscriptos || 0, max: c.maxEquipos || 20,
+          profe: 'N/A'
+        }))];
+      } catch (e) { /* competencias puede fallar */ }
+
+      setActividades(items);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar las actividades.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInscribir = (item) => {
     // CP002: Validación de cupos
@@ -21,6 +56,17 @@ export default function InscripcionesScreen({ route, navigation }) {
       { text: "Confirmar", onPress: () => Alert.alert("Éxito", "Inscripción registrada correctamente.") }
     ]);
   };
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando inscripciones...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>

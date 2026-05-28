@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import UserCard from '../components/UserCard';
 import UserFormModal from '../components/UserFormModal';
+import { clienteService } from '../services/clienteService';
+import { profesorService } from '../services/profesorService';
+import { administradorService } from '../services/administradorService';
+import { userService } from '../services/userService';
+import DeleteModal from '../components/DeleteModal';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
 
-  const [users, setUsers] = useState([
-    { id: '1', nombre: 'Julián', apellido: 'Antunes', role: 'ADMIN', email: 'julian@golahora.com', dni: '12345678', activo: true, telefono: '1122334455', dia: '01', mes: '04', anio: '1995', esSocioActivo: true, aptoFisico: true },
-    { id: '2', nombre: 'Robert', apellido: 'García', role: 'PERSONAL', email: 'robert@golahora.com', dni: '87654321', activo: true, telefono: '1155667788' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [formError, setFormError] = useState('');
   
   const initialFormState = {
     dni: '', nombre: '', apellido: '', genero: 'Masculino', dia: '', mes: '', anio: '',
@@ -27,7 +33,34 @@ export default function UserScreen({ route, navigation }) {
   };
 
   const [formData, setFormData] = useState(initialFormState);
-  const rolesIcons = { ADMIN: 'shield-crown', PERSONAL: 'account-cog', PROFE: 'whistle', CLIENTE: 'account-group' };
+  // CARGA INICIAL DESDE EL BACKEND
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const clientes = await clienteService.getAll();
+      const clientesMapped = (clientes || []).map(c => ({
+        ...c, id: c.id?.toString(), role: 'CLIENTE'
+      }));
+
+      let profesores = [];
+      try {
+        const profData = await profesorService.getAll();
+        profesores = (profData || []).map(p => ({
+          ...p, id: p.id?.toString(), role: 'PROFE'
+        }));
+      } catch (e) { /* profesores endpoint puede no existir aún */ }
+
+      setUsers([...clientesMapped, ...profesores]);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar los usuarios.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // PERMISOS
   const canModifyTarget = (targetUser) => {
@@ -40,6 +73,7 @@ export default function UserScreen({ route, navigation }) {
 
   // FUNCIONES
   const handleOpenModal = (user = null) => {
+    setFormError('');
     if (user) {
       if (!canModifyTarget(user)) {
         Alert.alert("Acceso denegado", "No tienes permisos.");
@@ -54,40 +88,115 @@ export default function UserScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  const handleDelete = (userToDelete) => {
-    if (!canModifyTarget(userToDelete)) {
+  const rolesIcons = { ADMIN: 'shield-crown', PERSONAL: 'account-cog', PROFE: 'whistle', CLIENTE: 'account-group' };
+
+  const handleDelete = (targetUser) => {
+    if (!canModifyTarget(targetUser)) {
       Alert.alert("Acceso denegado", "No tienes permisos.");
       return;
     }
-    Alert.alert("Eliminar Usuario", "¿Estás seguro?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "ELIMINAR", onPress: () => setUsers(users.filter(u => u.id !== userToDelete.id)), style: "destructive" }
-    ]);
+    setUserToDelete(targetUser);
+    setDeleteModalVisible(true);
   };
 
-  const handleSave = () => {
+  const executeDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      if (userToDelete.role === 'CLIENTE') {
+        await clienteService.delete(userToDelete.id);
+      } else if (userToDelete.role === 'PROFE') {
+        await profesorService.delete(userToDelete.id);
+      } else if (userToDelete.role === 'ADMIN') {
+        await administradorService.delete(userToDelete.id);
+      }
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
+    }
+  };
+
+  const handleSave = async () => {
     if (!formData.dni || !formData.nombre || !formData.apellido) {
-      Alert.alert("Atención", "DNI, Nombre y Apellido son obligatorios.");
+      setFormError("DNI, Nombre y Apellido son obligatorios.");
       return;
     }
-    if (isEditing) {
-      setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
-    } else {
-      setUsers([...users, { ...formData, id: Date.now().toString() }]);
+    setFormError('');
+    try {
+      if (isEditing) {
+        // Update
+        if (formData.role === 'CLIENTE') {
+          await clienteService.update(formData.id, formData);
+        } else if (formData.role === 'PROFE') {
+          await profesorService.updateSimple(formData.id, formData);
+        } else if (formData.role === 'ADMIN') {
+          await administradorService.updateSimple(formData.id, formData);
+        }
+        setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
+      } else {
+        // Create
+        const dateStr = `${formData.anio || '1990'}-${(formData.mes || '01').padStart(2, '0')}-${(formData.dia || '01').padStart(2, '0')}T00:00:00Z`;
+        const mappedData = { 
+          ...formData, 
+          dni: Number(formData.dni),
+          fechaNacimiento: dateStr,
+          especialidad: formData.especializacion || 'General',
+          certificacion: 'Ninguna', // Valor por defecto ya que no se pide en el form
+          obraSocial: formData.obraSocial || 'Ninguna'
+        };
+        
+        const payload = {
+          email: formData.dni.toString(),
+          password: "1234"
+        };
+
+        if (formData.role === 'CLIENTE') {
+          payload.cliente = mappedData;
+          await userService.createUsuarioCliente(payload);
+        } else if (formData.role === 'PROFE') {
+          payload.request = mappedData;
+          await userService.createUsuarioProfesor(payload);
+        } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
+          mappedData.identificador = formData.role === 'ADMIN' ? 100 : 101;
+          mappedData.puedeFacturar = true;
+          payload.admin = mappedData;
+          await userService.createUsuarioAdmin(payload);
+        }
+
+        Alert.alert("¡Usuario Creado!", `Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        loadUsers(); // Recargar lista completa para reflejar los IDs reales
+      }
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo guardar el usuario.');
     }
-    setModalVisible(false);
   };
 
-  const filteredUsers = users.filter(u => 
-    u.nombre.toLowerCase().includes(search.toLowerCase()) || 
-    u.apellido.toLowerCase().includes(search.toLowerCase()) || 
-    u.dni.includes(search)
-  );
+  const filteredUsers = users.filter(u => {
+    const nombre = u.nombre ? String(u.nombre).toLowerCase() : '';
+    const apellido = u.apellido ? String(u.apellido).toLowerCase() : '';
+    const dni = u.dni ? String(u.dni) : '';
+    const searchLower = search.toLowerCase();
+    
+    return nombre.includes(searchLower) || 
+           apellido.includes(searchLower) || 
+           dni.includes(searchLower);
+  });
 
   const sections = ['ADMIN', 'PERSONAL', 'PROFE', 'CLIENTE'].map(role => ({
     role,
     data: filteredUsers.filter(u => u.role === role)
   })).filter(section => section.data.length > 0);
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando usuarios...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -125,6 +234,15 @@ export default function UserScreen({ route, navigation }) {
         visible={modalVisible} onClose={() => setModalVisible(false)} 
         isEditing={isEditing} formData={formData} setFormData={setFormData} 
         onSave={handleSave} currentUserRole={currentUserRole} rolesIcons={rolesIcons} 
+        errorMessage={formError}
+      />
+
+      <DeleteModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={executeDelete}
+        title="Eliminar Usuario"
+        itemName={userToDelete ? `${userToDelete.nombre} ${userToDelete.apellido}` : ''}
       />
     </ScreenTemplate>
   );

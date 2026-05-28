@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   icon: { marginRight: 10 },
-  input: { flex: 1, height: 45 },
+  input: { flex: 1, height: 45, outlineStyle: 'none' },
 });
 
 export default CustomInput;

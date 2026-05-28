@@ -30,9 +30,10 @@ const ALL_MODULES = [
   { id: "inscripciones", title: "Inscripciones", screen: "InscripcionesScreen", icon: "soccer", desc: "CLASES Y ENTRENAMIENTOS", color: "#6366f1" },
   { id: "facturacion", title: "Facturación", screen: "FacturacionScreen", icon: "cash-register", desc: "Caja y Cobros", color: "#06b6d4" },
   { id: "reportes", title: "Reportes", screen: "ReportesScreen", icon: "chart-bar", desc: "Estadísticas", color: "#f97316" },
+  { id: "clases-profe", title: "Clases a Cargo", screen: "ClasesProfeScreen", icon: "whistle", desc: "Ver alumnos inscriptos", color: "#6366f1" },
 ];
 
-const ModuleCard = ({ module, currentRole, navigation }) => {
+const ModuleCard = ({ module, currentRole, idPersona, navigation }) => {
   const [isPressed, setIsPressed] = useState(false);
 
   return (
@@ -47,7 +48,7 @@ const ModuleCard = ({ module, currentRole, navigation }) => {
       onPressOut={() => setIsPressed(false)}
       onPress={() => {
         if (module.screen) {
-          navigation.navigate(module.screen, { role: currentRole });
+          navigation.navigate(module.screen, { role: currentRole, idPersona });
         }
       }}
     >
@@ -81,20 +82,20 @@ const ModuleCard = ({ module, currentRole, navigation }) => {
 };
 
 export default function Dashboard({ route, navigation }) {
-  const { role } = route.params || { role: "ADMIN" };
+  const { role, idPersona, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, nombreUsuario: "NOMBRE" };
   
   // VARIABLE DE NOMBRE VINCULAR A FUTURO CON EL USERNAME
-  const [userName] = useState("NOMBRE"); 
+  const [userName] = useState(nombreUsuario || "NOMBRE"); 
 
 
   const getVisibleModules = () => {
     switch (role) {
       case 'ADMIN':
-        return ALL_MODULES;
+        return ALL_MODULES.filter(m => m.id !== 'clases-profe');
 
       case 'PERSONAL':
-        return ALL_MODULES.map(m => {
-          if (m.id === 'usuarios') return { ...m, title: "Clientes", desc: "Alta de Clientes" };
+        return ALL_MODULES.filter(m => m.id !== 'clases-profe').map(m => {
+          if (m.id === 'usuarios') return { ...m, title: "Usuarios", desc: "Alta de Profesores y Clientes" };
           return m;
         });
 
@@ -109,11 +110,10 @@ export default function Dashboard({ route, navigation }) {
 
       case 'PROFE': 
       case 'PROFESORES':
-        const allowedProfe = ['reservas', 'staff'];
+        const allowedProfe = ['staff', 'reservas', 'clases-profe'];
         return ALL_MODULES
           .filter(m => allowedProfe.includes(m.id))
           .map(m => {
-            if (m.id === 'inscripciones') return { ...m, title: "Mis Clases", desc: "Listado de Alumnos" };
             if (m.id === 'staff') return { ...m, desc: "Mi Legajo y Colegas" };
             return m;
           });
@@ -181,6 +181,7 @@ export default function Dashboard({ route, navigation }) {
                         key={item.id} 
                         module={item} 
                         currentRole={role} 
+                        idPersona={idPersona}
                         navigation={navigation} 
                       />
                     ))}

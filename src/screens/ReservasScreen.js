@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import ReservaCard from '../components/ReservaCard';
 import ReservaFormModal from '../components/ReservaFormModal';
 import { confirmarEliminacion } from '../components/Delete';
+import { reservaService } from '../services/reservaService';
 
 export default function ReservaScreen({ route, navigation }) {
   // --- CAPTURAMOS USUARIO ---
@@ -19,10 +20,8 @@ export default function ReservaScreen({ route, navigation }) {
     { id: '3', nombre: 'Wembley', enMantenimiento: false },
   ]);
 
-  const [reservas, setReservas] = useState([
-    { id: '1', canchaId: '1', canchaNombre: 'Maracaná 1', clienteNombre: 'Julián Antunes', horaInicio: '15:00', horaFin: '16:00', duracion: 60, estado: 'confirmado' },
-    { id: '2', canchaId: '3', canchaNombre: 'Wembley', clienteNombre: 'Robert García', horaInicio: '17:00', horaFin: '18:00', duracion: 60, estado: 'confirmado' },
-  ]);
+  const [reservas, setReservas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -39,7 +38,29 @@ export default function ReservaScreen({ route, navigation }) {
   
   const [formData, setFormData] = useState(initialForm);
 
-  // --- LÓGICA DE PERMISOS ---
+  // CARGA INICIAL DESDE EL BACKEND
+  useEffect(() => {
+    loadReservas();
+  }, []);
+
+  const loadReservas = async () => {
+    try {
+      setLoading(true);
+      const data = await reservaService.getAll();
+      const mapped = (data || []).map(r => ({
+        ...r,
+        id: r.id?.toString(),
+        canchaId: r.canchaId?.toString(),
+      }));
+      setReservas(mapped);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar las reservas.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // LÓGICA DE PERMISOS
   const puedeOperarTurno = (reserva) => {
     if (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') return true;
     return reserva.clienteNombre === currentUserName;
@@ -69,7 +90,7 @@ export default function ReservaScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       if (!formData.clienteNombre || !formData.canchaId || !formData.horaInicio) {
         Alert.alert("Atención", "Completa todos los campos obligatorios.");
@@ -84,16 +105,29 @@ export default function ReservaScreen({ route, navigation }) {
       const horaFinStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
 
       if (isEditing) {
+        await reservaService.update(formData.id, { ...formData, horaFin: horaFinStr });
         setReservas(prev => prev.map(r => r.id === formData.id ? { ...formData, horaFin: horaFinStr } : r));
       } else {
-        const nueva = { ...formData, id: Date.now().toString(), horaFin: horaFinStr };
+        const result = await reservaService.create({ ...formData, horaFin: horaFinStr });
+        const nueva = { ...formData, id: result?.id?.toString() || Date.now().toString(), horaFin: horaFinStr };
         setReservas(prev => [...prev, nueva]);
       }
       setModalVisible(false);
     } catch (error) {
-      Alert.alert("Error", "Ocurrió un problema al procesar la reserva.");
+      Alert.alert("Error", error.message || "Ocurrió un problema al procesar la reserva.");
     }
   };
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando reservas...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -132,7 +166,14 @@ export default function ReservaScreen({ route, navigation }) {
             item={item} 
             canModify={puedeOperarTurno(item)} 
             onEdit={handleOpenModal} 
-            onDelete={(res) => confirmarEliminacion(res, () => setReservas(prev => prev.filter(r => r.id !== res.id)), "Cancelar Turno")} 
+            onDelete={async (res) => {
+              try {
+                await reservaService.cancelar(res.id);
+                setReservas(prev => prev.filter(r => r.id !== res.id));
+              } catch (error) {
+                Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
+              }
+            }} 
           />
         ))}
       </ScrollView>

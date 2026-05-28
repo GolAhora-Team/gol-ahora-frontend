@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { userService } from '../services/userService';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, 
   SafeAreaView, ScrollView, Dimensions, Platform, 
@@ -26,11 +27,9 @@ const LoginScreen = ({ navigation }) => {
     }
   }, []);
 
-  const handleLogin = () => {
-    const passCorrecta = "1234";
-    const usuarioLimpio = email.toLowerCase().trim();
-    
-    // Limpiamos mensaje de error previo
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
     setErrorMessage('');
 
     if (!email || !password) {
@@ -38,22 +37,39 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    let role = "";
-    // Validación estricta de credenciales
-    if (usuarioLimpio === "admin" && password === passCorrecta) {
-      role = "ADMIN";
-    } else if (usuarioLimpio === "personal" && password === passCorrecta) {
-      role = "PERSONAL";
-    } else if (usuarioLimpio === "cliente" && password === passCorrecta) {
-      role = "CLIENTE";
-    } else if (usuarioLimpio === "profe" && password === passCorrecta) { 
-      role = "PROFE";
-    } else {
-      setErrorMessage("Usuario o contraseña incorrectos.");
-      return;
-    }
+    setIsLoading(true);
+    try {
+      // Llamada real al backend: POST /api/User/login
+      const response = await userService.login({
+        email: email.trim(),
+        password: password,
+      });
 
-    navigation.navigate('Dashboard', { role: role });
+      // El backend retorna tipoUsuario como número (1: Cliente, 2: Profesor, 3: Administrador)
+      let role = 'CLIENTE';
+      if (response.tipoUsuario === 3) {
+        role = response.identificador === 101 ? 'PERSONAL' : 'ADMIN';
+      }
+      else if (response.tipoUsuario === 2) role = 'PROFE';
+      else if (response.tipoUsuario === 1) role = 'CLIENTE';
+      else if (response.rol || response.role) {
+        role = response.rol || response.role;
+      }
+
+      const nombreUsuario = response.nombre
+        ? `${response.nombre} ${response.apellido || ''}`
+        : email;
+
+      navigation.navigate('Dashboard', { 
+        role: role.toUpperCase(), 
+        nombreUsuario,
+        idPersona: response.idPersona
+      });
+    } catch (error) {
+      setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -86,7 +102,7 @@ const LoginScreen = ({ navigation }) => {
 
                 <View style={styles.solidGlassCard}>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Usuario</Text>
+                    <Text style={styles.label}>Usuario / DNI</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
                       <MaterialCommunityIcons 
                         name="account" 
@@ -95,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
                       />
                       <TextInput 
                         style={styles.input} 
-                        placeholder="Ingresa tu usuario" 
+                        placeholder="Ingresa tu usuario o DNI" 
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}

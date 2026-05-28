@@ -1,15 +1,57 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import GenerarImpresion from '../components/GenerarImpresion';
+import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
 
 export default function FacturacionScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
-  const pagos = [
-    { id: '101', usuario: 'Julián Antunes', concepto: 'Reserva Cancha 1', monto: 5000, metodo: 'QR', estado: 'PAGADO', fecha: '04/05/2026' },
-    { id: '102', usuario: 'Nadia Espindola', concepto: 'Cuota Mensual Profe', monto: 8500, metodo: 'Tarjeta', estado: 'PENDIENTE', fecha: '03/05/2026' },
-  ];
+  const [pagos, setPagos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPagos();
+  }, []);
+
+  const loadPagos = async () => {
+    try {
+      setLoading(true);
+      let items = [];
+
+      try {
+        const facturas = await facturaService.getAll();
+        items = [...items, ...(facturas || []).map(f => ({
+          ...f, id: f.id?.toString(),
+        }))];
+      } catch (e) { /* facturas endpoint puede fallar */ }
+
+      try {
+        const pagosData = await pagoService.getAll();
+        items = [...items, ...(pagosData || []).map(p => ({
+          ...p, id: p.id?.toString(),
+        }))];
+      } catch (e) { /* pagos endpoint puede fallar */ }
+
+      setPagos(items);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar los datos de facturación.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando facturación...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>

@@ -1,0 +1,30 @@
+import { API_BASE_URL, http } from './apiConfig';
+
+const URL = `${API_BASE_URL}/Administrador`;
+
+export const administradorService = {
+  /**
+   * PUT /api/Administrador/{id}/simple
+   * Actualización simple de datos del administrador.
+   */
+  updateSimple: async (id, data) => {
+    try {
+      return await http.put(`${URL}/${id}/simple`, data);
+    } catch (error) {
+      console.error(`Error updating administrador con id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * DELETE /api/Administrador/{id}
+   */
+  delete: async (id) => {
+    try {
+      return await http.delete(`${URL}/${id}`);
+    } catch (error) {
+      console.error(`Error deleting administrador con id ${id}:`, error);
+      throw error;
+    }
+  },
+};
