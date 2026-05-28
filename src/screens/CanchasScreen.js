@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 
-// --- IMPORTANTE: VERIFICA ESTAS RUTAS ---
 import CanchaCard from '../components/CanchaCard';
 import CanchaFormModal from '../components/CanchaFormModal';
-import DeleteModal from '../components/DeleteModal'; 
+import DeleteModal from '../components/DeleteModal';
+import SuccessModal from '../components/SuccessModal';
+import { canchaService } from '../services/canchaService';
 
 export default function CanchaScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
 
   // --- ESTADO INICIAL ---
-  const [canchas, setCanchas] = useState([
-    { id: '1', nombre: 'Maracaná 1', tipo: 'F5', superficie: 'Sintético', capacidad: '10', enMantenimiento: false },
-    { id: '2', nombre: 'Centenario', tipo: 'F11', superficie: 'Césped Natural', capacidad: '22', enMantenimiento: true },
-  ]);
+  const [canchas, setCanchas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [canchaToDelete, setCanchaToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -37,6 +38,32 @@ export default function CanchaScreen({ route, navigation }) {
   const canToggleMaintenance = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const canGenerateReport = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
 
+  // --- EFECTOS ---
+  useEffect(() => {
+    loadCanchas();
+  }, []);
+
+  const loadCanchas = async () => {
+    setLoading(true);
+    try {
+      const data = await canchaService.getAll();
+      const mapped = data.map(c => ({
+        id: c.id.toString(),
+        nombre: c.nombre,
+        tipo: c.tipo === "Futbol5" ? "F5" : (c.tipo === "Futbol7" ? "F7" : "F11"),
+        superficie: c.superficie === "1" ? "Sintético" : c.superficie === "2" ? "Césped Natural" : c.superficie === "3" ? "Parquet" : "Cemento",
+        capacidad: c.capacidad.toString(),
+        enMantenimiento: c.estado === 'Mantenimiento',
+        original: c
+      }));
+      setCanchas(mapped);
+    } catch (error) {
+      Alert.alert("Error", "No se pudieron cargar las canchas.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- FUNCIONES ---
   const handleOpenModal = (cancha = null) => {
     if (cancha) {
@@ -49,21 +76,68 @@ export default function CanchaScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.nombre || !formData.capacidad) {
       Alert.alert("Atención", "El nombre y la capacidad son obligatorios.");
       return;
     }
-    if (isEditing) {
-      setCanchas(prev => prev.map(c => c.id === formData.id ? { ...formData } : c));
-    } else {
-      setCanchas(prev => [...prev, { ...formData, id: Date.now().toString() }]);
+    
+    const basePayload = {
+      Nombre: formData.nombre,
+      Tipo: formData.tipo === "F5" ? 5 : (formData.tipo === "F7" ? 7 : 11),
+      Superficie: formData.superficie === "Sintético" ? 1 : formData.superficie === "Césped Natural" ? 2 : formData.superficie === "Parquet" ? 3 : 4,
+      Capacidad: parseInt(formData.capacidad) || 10,
+      Estado: formData.enMantenimiento ? 2 : 1
+    };
+
+    try {
+      if (isEditing) {
+        const payload = {
+          ...formData.original, // Mantener datos como PrecioPorHora
+          ...basePayload
+        };
+        await canchaService.update(formData.id, payload);
+        setSuccessMessage("Los cambios han sido guardados exitosamente.");
+      } else {
+        const payload = {
+          ...basePayload,
+          Disponibilidad: true,
+          HoraInicio: "08:00:00",
+          HoraFin: "23:00:00",
+          DuracionMax: 60,
+          PrecioPorHora: 5000
+        };
+        await canchaService.create(payload);
+        setSuccessMessage("La nueva cancha ha sido registrada exitosamente.");
+      }
+      setModalVisible(false);
+      loadCanchas();
+      setSuccessModalVisible(true);
+    } catch (error) {
+      Alert.alert("Error", error.message || "Error al guardar la cancha");
     }
-    setModalVisible(false);
   };
 
-  const handleToggleMaintenance = (canchaId) => {
-    setCanchas(prev => prev.map(c => c.id === canchaId ? { ...c, enMantenimiento: !c.enMantenimiento } : c));
+  const handleToggleMaintenance = async (canchaId) => {
+    const cancha = canchas.find(c => c.id === canchaId);
+    if (!cancha) return;
+    
+    const newMantenimiento = !cancha.enMantenimiento;
+    const payload = {
+      ...cancha.original,
+      Nombre: cancha.nombre,
+      Tipo: cancha.tipo === "F5" ? 5 : (cancha.tipo === "F7" ? 7 : 11),
+      Superficie: cancha.superficie === "Sintético" ? 1 : cancha.superficie === "Césped Natural" ? 2 : cancha.superficie === "Parquet" ? 3 : 4,
+      Capacidad: parseInt(cancha.capacidad) || 10,
+      Estado: newMantenimiento ? 2 : 1
+    };
+
+    try {
+      await canchaService.update(canchaId, payload);
+      setCanchas(prev => prev.map(c => c.id === canchaId ? { ...c, enMantenimiento: newMantenimiento, original: { ...c.original, estado: newMantenimiento ? "Mantenimiento" : "Disponible" } } : c));
+    } catch (error) {
+      Alert.alert("Error", "No se pudo actualizar el estado.");
+    }
   };
 
   const handleGenerateReport = () => {
@@ -75,9 +149,15 @@ export default function CanchaScreen({ route, navigation }) {
     setDeleteModalVisible(true);
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (canchaToDelete) {
-      setCanchas(prev => prev.filter(x => x.id !== canchaToDelete.id));
+      try {
+        await canchaService.delete(canchaToDelete.id);
+        setCanchas(prev => prev.filter(x => x.id !== canchaToDelete.id));
+        setDeleteModalVisible(false);
+      } catch (error) {
+        Alert.alert("Error", "No se pudo eliminar la cancha.");
+      }
     }
   };
 
@@ -123,17 +203,23 @@ export default function CanchaScreen({ route, navigation }) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-        {filteredCanchas.map(item => (
-          <CanchaCard 
-            key={item.id} 
-            item={item} 
-            onEdit={handleOpenModal} 
-            onDelete={(c) => confirmDelete(c)} 
-            onToggleMaintenance={() => handleToggleMaintenance(item.id)}
-            canModify={canModify} 
-            canToggleMaintenance={canToggleMaintenance}
-          />
-        ))}
+        {loading ? (
+          <ActivityIndicator size="large" color="#009b3a" style={{ marginTop: 50 }} />
+        ) : filteredCanchas.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 50, color: '#94a3b8' }}>No hay canchas disponibles.</Text>
+        ) : (
+          filteredCanchas.map(item => (
+            <CanchaCard 
+              key={item.id} 
+              item={item} 
+              onEdit={handleOpenModal} 
+              onDelete={(c) => confirmDelete(c)} 
+              onToggleMaintenance={() => handleToggleMaintenance(item.id)}
+              canModify={canModify} 
+              canToggleMaintenance={canToggleMaintenance}
+            />
+          ))
+        )}
       </ScrollView>
 
       <CanchaFormModal 
@@ -151,6 +237,12 @@ export default function CanchaScreen({ route, navigation }) {
         onConfirm={executeDelete}
         title="Eliminar Cancha"
         itemName={canchaToDelete ? canchaToDelete.nombre : ''}
+      />
+
+      <SuccessModal
+        visible={successModalVisible}
+        onClose={() => setSuccessModalVisible(false)}
+        message={successMessage}
       />
     </ScreenTemplate>
   );
