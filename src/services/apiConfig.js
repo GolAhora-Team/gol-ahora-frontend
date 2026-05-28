@@ -1,13 +1,7 @@
 import { Platform } from 'react-native';
 
-// Puerto configurado en launchSettings.json del backend ASP.NET Core
-const API_PORT = 5184;
-
-// Android emulator usa 10.0.2.2 para acceder al localhost del host
-// iOS simulator usa localhost directamente
-const API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-
-export const API_BASE_URL = `http://${API_HOST}:${API_PORT}/api`;
+// URL de la API en producción
+export const API_BASE_URL = 'http://golahora.runasp.net/api';
 
 /**
  * Helper genérico para manejar las respuestas del backend.

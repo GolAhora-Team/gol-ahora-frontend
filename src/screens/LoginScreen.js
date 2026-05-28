@@ -45,13 +45,26 @@ const LoginScreen = ({ navigation }) => {
         password: password,
       });
 
-      // El backend retorna un objeto con datos del usuario (rol incluido)
-      const role = response.rol || response.role || 'CLIENTE';
+      // El backend retorna tipoUsuario como número (1: Cliente, 2: Profesor, 3: Administrador)
+      let role = 'CLIENTE';
+      if (response.tipoUsuario === 3) {
+        role = response.identificador === 101 ? 'PERSONAL' : 'ADMIN';
+      }
+      else if (response.tipoUsuario === 2) role = 'PROFE';
+      else if (response.tipoUsuario === 1) role = 'CLIENTE';
+      else if (response.rol || response.role) {
+        role = response.rol || response.role;
+      }
+
       const nombreUsuario = response.nombre
         ? `${response.nombre} ${response.apellido || ''}`
         : email;
 
-      navigation.navigate('Dashboard', { role: role.toUpperCase(), nombreUsuario });
+      navigation.navigate('Dashboard', { 
+        role: role.toUpperCase(), 
+        nombreUsuario,
+        idPersona: response.idPersona
+      });
     } catch (error) {
       setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
     } finally {
@@ -89,7 +102,7 @@ const LoginScreen = ({ navigation }) => {
 
                 <View style={styles.solidGlassCard}>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Usuario</Text>
+                    <Text style={styles.label}>Usuario / DNI</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
                       <MaterialCommunityIcons 
                         name="account" 
@@ -98,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
                       />
                       <TextInput 
                         style={styles.input} 
-                        placeholder="Ingresa tu usuario" 
+                        placeholder="Ingresa tu usuario o DNI" 
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}

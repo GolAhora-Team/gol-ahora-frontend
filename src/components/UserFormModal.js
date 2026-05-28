@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, Sty
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 
-export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons }) {
+export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage }) {
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -14,6 +14,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <MaterialCommunityIcons name="close-circle" size={35} color="#009b3a" />
             </TouchableOpacity>
           </View>
+
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color="#ef4444" />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* 1. IDENTIDAD */}
@@ -119,6 +126,8 @@ const styles = StyleSheet.create({
   modalContainer: { width: '100%', maxWidth: 650, backgroundColor: '#fff', borderRadius: 32, padding: 25, maxHeight: '92%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 15 },
   modalHeaderTitle: { color: '#009b3a', fontSize: 22, fontWeight: '900' },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', padding: 12, borderRadius: 12, marginBottom: 20 },
+  errorText: { color: '#ef4444', fontWeight: 'bold', marginLeft: 8, fontSize: 14 },
   formSection: { marginBottom: 25 },
   sectionTitle: { color: '#94a3b8', fontSize: 11, fontWeight: '900', marginBottom: 15, letterSpacing: 2 },
   greenLabelBold: { color: '#009b3a', fontSize: 13, fontWeight: '900', marginBottom: 8 },
@@ -127,7 +136,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', marginBottom: 15 },
   dateFullRow: { marginBottom: 20 },
   dateInputGroup: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 14, height: 50, borderWidth: 1.5, borderColor: '#e2e8f0', paddingHorizontal: 15 },
-  datePartInput: { color: '#000', fontWeight: '900', fontSize: 16, width: 35, textAlign: 'center' },
+  datePartInput: { color: '#000', fontWeight: '900', fontSize: 16, width: 35, textAlign: 'center', outlineStyle: 'none' },
   dateSeparator: { color: '#94a3b8', fontWeight: '900', fontSize: 18, marginHorizontal: 5 },
   genderRow: { flexDirection: 'row', gap: 10 },
   genderBtn: { flex: 1, padding: 14, borderRadius: 14, borderWidth: 2, borderColor: '#009b3a', alignItems: 'center' },

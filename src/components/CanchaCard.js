@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function CanchaCard({ item, onEdit, onDelete, canModify }) {
+export default function CanchaCard({ item, onEdit, onDelete, onToggleMaintenance, canModify, canToggleMaintenance }) {
   const isMaint = item.enMantenimiento;
 
   return (
@@ -26,16 +26,23 @@ export default function CanchaCard({ item, onEdit, onDelete, canModify }) {
         </View>
       </View>
 
-      {canModify && (
-        <View style={styles.actionSide}>
-          <TouchableOpacity onPress={() => onEdit(item)} style={styles.actionBtn}>
-            <MaterialCommunityIcons name="pencil" size={24} color={isMaint ? "#94a3b8" : "#009b3a"} />
+      <View style={styles.actionSide}>
+        {canToggleMaintenance && (
+          <TouchableOpacity onPress={() => onToggleMaintenance(item)} style={styles.actionBtn}>
+            <MaterialCommunityIcons name="wrench" size={24} color={isMaint ? "#ef4444" : "#cbd5e1"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onDelete(item)} style={styles.actionBtn}>
-            <MaterialCommunityIcons name="trash-can-outline" size={24} color="#ef4444" />
-          </TouchableOpacity>
-        </View>
-      )}
+        )}
+        {canModify && (
+          <>
+            <TouchableOpacity onPress={() => onEdit(item)} style={styles.actionBtn}>
+              <MaterialCommunityIcons name="pencil" size={24} color={isMaint ? "#94a3b8" : "#009b3a"} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => onDelete(item)} style={styles.actionBtn}>
+              <MaterialCommunityIcons name="trash-can-outline" size={24} color="#ef4444" />
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
     </View>
   );
 }

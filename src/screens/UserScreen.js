@@ -7,6 +7,8 @@ import UserFormModal from '../components/UserFormModal';
 import { clienteService } from '../services/clienteService';
 import { profesorService } from '../services/profesorService';
 import { administradorService } from '../services/administradorService';
+import { userService } from '../services/userService';
+import DeleteModal from '../components/DeleteModal';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -16,8 +18,11 @@ export default function UserScreen({ route, navigation }) {
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [formError, setFormError] = useState('');
   
   const initialFormState = {
     dni: '', nombre: '', apellido: '', genero: 'Masculino', dia: '', mes: '', anio: '',
@@ -68,6 +73,7 @@ export default function UserScreen({ route, navigation }) {
 
   // FUNCIONES
   const handleOpenModal = (user = null) => {
+    setFormError('');
     if (user) {
       if (!canModifyTarget(user)) {
         Alert.alert("Acceso denegado", "No tienes permisos.");
@@ -84,38 +90,37 @@ export default function UserScreen({ route, navigation }) {
 
   const rolesIcons = { ADMIN: 'shield-crown', PERSONAL: 'account-cog', PROFE: 'whistle', CLIENTE: 'account-group' };
 
-  const handleDelete = (userToDelete) => {
-    if (!canModifyTarget(userToDelete)) {
+  const handleDelete = (targetUser) => {
+    if (!canModifyTarget(targetUser)) {
       Alert.alert("Acceso denegado", "No tienes permisos.");
       return;
     }
-    Alert.alert("Eliminar Usuario", "¿Estás seguro?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "ELIMINAR", style: "destructive",
-        onPress: async () => {
-          try {
-            if (userToDelete.role === 'CLIENTE') {
-              await clienteService.delete(userToDelete.id);
-            } else if (userToDelete.role === 'PROFE') {
-              await profesorService.delete(userToDelete.id);
-            } else if (userToDelete.role === 'ADMIN') {
-              await administradorService.delete(userToDelete.id);
-            }
-            setUsers(users.filter(u => u.id !== userToDelete.id));
-          } catch (error) {
-            Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
-          }
-        }
+    setUserToDelete(targetUser);
+    setDeleteModalVisible(true);
+  };
+
+  const executeDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      if (userToDelete.role === 'CLIENTE') {
+        await clienteService.delete(userToDelete.id);
+      } else if (userToDelete.role === 'PROFE') {
+        await profesorService.delete(userToDelete.id);
+      } else if (userToDelete.role === 'ADMIN') {
+        await administradorService.delete(userToDelete.id);
       }
-    ]);
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
+    }
   };
 
   const handleSave = async () => {
     if (!formData.dni || !formData.nombre || !formData.apellido) {
-      Alert.alert("Atención", "DNI, Nombre y Apellido son obligatorios.");
+      setFormError("DNI, Nombre y Apellido son obligatorios.");
       return;
     }
+    setFormError('');
     try {
       if (isEditing) {
         // Update
@@ -129,9 +134,36 @@ export default function UserScreen({ route, navigation }) {
         setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
       } else {
         // Create
-        const result = await clienteService.create(formData);
-        const newUser = { ...formData, id: result?.id?.toString() || Date.now().toString(), role: formData.role || 'CLIENTE' };
-        setUsers([...users, newUser]);
+        const dateStr = `${formData.anio || '1990'}-${(formData.mes || '01').padStart(2, '0')}-${(formData.dia || '01').padStart(2, '0')}T00:00:00Z`;
+        const mappedData = { 
+          ...formData, 
+          dni: Number(formData.dni),
+          fechaNacimiento: dateStr,
+          especialidad: formData.especializacion || 'General',
+          certificacion: 'Ninguna', // Valor por defecto ya que no se pide en el form
+          obraSocial: formData.obraSocial || 'Ninguna'
+        };
+        
+        const payload = {
+          email: formData.dni.toString(),
+          password: "1234"
+        };
+
+        if (formData.role === 'CLIENTE') {
+          payload.cliente = mappedData;
+          await userService.createUsuarioCliente(payload);
+        } else if (formData.role === 'PROFE') {
+          payload.request = mappedData;
+          await userService.createUsuarioProfesor(payload);
+        } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
+          mappedData.identificador = formData.role === 'ADMIN' ? 100 : 101;
+          mappedData.puedeFacturar = true;
+          payload.admin = mappedData;
+          await userService.createUsuarioAdmin(payload);
+        }
+
+        Alert.alert("¡Usuario Creado!", `Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        loadUsers(); // Recargar lista completa para reflejar los IDs reales
       }
       setModalVisible(false);
     } catch (error) {
@@ -139,11 +171,16 @@ export default function UserScreen({ route, navigation }) {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.nombre.toLowerCase().includes(search.toLowerCase()) || 
-    u.apellido.toLowerCase().includes(search.toLowerCase()) || 
-    u.dni.includes(search)
-  );
+  const filteredUsers = users.filter(u => {
+    const nombre = u.nombre ? String(u.nombre).toLowerCase() : '';
+    const apellido = u.apellido ? String(u.apellido).toLowerCase() : '';
+    const dni = u.dni ? String(u.dni) : '';
+    const searchLower = search.toLowerCase();
+    
+    return nombre.includes(searchLower) || 
+           apellido.includes(searchLower) || 
+           dni.includes(searchLower);
+  });
 
   const sections = ['ADMIN', 'PERSONAL', 'PROFE', 'CLIENTE'].map(role => ({
     role,
@@ -197,6 +234,15 @@ export default function UserScreen({ route, navigation }) {
         visible={modalVisible} onClose={() => setModalVisible(false)} 
         isEditing={isEditing} formData={formData} setFormData={setFormData} 
         onSave={handleSave} currentUserRole={currentUserRole} rolesIcons={rolesIcons} 
+        errorMessage={formError}
+      />
+
+      <DeleteModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={executeDelete}
+        title="Eliminar Usuario"
+        itemName={userToDelete ? `${userToDelete.nombre} ${userToDelete.apellido}` : ''}
       />
     </ScreenTemplate>
   );
