@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { userService } from '../services/userService';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, 
   SafeAreaView, ScrollView, Dimensions, Platform, 
@@ -26,11 +27,9 @@ const LoginScreen = ({ navigation }) => {
     }
   }, []);
 
-  const handleLogin = () => {
-    const passCorrecta = "1234";
-    const usuarioLimpio = email.toLowerCase().trim();
-    
-    // Limpiamos mensaje de error previo
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
     setErrorMessage('');
 
     if (!email || !password) {
@@ -38,22 +37,26 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    let role = "";
-    // Validación estricta de credenciales
-    if (usuarioLimpio === "admin" && password === passCorrecta) {
-      role = "ADMIN";
-    } else if (usuarioLimpio === "personal" && password === passCorrecta) {
-      role = "PERSONAL";
-    } else if (usuarioLimpio === "cliente" && password === passCorrecta) {
-      role = "CLIENTE";
-    } else if (usuarioLimpio === "profe" && password === passCorrecta) { 
-      role = "PROFE";
-    } else {
-      setErrorMessage("Usuario o contraseña incorrectos.");
-      return;
-    }
+    setIsLoading(true);
+    try {
+      // Llamada real al backend: POST /api/User/login
+      const response = await userService.login({
+        email: email.trim(),
+        password: password,
+      });
 
-    navigation.navigate('Dashboard', { role: role });
+      // El backend retorna un objeto con datos del usuario (rol incluido)
+      const role = response.rol || response.role || 'CLIENTE';
+      const nombreUsuario = response.nombre
+        ? `${response.nombre} ${response.apellido || ''}`
+        : email;
+
+      navigation.navigate('Dashboard', { role: role.toUpperCase(), nombreUsuario });
+    } catch (error) {
+      setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

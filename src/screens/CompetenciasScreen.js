@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import CompetenciaCard from '../components/CompetenciaCard';
 import CompetenciaFormModal from '../components/CompetenciaFormModal';
 import { confirmarEliminacion } from '../components/Delete';
+import { competicionService } from '../services/competicionService';
 
 export default function CompetenciasScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
 
-  const [competencias, setCompetencias] = useState([
-    { id: '1', nombre: 'Liga Apertura 2026', tipo: 'LIGA', estado: 'inscripcion', inscriptos: 10, maxEquipos: 20, premio: 'Trofeo + Indumentaria', fechaInicio: '15/05/2026' },
-    { id: '2', nombre: 'Torneo Relámpago F5', tipo: 'TORNEO', estado: 'inscripcion', inscriptos: 5, maxEquipos: 8, premio: 'Cena para el equipo', fechaInicio: '20/05/2026' },
-  ]);
+  const [competencias, setCompetencias] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -21,14 +20,42 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
 
-  const handleCreate = () => {
+  // CARGA INICIAL DESDE EL BACKEND
+  useEffect(() => {
+    loadCompetencias();
+  }, []);
+
+  const loadCompetencias = async () => {
+    try {
+      setLoading(true);
+      const data = await competicionService.getAll();
+      const mapped = (data || []).map(c => ({
+        ...c,
+        id: c.id?.toString(),
+      }));
+      setCompetencias(mapped);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar las competencias.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isStaffCheck = isStaff;
+
+  const handleCreate = async () => {
     if (!formData.nombre || !formData.fechaInicio) {
       return Alert.alert("Atención", "El nombre y la fecha de inicio son obligatorios");
     }
-    const nueva = { ...formData, id: Date.now().toString(), estado: 'inscripcion', inscriptos: 0 };
-    setCompetencias(prev => [...prev, nueva]);
-    setFormData(initialForm);
-    setModalVisible(false);
+    try {
+      const result = await competicionService.create(formData);
+      const nueva = { ...formData, id: result?.id?.toString() || Date.now().toString(), estado: 'inscripcion', inscriptos: 0 };
+      setCompetencias(prev => [...prev, nueva]);
+      setFormData(initialForm);
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo crear la competencia.');
+    }
   };
 
   const handleInscripcion = (item) => {
@@ -51,6 +78,17 @@ export default function CompetenciasScreen({ route, navigation }) {
       ]
     );
   };
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando competencias...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -85,7 +123,14 @@ export default function CompetenciasScreen({ route, navigation }) {
             canModify={isStaff}
             yaInscripto={misInscripciones.includes(item.id)}
             onInscribir={() => handleInscripcion(item)}
-            onDelete={() => confirmarEliminacion(item, () => setCompetencias(prev => prev.filter(c => c.id !== item.id)))}
+            onDelete={async () => {
+              try {
+                await competicionService.delete(item.id);
+                setCompetencias(prev => prev.filter(c => c.id !== item.id));
+              } catch (error) {
+                Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
+              }
+            }}
           />
         ))}
       </ScrollView>

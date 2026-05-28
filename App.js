@@ -17,6 +17,7 @@ import StaffScreen from './src/screens/StaffScreen';
 import InscripcionesScreen from './src/screens/InscripcionesScreen';
 import FacturacionScreen from './src/screens/FacturacionScreen';
 import ReportesScreen from './src/screens/ReportesScreen';
+import ClientesScreen from './src/screens/ClientesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +46,7 @@ export default function App() {
         <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} />
         <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} />
         <Stack.Screen name="ReportesScreen" component={ReportesScreen} />
+        <Stack.Screen name="ClientesScreen" component={ClientesScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

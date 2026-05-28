@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import UserCard from '../components/UserCard';
 import UserFormModal from '../components/UserFormModal';
+import { clienteService } from '../services/clienteService';
+import { profesorService } from '../services/profesorService';
+import { administradorService } from '../services/administradorService';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
 
-  const [users, setUsers] = useState([
-    { id: '1', nombre: 'Julián', apellido: 'Antunes', role: 'ADMIN', email: 'julian@golahora.com', dni: '12345678', activo: true, telefono: '1122334455', dia: '01', mes: '04', anio: '1995', esSocioActivo: true, aptoFisico: true },
-    { id: '2', nombre: 'Robert', apellido: 'García', role: 'PERSONAL', email: 'robert@golahora.com', dni: '87654321', activo: true, telefono: '1155667788' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -27,7 +28,34 @@ export default function UserScreen({ route, navigation }) {
   };
 
   const [formData, setFormData] = useState(initialFormState);
-  const rolesIcons = { ADMIN: 'shield-crown', PERSONAL: 'account-cog', PROFE: 'whistle', CLIENTE: 'account-group' };
+  // CARGA INICIAL DESDE EL BACKEND
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const clientes = await clienteService.getAll();
+      const clientesMapped = (clientes || []).map(c => ({
+        ...c, id: c.id?.toString(), role: 'CLIENTE'
+      }));
+
+      let profesores = [];
+      try {
+        const profData = await profesorService.getAll();
+        profesores = (profData || []).map(p => ({
+          ...p, id: p.id?.toString(), role: 'PROFE'
+        }));
+      } catch (e) { /* profesores endpoint puede no existir aún */ }
+
+      setUsers([...clientesMapped, ...profesores]);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar los usuarios.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // PERMISOS
   const canModifyTarget = (targetUser) => {
@@ -54,6 +82,8 @@ export default function UserScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
+  const rolesIcons = { ADMIN: 'shield-crown', PERSONAL: 'account-cog', PROFE: 'whistle', CLIENTE: 'account-group' };
+
   const handleDelete = (userToDelete) => {
     if (!canModifyTarget(userToDelete)) {
       Alert.alert("Acceso denegado", "No tienes permisos.");
@@ -61,21 +91,52 @@ export default function UserScreen({ route, navigation }) {
     }
     Alert.alert("Eliminar Usuario", "¿Estás seguro?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "ELIMINAR", onPress: () => setUsers(users.filter(u => u.id !== userToDelete.id)), style: "destructive" }
+      {
+        text: "ELIMINAR", style: "destructive",
+        onPress: async () => {
+          try {
+            if (userToDelete.role === 'CLIENTE') {
+              await clienteService.delete(userToDelete.id);
+            } else if (userToDelete.role === 'PROFE') {
+              await profesorService.delete(userToDelete.id);
+            } else if (userToDelete.role === 'ADMIN') {
+              await administradorService.delete(userToDelete.id);
+            }
+            setUsers(users.filter(u => u.id !== userToDelete.id));
+          } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
+          }
+        }
+      }
     ]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.dni || !formData.nombre || !formData.apellido) {
       Alert.alert("Atención", "DNI, Nombre y Apellido son obligatorios.");
       return;
     }
-    if (isEditing) {
-      setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
-    } else {
-      setUsers([...users, { ...formData, id: Date.now().toString() }]);
+    try {
+      if (isEditing) {
+        // Update
+        if (formData.role === 'CLIENTE') {
+          await clienteService.update(formData.id, formData);
+        } else if (formData.role === 'PROFE') {
+          await profesorService.updateSimple(formData.id, formData);
+        } else if (formData.role === 'ADMIN') {
+          await administradorService.updateSimple(formData.id, formData);
+        }
+        setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
+      } else {
+        // Create
+        const result = await clienteService.create(formData);
+        const newUser = { ...formData, id: result?.id?.toString() || Date.now().toString(), role: formData.role || 'CLIENTE' };
+        setUsers([...users, newUser]);
+      }
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo guardar el usuario.');
     }
-    setModalVisible(false);
   };
 
   const filteredUsers = users.filter(u => 
@@ -88,6 +149,17 @@ export default function UserScreen({ route, navigation }) {
     role,
     data: filteredUsers.filter(u => u.role === role)
   })).filter(section => section.data.length > 0);
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando usuarios...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>

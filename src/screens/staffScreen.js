@@ -1,25 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
   View, 
   ScrollView, 
   TouchableOpacity, 
-  Alert 
+  Alert,
+  ActivityIndicator 
 } from 'react-native';
 import ScreenTemplate from './ScreenTemplate';
 import AsistenciaModal from '../components/AsistenciaModal';
+import { claseService } from '../services/claseService';
 
 export default function StaffScreen({ route, navigation }) {
   const { role: currentUserRole, userName = "NombreProfe ApellidoProfe" } = route.params || { role: "PROFE" };
 
- 
-  const [todasLasClases] = useState([
-    { id: '1', nombre: 'F5 - Juveniles A', profe: 'NombreProfe ApellidoProfe', horario: '18:00hs', alumnos: 15 },
-    { id: '2', nombre: 'F11 - Entrenamiento Senior', profe: 'NombreProfe ApellidoProfe', horario: '20:00hs', alumnos: 22 },
-    { id: '3', nombre: 'F7 - Escuelita Mixta', profe: 'Marcos Gimenez', horario: '17:00hs', alumnos: 10 },
-    { id: '4', nombre: 'Entrenamiento Arqueros', profe: 'Juan Gomez', horario: '19:00hs', alumnos: 5 },
-  ]);
+  const [todasLasClases, setTodasLasClases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // CARGA INICIAL DESDE EL BACKEND
+  useEffect(() => {
+    loadClases();
+  }, []);
+
+  const loadClases = async () => {
+    try {
+      setLoading(true);
+      const data = await claseService.getAll();
+      const mapped = (data || []).map(c => ({
+        ...c,
+        id: c.id?.toString(),
+        profe: c.profesorNombre || c.profe || 'Sin asignar',
+        alumnos: c.cantidadAlumnos || c.alumnos || 0,
+      }));
+      setTodasLasClases(mapped);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar las clases.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [modalVisible, setModalVisible] = useState(false);
   const [claseSeleccionada, setClaseSeleccionada] = useState("");
@@ -31,6 +51,17 @@ export default function StaffScreen({ route, navigation }) {
     setClaseSeleccionada(nombre);
     setModalVisible(true);
   };
+
+  if (loading) {
+    return (
+      <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando clases...</Text>
+        </View>
+      </ScreenTemplate>
+    );
+  }
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
