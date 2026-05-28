@@ -16,11 +16,23 @@ export const handleResponse = async (response) => {
   const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    const error =
-      (data && (data.mensaje || data.message || data.Message)) ||
-      response.statusText ||
-      'Error en la petición';
-    throw new Error(error);
+    let errorMessage = 'Error en la petición';
+    
+    if (data) {
+      if (data.mensaje || data.message || data.Message) {
+        errorMessage = data.mensaje || data.message || data.Message;
+      } else if (data.errors && typeof data.errors === 'object') {
+        // Formatear errores de validación de ASP.NET Core
+        const errorMessages = Object.values(data.errors).flat();
+        errorMessage = errorMessages.join('\n');
+      } else if (data.title) {
+        errorMessage = data.title;
+      }
+    } else if (response.statusText) {
+      errorMessage = response.statusText;
+    }
+
+    throw new Error(errorMessage);
   }
 
   return data;
