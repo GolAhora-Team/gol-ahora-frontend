@@ -18,31 +18,85 @@ import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import CustomInput from '../components/CustomInput';
 import Footer from '../components/Footer';
+import SuccessModal from '../components/SuccessModal';
+import { userService } from '../services/userService';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
 export default function RegisterScreen({ navigation }) {
   const [genero, setGenero] = useState(null); 
+  const [dni, setDni] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [email, setEmail] = useState('');
+  const [contactoEmergencia, setContactoEmergencia] = useState('');
+  const [errors, setErrors] = useState({});
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    let newErrors = {};
+
+    if (!dni) newErrors.dni = 'El DNI es obligatorio';
+    if (!password) newErrors.password = 'La contraseña es obligatoria';
+    if (!confirmPassword) newErrors.confirmPassword = 'Confirma tu contraseña';
+    else if (password !== confirmPassword) newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    if (!nombre) newErrors.nombre = 'Obligatorio';
+    if (!apellido) newErrors.apellido = 'Obligatorio';
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
     if (!genero) {
       Alert.alert("Atención", "Por favor selecciona un género.");
       return;
     }
 
-    const message = "¡Registro exitoso! Recibirás un mail para activar tu cuenta.";
-    
-    if (Platform.OS === 'web') {
-      window.alert(message);
-      navigation.navigate('Login');
-    } else {
-      Alert.alert(
-        "Verifica tu cuenta",
-        message,
-        [{ text: "Entendido", onPress: () => navigation.navigate('Login') }]
-      );
+    setIsLoading(true);
+    try {
+      const payload = {
+        Email: dni, // El DNI se usa como Email (usuario) para el login
+        Password: password,
+        Cliente: {
+          Dni: parseInt(dni) || 0,
+          Nombre: nombre,
+          Apellido: apellido,
+          Genero: genero,
+          FechaNacimiento: fechaNacimiento || "2000-01-01T00:00:00.000Z",
+          Telefono: telefono || "",
+          Direccion: direccion || "",
+          Localidad: "",
+          CodigoPostal: "",
+          Provincia: "",
+          Pais: "",
+          ContactoEmergencia: contactoEmergencia || "",
+          Email: email || "",
+          ObraSocial: "",
+          AptoFisico: true
+        }
+      };
+      
+      await userService.createUsuarioCliente(payload);
+      setSuccessVisible(true);
+    } catch (error) {
+      Alert.alert("Error de Registro", error.message || "Ocurrió un error al registrar el usuario.");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessVisible(false);
+    navigation.navigate('Login');
   };
 
   return (
@@ -80,14 +134,51 @@ export default function RegisterScreen({ navigation }) {
                     style={{ maxHeight: windowHeight * 0.45 }}
                     nestedScrollEnabled={true}
                   >
-                    <CustomInput label="DNI" iconName="card-account-details" keyboardType="numeric" />
+                    <CustomInput 
+                      label="DNI" 
+                      iconName="card-account-details" 
+                      keyboardType="numeric" 
+                      value={dni}
+                      onChangeText={setDni}
+                      error={errors.dni}
+                    />
+                    
+                    <CustomInput 
+                      label="Contraseña" 
+                      iconName="lock" 
+                      isPassword={true}
+                      value={password}
+                      onChangeText={setPassword}
+                      error={errors.password}
+                    />
+                    
+                    <CustomInput 
+                      label="Confirmar Contraseña" 
+                      iconName="lock-check" 
+                      isPassword={true}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      error={errors.confirmPassword}
+                    />
                     
                     <View style={styles.row}>
                         <View style={{flex: 1, marginRight: 5}}>
-                            <CustomInput label="Nombre" iconName="account" />
+                            <CustomInput 
+                              label="Nombre" 
+                              iconName="account" 
+                              value={nombre} 
+                              onChangeText={setNombre} 
+                              error={errors.nombre}
+                            />
                         </View>
                         <View style={{flex: 1, marginLeft: 5}}>
-                            <CustomInput label="Apellido" iconName="account" />
+                            <CustomInput 
+                              label="Apellido" 
+                              iconName="account" 
+                              value={apellido} 
+                              onChangeText={setApellido} 
+                              error={errors.apellido}
+                            />
                         </View>
                     </View>
 
@@ -118,11 +209,39 @@ export default function RegisterScreen({ navigation }) {
                       </TouchableOpacity>
                     </View>
 
-                    <CustomInput label="Fecha de Nacimiento" iconName="calendar" placeholder="DD/MM/AAAA" />
-                    <CustomInput label="Teléfono" iconName="phone" keyboardType="phone-pad" />
-                    <CustomInput label="Dirección" iconName="map-marker" />
-                    <CustomInput label="Email" iconName="email" keyboardType="email-address" />
-                    <CustomInput label="Contacto Emergencia" iconName="alert-circle" />
+                    <CustomInput 
+                      label="Fecha de Nacimiento" 
+                      iconName="calendar" 
+                      placeholder="AAAA-MM-DD" 
+                      value={fechaNacimiento} 
+                      onChangeText={setFechaNacimiento} 
+                    />
+                    <CustomInput 
+                      label="Teléfono" 
+                      iconName="phone" 
+                      keyboardType="phone-pad" 
+                      value={telefono} 
+                      onChangeText={setTelefono} 
+                    />
+                    <CustomInput 
+                      label="Dirección" 
+                      iconName="map-marker" 
+                      value={direccion} 
+                      onChangeText={setDireccion} 
+                    />
+                    <CustomInput 
+                      label="Email" 
+                      iconName="email" 
+                      keyboardType="email-address" 
+                      value={email} 
+                      onChangeText={setEmail} 
+                    />
+                    <CustomInput 
+                      label="Contacto Emergencia" 
+                      iconName="alert-circle" 
+                      value={contactoEmergencia} 
+                      onChangeText={setContactoEmergencia} 
+                    />
 
                     <View style={styles.warningContainer}>
                       <MaterialCommunityIcons name="information" size={16} color="#009b3a" />
@@ -131,12 +250,13 @@ export default function RegisterScreen({ navigation }) {
                   </ScrollView>
 
                   <TouchableOpacity 
-                    style={styles.mainButton} 
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
                     activeOpacity={0.8}
                     onPress={handleRegister}
+                    disabled={isLoading}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
-                      <Text style={styles.buttonText}>REGISTRARME</Text>
+                      <Text style={styles.buttonText}>{isLoading ? 'REGISTRANDO...' : 'REGISTRARME'}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -153,6 +273,13 @@ export default function RegisterScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <SuccessModal
+        visible={successVisible}
+        onClose={handleSuccessClose}
+        title="¡Registro exitoso!"
+        message="Recibirás un mail para activar tu cuenta."
+      />
     </View>
   );
 }
