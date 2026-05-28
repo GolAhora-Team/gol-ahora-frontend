@@ -1,7 +1,10 @@
 import { Platform } from 'react-native';
 
-// URL de la API en producción
-export const API_BASE_URL = 'http://golahora.runasp.net/api';
+const isWebProd = Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+
+// En Vercel usamos ruta relativa '/api' para aprovechar el proxy de vercel.json y evitar errores de Mixed Content (HTTP vs HTTPS).
+// Localmente, pegamos directo al dominio completo.
+export const API_BASE_URL = isWebProd ? '/api' : 'http://golahora.runasp.net/api';
 
 /**
  * Helper genérico para manejar las respuestas del backend.
