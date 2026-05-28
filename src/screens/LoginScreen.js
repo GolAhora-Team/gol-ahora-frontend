@@ -18,6 +18,7 @@ const isWeb = Platform.OS === 'web' && windowWidth > 768;
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSecure, setIsSecure] = useState(true);
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
 
@@ -136,7 +137,7 @@ const LoginScreen = ({ navigation }) => {
                         style={styles.input} 
                         placeholder="Ingresa tu contraseña" 
                         placeholderTextColor="#999"
-                        secureTextEntry
+                        secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
                         onChangeText={setPassword}
@@ -146,6 +147,9 @@ const LoginScreen = ({ navigation }) => {
                         onSubmitEditing={handleLogin}
                         blurOnSubmit={true}
                       />
+                      <TouchableOpacity onPress={() => setIsSecure(!isSecure)} style={{ padding: 5 }}>
+                        <MaterialCommunityIcons name={isSecure ? "eye-off" : "eye"} size={22} color="#666" />
+                      </TouchableOpacity>
                     </View>
                   </View>
 
