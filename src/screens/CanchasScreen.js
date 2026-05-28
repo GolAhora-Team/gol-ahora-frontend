@@ -96,8 +96,12 @@ export default function CanchaScreen({ route, navigation }) {
     try {
       if (isEditing) {
         const payload = {
-          ...formData.original, // Mantener datos como PrecioPorHora
-          ...basePayload
+          ...basePayload,
+          Disponibilidad: formData.original?.disponibilidad ?? true,
+          HoraInicio: formData.original?.horaInicio ?? "08:00:00",
+          HoraFin: formData.original?.horaFin ?? "23:00:00",
+          DuracionMax: formData.original?.duracionMax ?? 60,
+          PrecioPorHora: formData.original?.precioPorHora ?? 5000
         };
         await canchaService.update(formData.id, payload);
         setSuccessMessage("Los cambios han sido guardados exitosamente.");
@@ -127,12 +131,16 @@ export default function CanchaScreen({ route, navigation }) {
     
     const newMantenimiento = !cancha.enMantenimiento;
     const payload = {
-      ...cancha.original,
       Nombre: cancha.nombre,
       Tipo: cancha.tipo === "F5" ? 5 : (cancha.tipo === "F7" ? 7 : 11),
       Superficie: cancha.superficie === "Sintético" ? 1 : cancha.superficie === "Césped Natural" ? 2 : cancha.superficie === "Parquet" ? 3 : 4,
       Capacidad: parseInt(cancha.capacidad) || 10,
-      Estado: newMantenimiento ? 2 : 1
+      Estado: newMantenimiento ? 2 : 1,
+      Disponibilidad: cancha.original?.disponibilidad ?? true,
+      HoraInicio: cancha.original?.horaInicio ?? "08:00:00",
+      HoraFin: cancha.original?.horaFin ?? "23:00:00",
+      DuracionMax: cancha.original?.duracionMax ?? 60,
+      PrecioPorHora: cancha.original?.precioPorHora ?? 5000
     };
 
     try {
