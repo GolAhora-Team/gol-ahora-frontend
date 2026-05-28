@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } f
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 
-export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave }) {
+export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, errorMessage }) {
   const tipos = ['F5', 'F7', 'F11'];
   const superficies = ['Sintético', 'Césped Natural', 'Parquet', 'Cemento'];
 
@@ -17,6 +17,13 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               <MaterialCommunityIcons name="close-circle" size={35} color="#009b3a" />
             </TouchableOpacity>
           </View>
+
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color="#ef4444" />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.formSection}>
@@ -100,6 +107,8 @@ const styles = StyleSheet.create({
   container: { width: '100%', maxWidth: 650, backgroundColor: '#fff', borderRadius: 32, padding: 25, maxHeight: '92%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 15 },
   headerTitle: { color: '#009b3a', fontSize: 22, fontWeight: '900' },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', padding: 12, borderRadius: 12, marginBottom: 20 },
+  errorText: { color: '#ef4444', fontWeight: 'bold', marginLeft: 8, fontSize: 14 },
   formSection: { marginBottom: 25 },
   sectionTitle: { color: '#94a3b8', fontSize: 11, fontWeight: '900', marginBottom: 15, letterSpacing: 2 },
   greenLabelBold: { color: '#009b3a', fontSize: 13, fontWeight: '900', marginBottom: 8 },

@@ -24,6 +24,7 @@ export default function CanchaScreen({ route, navigation }) {
   const [canchaToDelete, setCanchaToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [formError, setFormError] = useState('');
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -66,6 +67,7 @@ export default function CanchaScreen({ route, navigation }) {
 
   // --- FUNCIONES ---
   const handleOpenModal = (cancha = null) => {
+    setFormError('');
     if (cancha) {
       setFormData({ ...cancha });
       setIsEditing(true);
@@ -77,8 +79,9 @@ export default function CanchaScreen({ route, navigation }) {
   };
 
   const handleSave = async () => {
+    setFormError('');
     if (!formData.nombre || !formData.capacidad) {
-      Alert.alert("Atención", "El nombre y la capacidad son obligatorios.");
+      setFormError("El nombre y la capacidad son obligatorios.");
       return;
     }
     
@@ -114,7 +117,7 @@ export default function CanchaScreen({ route, navigation }) {
       loadCanchas();
       setSuccessModalVisible(true);
     } catch (error) {
-      Alert.alert("Error", error.message || "Error al guardar la cancha");
+      setFormError(error.message || "Error al guardar la cancha");
     }
   };
 
@@ -229,6 +232,7 @@ export default function CanchaScreen({ route, navigation }) {
         formData={formData} 
         setFormData={setFormData} 
         onSave={handleSave} 
+        errorMessage={formError}
       />
 
       <DeleteModal
