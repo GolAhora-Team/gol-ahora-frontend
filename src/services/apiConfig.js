@@ -12,8 +12,17 @@ export const API_BASE_URL = isWebProd ? '/api' : 'http://golahora.runasp.net/api
  */
 export const handleResponse = async (response) => {
   const contentType = response.headers.get('content-type');
-  const isJson = contentType?.includes('application/json');
-  const data = isJson ? await response.json() : null;
+  const isJson = contentType?.includes('json');
+  const isText = contentType?.includes('text/plain');
+  
+  let data = null;
+  let textData = null;
+  
+  if (isJson) {
+    data = await response.json();
+  } else {
+    textData = await response.text();
+  }
 
   if (!response.ok) {
     let errorMessage = 'Error en la petición';
@@ -22,12 +31,13 @@ export const handleResponse = async (response) => {
       if (data.mensaje || data.message || data.Message) {
         errorMessage = data.mensaje || data.message || data.Message;
       } else if (data.errors && typeof data.errors === 'object') {
-        // Formatear errores de validación de ASP.NET Core
         const errorMessages = Object.values(data.errors).flat();
         errorMessage = errorMessages.join('\n');
       } else if (data.title) {
         errorMessage = data.title;
       }
+    } else if (textData) {
+      errorMessage = textData;
     } else if (response.statusText) {
       errorMessage = response.statusText;
     }
