@@ -22,31 +22,9 @@ import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 
 const Stack = createNativeStackNavigator();
 
-const linking = {
-  prefixes: ['http://localhost:8081', 'https://golahora.com'],
-  config: {
-    screens: {
-      Login: '',
-      Dashboard: 'dashboard',
-      Register: 'registro',
-      ForgotPassword: 'recuperar-password',
-      UserScreen: 'usuarios',
-      CanchasScreen: 'canchas',
-      ReservasScreen: 'reservas',
-      CompetenciasScreen: 'competencias',
-      StaffScreen: 'staff',
-      InscripcionesScreen: 'inscripciones',
-      FacturacionScreen: 'facturacion',
-      ReportesScreen: 'reportes',
-      ClientesScreen: 'clientes',
-      ClasesProfeScreen: 'mis-clases',
-    }
-  }
-};
-
 export default function App() {
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer>
       <Stack.Navigator 
         initialRouteName="Login"
         screenOptions={{
