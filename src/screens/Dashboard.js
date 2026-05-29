@@ -82,7 +82,7 @@ const ModuleCard = ({ module, currentRole, idPersona, navigation }) => {
 };
 
 export default function Dashboard({ route, navigation }) {
-  const { role, idPersona, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, nombreUsuario: "NOMBRE" };
+  const { role, idPersona, idUsuario, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, idUsuario: null, nombreUsuario: "NOMBRE" };
   
   // VARIABLE DE NOMBRE VINCULAR A FUTURO CON EL USERNAME
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
@@ -160,7 +160,7 @@ export default function Dashboard({ route, navigation }) {
           <View style={styles.topContent}>
             <View style={styles.centralContainer}>
               
-              <Header title="GOL AHORA" userRole={role} isWeb={isWeb} />
+              <Header title="GOL AHORA" userRole={role} isWeb={isWeb} idPersona={idPersona} idUsuario={idUsuario} />
 
               <View style={styles.pitchContainer}>
                 <BackgroundLogin /> 

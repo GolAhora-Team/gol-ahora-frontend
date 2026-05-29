@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
 import SettingsModal from './SettingsModal';
 
-const Header = ({ title, userRole, isWeb }) => {
+const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
   
   // Estados para efectos visuales y modales
@@ -101,6 +101,8 @@ const Header = ({ title, userRole, isWeb }) => {
         onClose={() => setModalVisible(false)} 
         userRole={userRole}
         userName={title}
+        idPersona={idPersona}
+        idUsuario={idUsuario}
       />
     </View>
   );

@@ -54,4 +54,17 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * PUT /api/User/change-password
+   * Cambia la contraseña del usuario logueado.
+   */
+  changePassword: async (data) => {
+    try {
+      return await http.put(`${URL}/change-password`, data);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error;
+    }
+  },
 };
