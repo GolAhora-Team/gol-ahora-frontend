@@ -26,6 +26,16 @@ const LoginScreen = ({ navigation }) => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('#004d1a');
     }
+    // Auto-login if session exists
+    if (Platform.OS === 'web') {
+      try {
+        const savedSession = localStorage.getItem('GOL_AHORA_SESSION');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          navigation.navigate('Dashboard', parsed);
+        }
+      } catch (e) {}
+    }
   }, []);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -61,12 +71,18 @@ const LoginScreen = ({ navigation }) => {
         ? `${response.nombre} ${response.apellido || ''}`
         : email;
 
-      navigation.navigate('Dashboard', { 
+      const sessionData = { 
         role: role.toUpperCase(), 
         nombreUsuario,
         idPersona: response.idPersona,
         idUsuario: response.idUsuario
-      });
+      };
+
+      if (Platform.OS === 'web') {
+        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
+      }
+
+      navigation.navigate('Dashboard', sessionData);
     } catch (error) {
       setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
     } finally {

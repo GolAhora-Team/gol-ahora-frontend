@@ -41,6 +41,9 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
 
   const executeLogout = () => {
     setIsLoggingOut(true);
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('GOL_AHORA_SESSION');
+    }
     setTimeout(() => {
       setIsLoggingOut(false);
       navigation.navigate('Login');
