@@ -33,22 +33,22 @@ export default function App() {
         }}
       >
         {/* PANTALLAS PRINCIPALES */}
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Dashboard" component={Dashboard} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Gol Ahora - Iniciar Sesión" }} />
+        <Stack.Screen name="Dashboard" component={Dashboard} options={{ title: "Gol Ahora - Panel Central" }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Gol Ahora - Registro" }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: "Gol Ahora - Recuperar Contraseña" }} />
 
         {/* PANTALLAS DE MÓDULOS (VINCULADAS AL DASHBOARD) */}
-        <Stack.Screen name="UserScreen" component={UserScreen} />
-        <Stack.Screen name="CanchasScreen" component={CanchasScreen} />
-        <Stack.Screen name="ReservasScreen" component={ReservasScreen} />
-        <Stack.Screen name="CompetenciasScreen" component={CompetenciasScreen} />
-        <Stack.Screen name="StaffScreen" component={StaffScreen} />
-        <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} />
-        <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} />
-        <Stack.Screen name="ReportesScreen" component={ReportesScreen} />
-        <Stack.Screen name="ClientesScreen" component={ClientesScreen} />
-        <Stack.Screen name="ClasesProfeScreen" component={ClasesProfeScreen} />
+        <Stack.Screen name="UserScreen" component={UserScreen} options={{ title: "Gol Ahora - Usuarios" }} />
+        <Stack.Screen name="CanchasScreen" component={CanchasScreen} options={{ title: "Gol Ahora - Canchas" }} />
+        <Stack.Screen name="ReservasScreen" component={ReservasScreen} options={{ title: "Gol Ahora - Reservas" }} />
+        <Stack.Screen name="CompetenciasScreen" component={CompetenciasScreen} options={{ title: "Gol Ahora - Competencias" }} />
+        <Stack.Screen name="StaffScreen" component={StaffScreen} options={{ title: "Gol Ahora - Staff" }} />
+        <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} options={{ title: "Gol Ahora - Inscripciones" }} />
+        <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} options={{ title: "Gol Ahora - Facturación" }} />
+        <Stack.Screen name="ReportesScreen" component={ReportesScreen} options={{ title: "Gol Ahora - Reportes" }} />
+        <Stack.Screen name="ClientesScreen" component={ClientesScreen} options={{ title: "Gol Ahora - Clientes" }} />
+        <Stack.Screen name="ClasesProfeScreen" component={ClasesProfeScreen} options={{ title: "Gol Ahora - Mis Clases" }} />
 
       </Stack.Navigator>
     </NavigationContainer>
