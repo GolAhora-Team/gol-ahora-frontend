@@ -1,15 +1,11 @@
-import { Platform } from 'react-native';
+import { API_BASE_URL, http } from './apiConfig';
 
-const STORAGE_KEY = 'GOL_AHORA_REPORTES_CANCHAS';
+const ENDPOINT = `${API_BASE_URL}/Reporte`;
 
 export const reportHistoryService = {
   getReportes: async () => {
     try {
-      if (Platform.OS === 'web') {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
-      }
-      return []; // En native se usaría AsyncStorage o FileSystem, pero por ahora web focus
+      return await http.get(ENDPOINT);
     } catch (error) {
       console.error("Error leyendo reportes", error);
       return [];
@@ -18,20 +14,11 @@ export const reportHistoryService = {
 
   saveReporte: async (reporteHtml, fileName) => {
     try {
-      const reportes = await reportHistoryService.getReportes();
-      const newReporte = {
-        id: Date.now().toString(),
-        fecha: new Date().toISOString(),
-        html: reporteHtml,
-        fileName: fileName || `Reporte-${Date.now()}`
+      const request = {
+        fileName: fileName || `Reporte-${Date.now()}`,
+        html: reporteHtml
       };
-      
-      const updated = [newReporte, ...reportes];
-      
-      if (Platform.OS === 'web') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
-      return newReporte;
+      return await http.post(ENDPOINT, request);
     } catch (error) {
       console.error("Error guardando reporte", error);
     }
