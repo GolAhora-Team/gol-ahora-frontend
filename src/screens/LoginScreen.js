@@ -163,12 +163,13 @@ const LoginScreen = ({ navigation }) => {
                   )}
 
                   <TouchableOpacity 
-                    style={styles.mainButton} 
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
                     activeOpacity={0.8}
                     onPress={handleLogin}
+                    disabled={isLoading}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
-                      <Text style={styles.buttonText}>INGRESAR AL CAMPO</Text>
+                      <Text style={styles.buttonText}>{isLoading ? 'INICIANDO SESIÓN...' : 'INGRESAR AL CAMPO'}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
 

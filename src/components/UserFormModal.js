@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
+import DatePickerModal from './DatePickerModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage }) {
+  const [calendarVisible, setCalendarVisible] = useState(false);
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -34,13 +36,16 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
 
               <View style={styles.dateFullRow}>
                 <Text style={styles.greenLabelBold}>FECHA DE NACIMIENTO</Text>
-                <View style={styles.dateInputGroup}>
-                  <TextInput style={styles.datePartInput} placeholder="DD" maxLength={2} value={formData.dia} onChangeText={(v) => setFormData({...formData, dia: v})} keyboardType="numeric"/>
-                  <Text style={styles.dateSeparator}>/</Text>
-                  <TextInput style={styles.datePartInput} placeholder="MM" maxLength={2} value={formData.mes} onChangeText={(v) => setFormData({...formData, mes: v})} keyboardType="numeric"/>
-                  <Text style={styles.dateSeparator}>/</Text>
-                  <TextInput style={[styles.datePartInput, {width: 50}]} placeholder="AAAA" maxLength={4} value={formData.anio} onChangeText={(v) => setFormData({...formData, anio: v})} keyboardType="numeric"/>
-                </View>
+                <TouchableOpacity 
+                  style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 14, paddingHorizontal: 15, backgroundColor: '#f8fafc', height: 50}}
+                  onPress={() => setCalendarVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="calendar" size={20} color="#009b3a" style={{marginRight: 10}} />
+                  <Text style={{ color: formData.fechaNacimiento ? '#009b3a' : '#94a3b8', fontSize: 16, fontWeight: '900', flex: 1 }}>
+                    {formData.fechaNacimiento ? formData.fechaNacimiento : "Seleccionar fecha"}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <Text style={styles.greenLabelBold}>GÉNERO</Text>
@@ -126,6 +131,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           </ScrollView>
         </View>
       </View>
+
+      <DatePickerModal 
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        onSelect={(date) => setFormData({...formData, fechaNacimiento: date})}
+        initialDate={formData.fechaNacimiento}
+      />
     </Modal>
   );
 }

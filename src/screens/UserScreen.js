@@ -25,11 +25,11 @@ export default function UserScreen({ route, navigation }) {
   const [formError, setFormError] = useState('');
   
   const initialFormState = {
-    dni: '', nombre: '', apellido: '', genero: 'Masculino', dia: '', mes: '', anio: '',
+    dni: '', nombre: '', apellido: '', genero: 'Masculino',
     telefono: '', direccion: '', localidad: '', codigoPostal: '', provincia: 'Buenos Aires',
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', aptoFisico: false, especializacion: '',
-    fechaRegistro: new Date().toLocaleDateString()
+    fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: ''
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -79,7 +79,11 @@ export default function UserScreen({ route, navigation }) {
         Alert.alert("Acceso denegado", "No tienes permisos.");
         return;
       }
-      setFormData({ ...initialFormState, ...user });
+      let fecha = '';
+      if (user.fechaNacimiento) {
+        fecha = user.fechaNacimiento.split('T')[0];
+      }
+      setFormData({ ...initialFormState, ...user, fechaNacimiento: fecha });
       setIsEditing(true);
     } else {
       setFormData(initialFormState);
@@ -125,23 +129,24 @@ export default function UserScreen({ route, navigation }) {
     }
     setFormError('');
     try {
+      const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
+      const payloadToSave = { ...formData, fechaNacimiento: dateStr };
+
       if (isEditing) {
         // Update
         if (formData.role === 'CLIENTE') {
-          await clienteService.update(formData.id, formData);
+          await clienteService.update(formData.id, payloadToSave);
         } else if (formData.role === 'PROFE') {
-          await profesorService.updateSimple(formData.id, formData);
+          await profesorService.updateSimple(formData.id, payloadToSave);
         } else if (formData.role === 'ADMIN') {
-          await administradorService.updateSimple(formData.id, formData);
+          await administradorService.updateSimple(formData.id, payloadToSave);
         }
-        setUsers(users.map(u => u.id === formData.id ? { ...formData } : u));
+        setUsers(users.map(u => u.id === formData.id ? { ...payloadToSave } : u));
       } else {
         // Create
-        const dateStr = `${formData.anio || '1990'}-${(formData.mes || '01').padStart(2, '0')}-${(formData.dia || '01').padStart(2, '0')}T00:00:00Z`;
         const mappedData = { 
-          ...formData, 
+          ...payloadToSave, 
           dni: Number(formData.dni),
-          fechaNacimiento: dateStr,
           especialidad: formData.especializacion || 'General',
           certificacion: 'Ninguna', // Valor por defecto ya que no se pide en el form
           obraSocial: formData.obraSocial || 'Ninguna'
