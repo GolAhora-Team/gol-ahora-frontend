@@ -55,7 +55,17 @@ export default function UserScreen({ route, navigation }) {
         }));
       } catch (e) { /* profesores endpoint puede no existir aún */ }
 
-      setUsers([...clientesMapped, ...profesores]);
+      let administradores = [];
+      try {
+        const adminData = await administradorService.getAll();
+        administradores = (adminData || []).map(a => ({
+          ...a, 
+          id: a.id?.toString(), 
+          role: a.identificador === 101 ? 'PERSONAL' : 'ADMIN'
+        }));
+      } catch (e) { /* admin endpoint puede fallar si está vacío */ }
+
+      setUsers([...clientesMapped, ...profesores, ...administradores]);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los usuarios.');
     } finally {

@@ -4,6 +4,19 @@ const URL = `${API_BASE_URL}/Administrador`;
 
 export const administradorService = {
   /**
+   * GET /api/Administrador
+   * Obtiene todos los administradores y personal.
+   */
+  getAll: async () => {
+    try {
+      return await http.get(URL);
+    } catch (error) {
+      console.error('Error fetching administradores:', error);
+      throw error;
+    }
+  },
+
+  /**
    * PUT /api/Administrador/{id}/simple
    * Actualización simple de datos del administrador.
    */
