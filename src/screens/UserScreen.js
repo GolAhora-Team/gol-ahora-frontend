@@ -183,7 +183,7 @@ export default function UserScreen({ route, navigation }) {
           await userService.createUsuarioAdmin(payload);
         }
 
-        alert(`¡Usuario Creado!\nCredenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        Alert.alert("¡Usuario Creado!", `Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
         loadUsers(); 
         setModalVisible(false);
       }
