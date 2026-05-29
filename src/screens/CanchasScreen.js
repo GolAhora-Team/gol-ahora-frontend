@@ -7,12 +7,14 @@ import CanchaCard from '../components/CanchaCard';
 import CanchaFormModal from '../components/CanchaFormModal';
 import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { canchaService } from '../services/canchaService';
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function CanchaScreen({ route, navigation }) {
-  const { role: currentUserRole } = route.params || { role: "ADMIN" };
+  const { role: currentUserRole, nombreUsuario = "Administrador" } = route.params || { role: "ADMIN" };
 
   // --- ESTADO INICIAL ---
   const [canchas, setCanchas] = useState([]);
@@ -28,6 +30,7 @@ export default function CanchaScreen({ route, navigation }) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [formError, setFormError] = useState('');
   const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
+  const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -160,22 +163,15 @@ export default function CanchaScreen({ route, navigation }) {
   };
 
   const handleGenerateReport = () => {
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm("¿Desea generar un reporte con el estado actual de las canchas?");
-      if (confirm) executeGenerateReport();
-    } else {
-      Alert.alert(
-        "Generar Reporte",
-        "¿Desea generar un reporte con el estado actual de las canchas?",
-        [
-          { text: "CANCELAR", style: "cancel" },
-          { text: "SÍ", onPress: () => executeGenerateReport() }
-        ]
-      );
-    }
+    setConfirmReportModalVisible(true);
   };
 
   const executeGenerateReport = async () => {
+    const d = new Date();
+    const formattedDate = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}`;
+    const userNameFormatted = nombreUsuario.replace(/\s+/g, '');
+    const fileName = `Reporte-Canchas-${userNameFormatted}-${formattedDate}`;
+
     let rows = canchas.map(c => `
       <tr>
         <td style="padding: 10px; border: 1px solid #ddd;">${c.nombre}</td>
@@ -190,9 +186,10 @@ export default function CanchaScreen({ route, navigation }) {
         <head>
           <style>
             body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .brand { color: #009b3a; font-size: 40px; font-weight: 900; margin: 0; }
-            .subtitle { font-size: 14px; font-weight: bold; margin-top: 5px; }
+            .header { text-align: left; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 50px; font-weight: 900; margin: 0; }
+            .report-type { font-size: 24px; font-weight: bold; margin-top: 10px; margin-bottom: 10px; }
+            .generated-by { font-size: 16px; color: #555; }
             .line { border-bottom: 2px solid #000; margin: 20px 0; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
             th { background-color: #009b3a; color: white; padding: 12px; }
@@ -200,9 +197,10 @@ export default function CanchaScreen({ route, navigation }) {
         </head>
         <body>
           <div class="header">
-            <h1 class="brand">GOL AHORA</h1>
-            <div class="subtitle">REPORTE DE ESTADO DE CANCHAS</div>
-            <p>Generado el: ${new Date().toLocaleString()}</p>
+            <h1 class="brand">Gol Ahora</h1>
+            <div class="report-type">Reporte de Estado de Canchas</div>
+            <div class="generated-by">Reporte generado por: <b>${nombreUsuario}</b></div>
+            <div class="generated-by">Fecha: ${new Date().toLocaleString()}</div>
           </div>
           <div class="line"></div>
           <table>
@@ -215,11 +213,31 @@ export default function CanchaScreen({ route, navigation }) {
       </html>
     `;
     
-    await reportHistoryService.saveReporte(html);
-    setCurrentPdfHtml(html);
+    await reportHistoryService.saveReporte(html, fileName);
+    setCurrentPdfHtml({ html, fileName });
     setSuccessMessage("¡PDF generado exitosamente!");
     setSuccessModalVisible(true);
   };
+
+  const downloadPdf = async (pdfData) => {
+    if (Platform.OS === 'web') {
+      const html2pdf = require('html2pdf.js');
+      const element = document.createElement('div');
+      element.innerHTML = pdfData.html;
+      html2pdf().from(element).set({
+        margin: 10,
+        filename: pdfData.fileName + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+    } else {
+      const { uri } = await Print.printToFileAsync({ html: pdfData.html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    }
+  };
+
+
 
   const confirmDelete = (cancha) => {
     setCanchaToDelete(cancha);
@@ -320,12 +338,22 @@ export default function CanchaScreen({ route, navigation }) {
         itemName={canchaToDelete ? canchaToDelete.nombre : ''}
       />
 
+      <ConfirmModal
+        visible={confirmReportModalVisible}
+        onClose={() => setConfirmReportModalVisible(false)}
+        onConfirm={executeGenerateReport}
+        title="Generar Reporte"
+        message="¿Desea generar un reporte con el estado actual de las canchas?"
+        confirmText="SÍ"
+        cancelText="CANCELAR"
+      />
+
       <SuccessModal
         visible={successModalVisible}
         onClose={() => { setSuccessModalVisible(false); setCurrentPdfHtml(null); }}
         message={successMessage}
         actionButtonText={currentPdfHtml ? "DESCARGAR PDF" : null}
-        onAction={currentPdfHtml ? async () => { await Print.printAsync({ html: currentPdfHtml }); } : null}
+        onAction={currentPdfHtml ? () => downloadPdf(currentPdfHtml) : null}
       />
     </ScreenTemplate>
   );

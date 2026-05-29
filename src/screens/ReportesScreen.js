@@ -21,6 +21,24 @@ export default function ReportesScreen({ route, navigation }) {
     }
   }, [reporteActivo]);
 
+  const downloadPdf = async (pdfData) => {
+    if (Platform.OS === 'web') {
+      const html2pdf = require('html2pdf.js');
+      const element = document.createElement('div');
+      element.innerHTML = pdfData.html;
+      html2pdf().from(element).set({
+        margin: 10,
+        filename: (pdfData.fileName || 'Reporte') + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+    } else {
+      const { uri } = await Print.printToFileAsync({ html: pdfData.html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    }
+  };
+
   const handleExportExcel = async () => {
     const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
     let csvContent = `Reporte: ${reporteActivo}\nTotal: ${dataActual.total}\nDetalle: ${dataActual.detalle}\n\nDia,Valor\n`;
@@ -115,20 +133,29 @@ export default function ReportesScreen({ route, navigation }) {
 
             {historialCanchas.map(rep => (
               <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
                   <View style={{ marginLeft: 10 }}>
-                    <Text style={{ fontWeight: '800', color: '#1e293b' }}>Reporte de Estado</Text>
+                    <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Estado'}</Text>
                     <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                  onPress={() => Print.printAsync({ html: rep.html })}
-                >
-                  <MaterialCommunityIcons name="download" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>PDF</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity 
+                    style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => downloadPdf(rep)}
+                  >
+                    <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => Print.printAsync({ html: rep.html })}
+                  >
+                    <MaterialCommunityIcons name="printer" size={18} color="#000" />
+                    <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
             <View style={{ height: 100 }} />

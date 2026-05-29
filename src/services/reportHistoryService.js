@@ -16,13 +16,14 @@ export const reportHistoryService = {
     }
   },
 
-  saveReporte: async (reporteHtml) => {
+  saveReporte: async (reporteHtml, fileName) => {
     try {
       const reportes = await reportHistoryService.getReportes();
       const newReporte = {
         id: Date.now().toString(),
         fecha: new Date().toISOString(),
-        html: reporteHtml
+        html: reporteHtml,
+        fileName: fileName || `Reporte-${Date.now()}`
       };
       
       const updated = [newReporte, ...reportes];
