@@ -41,6 +41,7 @@ export default function RegisterScreen({ navigation }) {
   const [successVisible, setSuccessVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [globalError, setGlobalError] = useState('');
 
   const handleRegister = async () => {
     let newErrors = {};
@@ -57,9 +58,10 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
     setErrors({});
+    setGlobalError('');
 
     if (!genero) {
-      Alert.alert("Atención", "Por favor selecciona un género.");
+      setGlobalError("Por favor selecciona un género.");
       return;
     }
 
@@ -90,7 +92,7 @@ export default function RegisterScreen({ navigation }) {
       await userService.createUsuarioCliente(payload);
       setSuccessVisible(true);
     } catch (error) {
-      Alert.alert("Error de Registro", error.message || "Ocurrió un error al registrar el usuario.");
+      setGlobalError(error.message || "Ocurrió un error al registrar el usuario.");
     } finally {
       setIsLoading(false);
     }
@@ -255,6 +257,13 @@ export default function RegisterScreen({ navigation }) {
                       <MaterialCommunityIcons name="information" size={16} color="#009b3a" />
                       <Text style={styles.warningText}>Importante: Tu DNI será tu usuario para iniciar sesión.</Text>
                     </View>
+
+                    {globalError ? (
+                      <View style={styles.globalErrorContainer}>
+                        <MaterialCommunityIcons name="alert-circle" size={16} color="#dc2626" />
+                        <Text style={styles.globalErrorText}>{globalError}</Text>
+                      </View>
+                    ) : null}
                   </ScrollView>
 
                   <TouchableOpacity 
@@ -355,4 +364,6 @@ const styles = StyleSheet.create({
   backLinkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
   warningContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 10, borderRadius: 10, marginTop: 10, borderWidth: 1, borderColor: '#bbf7d0' },
   warningText: { color: '#009b3a', fontSize: 12, fontWeight: '600', marginLeft: 5 },
+  globalErrorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginTop: 10, borderWidth: 1, borderColor: '#fca5a5' },
+  globalErrorText: { color: '#dc2626', fontSize: 12, fontWeight: '600', marginLeft: 5 },
 });
