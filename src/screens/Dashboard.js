@@ -33,7 +33,7 @@ const ALL_MODULES = [
   { id: "clases-profe", title: "Clases a Cargo", screen: "ClasesProfeScreen", icon: "whistle", desc: "Ver alumnos inscriptos", color: "#6366f1" },
 ];
 
-const ModuleCard = ({ module, currentRole, idPersona, navigation }) => {
+const ModuleCard = ({ module, currentRole, idPersona, userName, navigation }) => {
   const [isPressed, setIsPressed] = useState(false);
 
   return (
@@ -48,7 +48,7 @@ const ModuleCard = ({ module, currentRole, idPersona, navigation }) => {
       onPressOut={() => setIsPressed(false)}
       onPress={() => {
         if (module.screen) {
-          navigation.navigate(module.screen, { role: currentRole, idPersona });
+          navigation.navigate(module.screen, { role: currentRole, idPersona, nombreUsuario: userName });
         }
       }}
     >
@@ -182,6 +182,7 @@ export default function Dashboard({ route, navigation }) {
                         module={item} 
                         currentRole={role} 
                         idPersona={idPersona}
+                        userName={userName}
                         navigation={navigation} 
                       />
                     ))}
