@@ -5,11 +5,14 @@ import {
   View, 
   TouchableOpacity, 
   Platform, 
-  Alert 
+  Alert,
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
 import SettingsModal from './SettingsModal';
+import ConfirmModal from './ConfirmModal';
 
 const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
@@ -18,6 +21,8 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const [pressedSettings, setPressedSettings] = useState(false);
   const [pressedLogout, setPressedLogout] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
 
   const getBadgeColor = () => {
@@ -31,23 +36,15 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      const confirmWeb = window.confirm("¿Estás seguro que deseas cerrar sesión en Gol Ahora?");
-      if (confirmWeb) navigation.navigate('Login');
-    } else {
-      Alert.alert(
-        "Cerrar Sesión",
-        "¿Estás seguro que deseas salir del sistema?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { 
-            text: "Salir", 
-            onPress: () => navigation.navigate('Login'),
-            style: "destructive" 
-          }
-        ]
-      );
-    }
+    setConfirmLogoutVisible(true);
+  };
+
+  const executeLogout = () => {
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      setIsLoggingOut(false);
+      navigation.navigate('Login');
+    }, 1500);
   };
 
   return (
@@ -104,6 +101,23 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         idPersona={idPersona}
         idUsuario={idUsuario}
       />
+
+      <ConfirmModal
+        visible={confirmLogoutVisible}
+        onClose={() => setConfirmLogoutVisible(false)}
+        onConfirm={executeLogout}
+        title="Cerrar Sesión"
+        message="¿Estás seguro que deseas cerrar sesión?"
+        confirmText="Salir"
+        cancelText="Cancelar"
+      />
+
+      <Modal visible={isLoggingOut} transparent={true} animationType="fade">
+        <View style={styles.logoutOverlay}>
+          <ActivityIndicator size="large" color="#009b3a" />
+          <Text style={styles.logoutText}>Cerrando sesión...</Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -172,6 +186,19 @@ const styles = StyleSheet.create({
   btnActive: {
     backgroundColor: '#ffb300',
     transform: [{ scale: 0.92 }],
+  },
+  logoutOverlay: {
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.85)', 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  },
+  logoutText: {
+    color: '#fff', 
+    marginTop: 15, 
+    fontSize: 18, 
+    fontWeight: 'bold',
+    letterSpacing: 1
   }
 });
 
