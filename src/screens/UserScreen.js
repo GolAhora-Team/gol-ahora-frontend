@@ -154,10 +154,16 @@ export default function UserScreen({ route, navigation }) {
           await clienteService.update(formData.id, payloadToSave);
         } else if (formData.role === 'PROFE') {
           await profesorService.updateSimple(formData.id, payloadToSave);
-        } else if (formData.role === 'ADMIN') {
+        } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           await administradorService.updateSimple(formData.id, payloadToSave);
         }
+        
         setUsers(users.map(u => u.id === formData.id ? { ...payloadToSave } : u));
+        
+        setSuccessMessage("Los cambios se guardaron con éxito.");
+        setSuccessVisible(true);
+        loadUsers();
+        setModalVisible(false);
       } else {
         // Create
         const mappedData = { 
