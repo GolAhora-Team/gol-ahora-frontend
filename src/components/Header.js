@@ -46,7 +46,10 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
     }
     setTimeout(() => {
       setIsLoggingOut(false);
-      navigation.navigate('Login');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
     }, 1500);
   };
 

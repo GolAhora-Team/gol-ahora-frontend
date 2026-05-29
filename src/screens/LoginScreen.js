@@ -32,7 +32,7 @@ const LoginScreen = ({ navigation }) => {
         const savedSession = localStorage.getItem('GOL_AHORA_SESSION');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
-          navigation.navigate('Dashboard', parsed);
+          navigation.replace('Dashboard', parsed);
         }
       } catch (e) {}
     }
@@ -82,7 +82,7 @@ const LoginScreen = ({ navigation }) => {
         localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
       }
 
-      navigation.navigate('Dashboard', sessionData);
+      navigation.replace('Dashboard', sessionData);
     } catch (error) {
       setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
     } finally {
