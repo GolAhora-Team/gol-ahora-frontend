@@ -53,17 +53,14 @@ export default function RegisterScreen({ navigation }) {
     if (!nombre) newErrors.nombre = 'Obligatorio';
     if (!apellido) newErrors.apellido = 'Obligatorio';
     
+    if (!genero) newErrors.genero = 'Debe seleccionar un género';
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setErrors({});
     setGlobalError('');
-
-    if (!genero) {
-      setGlobalError("Por favor selecciona un género.");
-      return;
-    }
 
     setIsLoading(true);
     try {
@@ -187,10 +184,10 @@ export default function RegisterScreen({ navigation }) {
                     </View>
 
                     <Text style={styles.labelInterno}>Género</Text>
-                    <View style={styles.genderContainer}>
+                    <View style={[styles.genderContainer, errors.genero && { marginBottom: 5, borderColor: '#dc2626', borderWidth: 1, borderRadius: 12, padding: 2 }]}>
                       <TouchableOpacity 
                         style={[styles.genderBtn, genero === 'MASCULINO' && styles.genderBtnActive]}
-                        onPress={() => setGenero('MASCULINO')}
+                        onPress={() => { setGenero('MASCULINO'); setErrors({...errors, genero: null}); }}
                       >
                         <MaterialCommunityIcons 
                           name="gender-male" 
@@ -202,7 +199,7 @@ export default function RegisterScreen({ navigation }) {
 
                       <TouchableOpacity 
                         style={[styles.genderBtn, genero === 'FEMENINO' && styles.genderBtnActive]}
-                        onPress={() => setGenero('FEMENINO')}
+                        onPress={() => { setGenero('FEMENINO'); setErrors({...errors, genero: null}); }}
                       >
                         <MaterialCommunityIcons 
                           name="gender-female" 
@@ -212,6 +209,7 @@ export default function RegisterScreen({ navigation }) {
                         <Text style={[styles.genderBtnText, genero === 'FEMENINO' && styles.textActive]}>FEMENINO</Text>
                       </TouchableOpacity>
                     </View>
+                    {errors.genero ? <Text style={styles.inlineError}>{errors.genero}</Text> : null}
 
                     <View style={{marginBottom: 15, width: '100%'}}>
                       <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
@@ -366,4 +364,5 @@ const styles = StyleSheet.create({
   warningText: { color: '#009b3a', fontSize: 12, fontWeight: '600', marginLeft: 5 },
   globalErrorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginTop: 10, borderWidth: 1, borderColor: '#fca5a5' },
   globalErrorText: { color: '#dc2626', fontSize: 12, fontWeight: '600', marginLeft: 5 },
+  inlineError: { color: '#dc2626', fontSize: 12, marginTop: -5, marginBottom: 15, marginLeft: 4, fontWeight: '500' },
 });
