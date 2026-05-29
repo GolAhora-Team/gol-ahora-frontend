@@ -69,10 +69,15 @@ export default function CanchaScreen({ route, navigation }) {
   const handleOpenModal = (cancha = null) => {
     setFormError('');
     if (cancha) {
-      setFormData({ ...cancha });
+      let dim = "20x40m";
+      let precio = 30000;
+      if (cancha.tipo === 'F7') { dim = "30x50m"; precio = 65000; }
+      else if (cancha.tipo === 'F11') { dim = "45x90m"; precio = 120000; }
+      
+      setFormData({ ...cancha, dimensiones: dim, precioBase: cancha.original?.precioPorHora || precio });
       setIsEditing(true);
     } else {
-      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '', enMantenimiento: false });
+      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioBase: 30000, enMantenimiento: false });
       setIsEditing(false);
     }
     setModalVisible(true);
@@ -101,7 +106,7 @@ export default function CanchaScreen({ route, navigation }) {
           HoraInicio: formData.original?.horaInicio ?? "08:00:00",
           HoraFin: formData.original?.horaFin ?? "23:00:00",
           DuracionMax: formData.original?.duracionMax ?? 60,
-          PrecioPorHora: formData.original?.precioPorHora ?? 5000
+          PrecioPorHora: formData.precioBase ?? (formData.original?.precioPorHora ?? 30000)
         };
         await canchaService.update(formData.id, payload);
         setSuccessMessage("Los cambios han sido guardados exitosamente.");
@@ -112,7 +117,7 @@ export default function CanchaScreen({ route, navigation }) {
           HoraInicio: "08:00:00",
           HoraFin: "23:00:00",
           DuracionMax: 60,
-          PrecioPorHora: 5000
+          PrecioPorHora: formData.precioBase ?? 30000
         };
         await canchaService.create(payload);
         setSuccessMessage("La nueva cancha ha sido registrada exitosamente.");
@@ -166,6 +171,8 @@ export default function CanchaScreen({ route, navigation }) {
         await canchaService.delete(canchaToDelete.id);
         setCanchas(prev => prev.filter(x => x.id !== canchaToDelete.id));
         setDeleteModalVisible(false);
+        setSuccessMessage("La cancha ha sido eliminada exitosamente.");
+        setSuccessModalVisible(true);
       } catch (error) {
         Alert.alert("Error", "No se pudo eliminar la cancha.");
       }

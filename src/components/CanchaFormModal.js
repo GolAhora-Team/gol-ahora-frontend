@@ -40,7 +40,17 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               <Text style={styles.greenLabelBold}>CATEGORIZACIÓN (TIPO)</Text>
               <View style={styles.choiceRow}>
                 {tipos.map(t => (
-                  <TouchableOpacity key={t} style={[styles.choiceBtn, formData.tipo === t && styles.activeBtn]} onPress={() => setFormData({...formData, tipo: t})}>
+                  <TouchableOpacity 
+                    key={t} 
+                    style={[styles.choiceBtn, formData.tipo === t && styles.activeBtn]} 
+                    onPress={() => {
+                      let cap = "0";
+                      if (t === 'F5') cap = "10";
+                      if (t === 'F7') cap = "14";
+                      if (t === 'F11') cap = "22";
+                      setFormData({...formData, tipo: t, capacidad: cap});
+                    }}
+                  >
                     <Text style={[styles.choiceText, formData.tipo === t ? styles.whiteText : styles.greenText]}>{t}</Text>
                   </TouchableOpacity>
                 ))}
@@ -56,13 +66,12 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               </View>
 
               <CustomInput 
-                label="CAPACIDAD MÁXIMA (Jugadores)" 
-                keyboardType="numeric" 
-                value={formData.capacidad} 
-                onChangeText={v => setFormData({...formData, capacidad: v})} 
-                containerStyle={styles.cleanInput}
+                label="CAPACIDAD MÁXIMA (Jugadores) - Autocalculado" 
+                value={formData.capacidad ? formData.capacidad.toString() : ""} 
+                editable={false}
+                containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
                 labelStyle={styles.greenLabelBold}
-                inputStyle={styles.greenInputText}
+                inputStyle={[styles.greenInputText, { color: '#64748b' }]}
               />
             </View>
 

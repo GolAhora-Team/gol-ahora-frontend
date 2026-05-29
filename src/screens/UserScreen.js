@@ -23,6 +23,7 @@ export default function UserScreen({ route, navigation }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [formError, setFormError] = useState('');
+  const [originalRole, setOriginalRole] = useState(null);
   
   const initialFormState = {
     dni: '', nombre: '', apellido: '', genero: 'Masculino',
@@ -84,9 +85,11 @@ export default function UserScreen({ route, navigation }) {
         fecha = user.fechaNacimiento.split('T')[0];
       }
       setFormData({ ...initialFormState, ...user, fechaNacimiento: fecha });
+      setOriginalRole(user.role);
       setIsEditing(true);
     } else {
       setFormData(initialFormState);
+      setOriginalRole(null);
       setIsEditing(false);
     }
     setModalVisible(true);
@@ -242,7 +245,7 @@ export default function UserScreen({ route, navigation }) {
         visible={modalVisible} onClose={() => setModalVisible(false)} 
         isEditing={isEditing} formData={formData} setFormData={setFormData} 
         onSave={handleSave} currentUserRole={currentUserRole} rolesIcons={rolesIcons} 
-        errorMessage={formError}
+        errorMessage={formError} originalRole={originalRole}
       />
 
       <DeleteModal

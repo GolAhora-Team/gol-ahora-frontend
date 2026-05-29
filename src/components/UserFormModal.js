@@ -4,8 +4,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 
-export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage }) {
+export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
+
+  const isRoleEditable = (r) => {
+    if (!isEditing) return true;
+    if (currentUserRole === 'ADMIN' && originalRole === 'PERSONAL') {
+      return r === 'ADMIN' || r === 'PERSONAL';
+    }
+    return false;
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -60,23 +69,28 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
 
             {/* 2. ROL */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>2. ROL DEL SISTEMA {isEditing ? "(No editable)" : ""}</Text>
+              <Text style={styles.sectionTitle}>2. ROL DEL SISTEMA {isEditing && !(currentUserRole === 'ADMIN' && originalRole === 'PERSONAL') ? "(No editable)" : ""}</Text>
               <View style={styles.grid}>
                 {Object.keys(rolesIcons).map(r => {
                   if (currentUserRole === 'PERSONAL' && (r === 'ADMIN' || r === 'PERSONAL')) return null;
+
+                  const editable = isRoleEditable(r);
+
                   return (
                     <TouchableOpacity 
                       key={r} 
                       style={[
                         styles.roleBtn, 
                         formData.role === r && styles.activeGreenBtn,
-                        isEditing && formData.role !== r && { opacity: 0.4 }
+                        !editable && formData.role !== r && { opacity: 0.4 }
                       ]} 
-                      onPress={() => setFormData({...formData, role: r})}
-                      disabled={isEditing}
+                      onPress={() => {
+                        if (editable) setFormData({...formData, role: r});
+                      }}
+                      disabled={!editable}
                     >
-                      <MaterialCommunityIcons name={rolesIcons[r]} size={20} color={formData.role === r ? '#fff' : (isEditing ? '#94a3b8' : '#009b3a')} />
-                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : (isEditing ? {color: '#94a3b8'} : styles.greenText)]}>{r}</Text>
+                      <MaterialCommunityIcons name={rolesIcons[r]} size={20} color={formData.role === r ? '#fff' : (!editable ? '#94a3b8' : '#009b3a')} />
+                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : (!editable ? {color: '#94a3b8'} : styles.greenText)]}>{r}</Text>
                     </TouchableOpacity>
                   );
                 })}
