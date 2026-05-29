@@ -9,6 +9,7 @@ import { profesorService } from '../services/profesorService';
 import { administradorService } from '../services/administradorService';
 import { userService } from '../services/userService';
 import DeleteModal from '../components/DeleteModal';
+import SuccessModal from '../components/SuccessModal';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -19,6 +20,8 @@ export default function UserScreen({ route, navigation }) {
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [userToDelete, setUserToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -183,7 +186,8 @@ export default function UserScreen({ route, navigation }) {
           await userService.createUsuarioAdmin(payload);
         }
 
-        Alert.alert("¡Usuario Creado!", `Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        setSuccessMessage(`Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        setSuccessVisible(true);
         loadUsers(); 
         setModalVisible(false);
       }
@@ -264,6 +268,13 @@ export default function UserScreen({ route, navigation }) {
         onConfirm={executeDelete}
         title="Eliminar Usuario"
         itemName={userToDelete ? `${userToDelete.nombre} ${userToDelete.apellido}` : ''}
+      />
+
+      <SuccessModal
+        visible={successVisible}
+        onClose={() => setSuccessVisible(false)}
+        title="¡Éxito!"
+        message={successMessage}
       />
     </ScreenTemplate>
   );
