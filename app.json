@@ -23,7 +23,8 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/futbol-logo.png"
+      "favicon": "./assets/futbol-logo.png",
+      "bundler": "metro"
     }
   }
 }
