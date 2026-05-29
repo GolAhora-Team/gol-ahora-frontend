@@ -19,6 +19,7 @@ import BackgroundLogin from '../components/BackgroundLogin';
 import CustomInput from '../components/CustomInput';
 import Footer from '../components/Footer';
 import SuccessModal from '../components/SuccessModal';
+import DatePickerModal from '../components/DatePickerModal';
 import { userService } from '../services/userService';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
@@ -38,6 +39,7 @@ export default function RegisterScreen({ navigation }) {
   const [contactoEmergencia, setContactoEmergencia] = useState('');
   const [errors, setErrors] = useState({});
   const [successVisible, setSuccessVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -209,28 +211,19 @@ export default function RegisterScreen({ navigation }) {
                       </TouchableOpacity>
                     </View>
 
-                    {Platform.OS === 'web' ? (
-                      <View style={{marginBottom: 15, width: '100%'}}>
-                        <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
-                        <View style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff'}}>
-                          <MaterialCommunityIcons name="calendar" size={20} color="#666" style={{marginRight: 10}} />
-                          <input 
-                            type="date" 
-                            value={fechaNacimiento} 
-                            onChange={(e) => setFechaNacimiento(e.target.value)}
-                            style={{ flex: 1, height: 45, border: 'none', outline: 'none', backgroundColor: 'transparent', fontFamily: 'inherit', color: '#333' }}
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <CustomInput 
-                        label="Fecha de Nacimiento" 
-                        iconName="calendar" 
-                        placeholder="AAAA-MM-DD" 
-                        value={fechaNacimiento} 
-                        onChangeText={setFechaNacimiento} 
-                      />
-                    )}
+                    <View style={{marginBottom: 15, width: '100%'}}>
+                      <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
+                      <TouchableOpacity 
+                        style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45}}
+                        onPress={() => setCalendarVisible(true)}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialCommunityIcons name="calendar" size={20} color="#666" style={{marginRight: 10}} />
+                        <Text style={{ color: fechaNacimiento ? '#333' : '#999', fontSize: 14, flex: 1 }}>
+                          {fechaNacimiento ? fechaNacimiento : "Seleccionar fecha"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                     <CustomInput 
                       label="Teléfono" 
                       iconName="phone" 
@@ -294,6 +287,13 @@ export default function RegisterScreen({ navigation }) {
         onClose={handleSuccessClose}
         title="¡Registro exitoso!"
         message="Recibirás un mail para activar tu cuenta."
+      />
+
+      <DatePickerModal 
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        onSelect={(date) => setFechaNacimiento(date)}
+        initialDate={fechaNacimiento}
       />
     </View>
   );
