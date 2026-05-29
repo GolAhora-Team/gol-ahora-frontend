@@ -23,7 +23,7 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/futbol-logo.futbol-logo.png"
+      "favicon": "./assets/futbol-logo.png"
     }
   }
 }
