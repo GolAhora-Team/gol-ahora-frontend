@@ -6,12 +6,20 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import ScreenTemplate from './ScreenTemplate';
 import { getEstadisticas } from '../components/DataReportes';
+import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function ReportesScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
+  const [historialCanchas, setHistorialCanchas] = useState([]);
   const estadisticas = getEstadisticas();
   const dataActual = estadisticas[reporteActivo];
+
+  React.useEffect(() => {
+    if (reporteActivo === 'Canchas') {
+      reportHistoryService.getReportes().then(setHistorialCanchas);
+    }
+  }, [reporteActivo]);
 
   const handleExportExcel = async () => {
     const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -94,45 +102,80 @@ export default function ReportesScreen({ route, navigation }) {
       </View>
 
       <View style={styles.mainVisualArea}>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-          <View style={styles.kpiCard}>
-            <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
-            <View style={{ marginLeft: 15 }}>
-              <Text style={styles.kpiLabel}>{reporteActivo.toUpperCase()}</Text>
-              <Text style={styles.kpiValue}>{dataActual.total}</Text>
-              <Text style={styles.kpiSub}>{dataActual.detalle}</Text>
+        {reporteActivo === 'Canchas' ? (
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            <View style={styles.kpiCard}>
+              <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
+              <View style={{ marginLeft: 15 }}>
+                <Text style={styles.kpiLabel}>{reporteActivo.toUpperCase()}</Text>
+                <Text style={styles.kpiValue}>{historialCanchas.length} Reportes</Text>
+                <Text style={styles.kpiSub}>{dataActual.detalle}</Text>
+              </View>
             </View>
-          </View>
 
-          <Text style={styles.chartTitle}>Flujo Semanal</Text>
-          <View style={styles.barChart}>
-            {dataActual.datosSemanales.map((val, i) => (
-              <View key={i} style={styles.barWrapper}>
-                <View style={[styles.bar, { height: val, backgroundColor: dataActual.color }]} />
-                <Text style={styles.barDay}>{['L','M','M','J','V','S','D'][i]}</Text>
+            {historialCanchas.map(rep => (
+              <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={{ fontWeight: '800', color: '#1e293b' }}>Reporte de Estado</Text>
+                    <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => Print.printAsync({ html: rep.html })}
+                >
+                  <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>PDF</Text>
+                </TouchableOpacity>
               </View>
             ))}
-          </View>
-          
-          <Text style={styles.description}>{dataActual.descripcion}</Text>
-          <View style={{ height: 100 }} /> 
-        </ScrollView>
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            <View style={styles.kpiCard}>
+              <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
+              <View style={{ marginLeft: 15 }}>
+                <Text style={styles.kpiLabel}>{reporteActivo.toUpperCase()}</Text>
+                <Text style={styles.kpiValue}>{dataActual.total}</Text>
+                <Text style={styles.kpiSub}>{dataActual.detalle}</Text>
+              </View>
+            </View>
 
-        <View style={styles.recuadroRojoAcciones}>
-          <TouchableOpacity 
-            style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
-            onPress={handlePrint}
-          >
-            <MaterialCommunityIcons name="printer" size={24} color="#000" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
-            onPress={handleExportExcel}
-          >
-            <MaterialCommunityIcons name="microsoft-excel" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.chartTitle}>Flujo Semanal</Text>
+            <View style={styles.barChart}>
+              {dataActual.datosSemanales.map((val, i) => (
+                <View key={i} style={styles.barWrapper}>
+                  <View style={[styles.bar, { height: val, backgroundColor: dataActual.color }]} />
+                  <Text style={styles.barDay}>{['L','M','M','J','V','S','D'][i]}</Text>
+                </View>
+              ))}
+            </View>
+            
+            <Text style={styles.description}>{dataActual.descripcion}</Text>
+            <View style={{ height: 100 }} /> 
+          </ScrollView>
+        )}
+
+        {reporteActivo !== 'Canchas' && (
+          <View style={styles.recuadroRojoAcciones}>
+            <TouchableOpacity 
+              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+              onPress={handlePrint}
+            >
+              <MaterialCommunityIcons name="printer" size={24} color="#000" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+              onPress={handleExportExcel}
+            >
+              <MaterialCommunityIcons name="microsoft-excel" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </ScreenTemplate>
   );
@@ -141,7 +184,7 @@ export default function ReportesScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20 },
   selectorGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  selBtn: { backgroundColor: '#fff', width: '31%', padding: 12, borderRadius: 15, alignItems: 'center', elevation: 3 },
+  selBtn: { backgroundColor: '#fff', flex: 1, marginHorizontal: 4, padding: 12, borderRadius: 15, alignItems: 'center', elevation: 3 },
   selText: { fontSize: 10, fontWeight: '800', color: '#1e293b', marginTop: 5 },
   mainVisualArea: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 25, padding: 20, position: 'relative', overflow: 'hidden' },
   kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 15, borderRadius: 18, alignItems: 'center', marginBottom: 20 },

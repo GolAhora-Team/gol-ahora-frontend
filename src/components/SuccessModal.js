@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function SuccessModal({ visible, onClose, title = "¡Éxito!", message }) {
+export default function SuccessModal({ visible, onClose, title = "¡Éxito!", message, actionButtonText, onAction }) {
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.overlay}>
@@ -15,6 +15,11 @@ export default function SuccessModal({ visible, onClose, title = "¡Éxito!", me
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>ENTENDIDO</Text>
           </TouchableOpacity>
+          {actionButtonText && onAction && (
+             <TouchableOpacity style={[styles.button, { backgroundColor: '#ffb300', marginTop: 10 }]} onPress={onAction}>
+               <Text style={[styles.buttonText, { color: '#000' }]}>{actionButtonText}</Text>
+             </TouchableOpacity>
+          )}
         </View>
       </View>
     </Modal>

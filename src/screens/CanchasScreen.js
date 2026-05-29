@@ -8,6 +8,8 @@ import CanchaFormModal from '../components/CanchaFormModal';
 import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
 import { canchaService } from '../services/canchaService';
+import * as Print from 'expo-print';
+import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function CanchaScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -25,6 +27,7 @@ export default function CanchaScreen({ route, navigation }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [formError, setFormError] = useState('');
+  const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -157,7 +160,65 @@ export default function CanchaScreen({ route, navigation }) {
   };
 
   const handleGenerateReport = () => {
-    Alert.alert("Reporte de Canchas", "Generando inventario técnico... Se enviará a gerencia.");
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm("¿Desea generar un reporte con el estado actual de las canchas?");
+      if (confirm) executeGenerateReport();
+    } else {
+      Alert.alert(
+        "Generar Reporte",
+        "¿Desea generar un reporte con el estado actual de las canchas?",
+        [
+          { text: "CANCELAR", style: "cancel" },
+          { text: "SÍ", onPress: () => executeGenerateReport() }
+        ]
+      );
+    }
+  };
+
+  const executeGenerateReport = async () => {
+    let rows = canchas.map(c => `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.nombre}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.tipo}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.superficie}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.enMantenimiento ? 'Mantenimiento' : 'Activa'}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 40px; font-weight: 900; margin: 0; }
+            .subtitle { font-size: 14px; font-weight: bold; margin-top: 5px; }
+            .line { border-bottom: 2px solid #000; margin: 20px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+            th { background-color: #009b3a; color: white; padding: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="brand">GOL AHORA</h1>
+            <div class="subtitle">REPORTE DE ESTADO DE CANCHAS</div>
+            <p>Generado el: ${new Date().toLocaleString()}</p>
+          </div>
+          <div class="line"></div>
+          <table>
+            <thead>
+              <tr><th>Cancha</th><th>Tipo</th><th>Superficie</th><th>Estado</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    await reportHistoryService.saveReporte(html);
+    setCurrentPdfHtml(html);
+    setSuccessMessage("¡PDF generado exitosamente!");
+    setSuccessModalVisible(true);
   };
 
   const confirmDelete = (cancha) => {
@@ -207,8 +268,9 @@ export default function CanchaScreen({ route, navigation }) {
         <Text style={styles.mainTitle}>Gestión de Canchas</Text>
         <View style={styles.headerActions}>
             {canGenerateReport && (
-                <TouchableOpacity style={styles.reportButton} onPress={handleGenerateReport}>
+                <TouchableOpacity style={[styles.reportButton, { flexDirection: 'row', alignItems: 'center' }]} onPress={handleGenerateReport}>
                     <MaterialCommunityIcons name="file-document-edit-outline" size={24} color="#000" />
+                    <Text style={{ fontWeight: '900', color: '#000', marginLeft: 5 }}>GENERAR REPORTE</Text>
                 </TouchableOpacity>
             )}
             {canModify && (
@@ -260,8 +322,10 @@ export default function CanchaScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
+        onClose={() => { setSuccessModalVisible(false); setCurrentPdfHtml(null); }}
         message={successMessage}
+        actionButtonText={currentPdfHtml ? "DESCARGAR PDF" : null}
+        onAction={currentPdfHtml ? async () => { await Print.printAsync({ html: currentPdfHtml }); } : null}
       />
     </ScreenTemplate>
   );
