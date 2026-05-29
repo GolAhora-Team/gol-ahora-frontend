@@ -55,14 +55,23 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
 
             {/* 2. ROL */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>2. ROL DEL SISTEMA</Text>
+              <Text style={styles.sectionTitle}>2. ROL DEL SISTEMA {isEditing ? "(No editable)" : ""}</Text>
               <View style={styles.grid}>
                 {Object.keys(rolesIcons).map(r => {
                   if (currentUserRole === 'PERSONAL' && (r === 'ADMIN' || r === 'PERSONAL')) return null;
                   return (
-                    <TouchableOpacity key={r} style={[styles.roleBtn, formData.role === r && styles.activeGreenBtn]} onPress={() => setFormData({...formData, role: r})}>
-                      <MaterialCommunityIcons name={rolesIcons[r]} size={20} color={formData.role === r ? '#fff' : '#009b3a'} />
-                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : styles.greenText]}>{r}</Text>
+                    <TouchableOpacity 
+                      key={r} 
+                      style={[
+                        styles.roleBtn, 
+                        formData.role === r && styles.activeGreenBtn,
+                        isEditing && formData.role !== r && { opacity: 0.4 }
+                      ]} 
+                      onPress={() => setFormData({...formData, role: r})}
+                      disabled={isEditing}
+                    >
+                      <MaterialCommunityIcons name={rolesIcons[r]} size={20} color={formData.role === r ? '#fff' : (isEditing ? '#94a3b8' : '#009b3a')} />
+                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : (isEditing ? {color: '#94a3b8'} : styles.greenText)]}>{r}</Text>
                     </TouchableOpacity>
                   );
                 })}

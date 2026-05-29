@@ -71,7 +71,7 @@ export default function RegisterScreen({ navigation }) {
           Nombre: nombre,
           Apellido: apellido,
           Genero: genero,
-          FechaNacimiento: fechaNacimiento || "2000-01-01T00:00:00.000Z",
+          FechaNacimiento: fechaNacimiento ? `${fechaNacimiento}T00:00:00.000Z` : "2000-01-01T00:00:00.000Z",
           Telefono: telefono || "",
           Direccion: direccion || "",
           Localidad: "",
@@ -209,13 +209,28 @@ export default function RegisterScreen({ navigation }) {
                       </TouchableOpacity>
                     </View>
 
-                    <CustomInput 
-                      label="Fecha de Nacimiento" 
-                      iconName="calendar" 
-                      placeholder="AAAA-MM-DD" 
-                      value={fechaNacimiento} 
-                      onChangeText={setFechaNacimiento} 
-                    />
+                    {Platform.OS === 'web' ? (
+                      <View style={{marginBottom: 15, width: '100%'}}>
+                        <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff'}}>
+                          <MaterialCommunityIcons name="calendar" size={20} color="#666" style={{marginRight: 10}} />
+                          <input 
+                            type="date" 
+                            value={fechaNacimiento} 
+                            onChange={(e) => setFechaNacimiento(e.target.value)}
+                            style={{ flex: 1, height: 45, border: 'none', outline: 'none', backgroundColor: 'transparent', fontFamily: 'inherit', color: '#333' }}
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <CustomInput 
+                        label="Fecha de Nacimiento" 
+                        iconName="calendar" 
+                        placeholder="AAAA-MM-DD" 
+                        value={fechaNacimiento} 
+                        onChangeText={setFechaNacimiento} 
+                      />
+                    )}
                     <CustomInput 
                       label="Teléfono" 
                       iconName="phone" 

@@ -110,9 +110,12 @@ export default function UserScreen({ route, navigation }) {
         await administradorService.delete(userToDelete.id);
       }
       setUsers(users.filter(u => u.id !== userToDelete.id));
+      Alert.alert("Éxito", "El usuario se eliminó correctamente.");
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
     }
+    setDeleteModalVisible(false);
+    setUserToDelete(null);
   };
 
   const handleSave = async () => {
