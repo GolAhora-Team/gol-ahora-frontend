@@ -200,7 +200,7 @@ export default function CanchaScreen({ route, navigation }) {
             <h1 class="brand">Gol Ahora</h1>
             <div class="report-type">Reporte de Estado de Canchas</div>
             <div class="generated-by">Reporte generado por: <b>${nombreUsuario}</b></div>
-            <div class="generated-by">Fecha: ${new Date().toLocaleString()}</div>
+            <div class="generated-by">Fecha: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}</div>
           </div>
           <div class="line"></div>
           <table>

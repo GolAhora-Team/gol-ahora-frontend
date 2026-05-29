@@ -39,6 +39,21 @@ export default function ReportesScreen({ route, navigation }) {
     }
   };
 
+  const printHtml = async (htmlContent) => {
+    if (Platform.OS === 'web') {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    } else {
+      await Print.printAsync({ html: htmlContent });
+    }
+  };
+
   const handleExportExcel = async () => {
     const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
     let csvContent = `Reporte: ${reporteActivo}\nTotal: ${dataActual.total}\nDetalle: ${dataActual.detalle}\n\nDia,Valor\n`;
@@ -150,7 +165,7 @@ export default function ReportesScreen({ route, navigation }) {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                    onPress={() => Print.printAsync({ html: rep.html })}
+                    onPress={() => printHtml(rep.html)}
                   >
                     <MaterialCommunityIcons name="printer" size={18} color="#000" />
                     <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
