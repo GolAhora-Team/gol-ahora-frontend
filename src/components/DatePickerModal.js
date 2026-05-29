@@ -21,19 +21,21 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDateStr, setSelectedDateStr] = useState('');
   const [showYearPicker, setShowYearPicker] = useState(false);
 
   useEffect(() => {
     if (visible) {
       if (initialDate) {
-        const [year, month, day] = initialDate.split('-');
-        const d = new Date(year, month - 1, day);
-        setCurrentDate(d);
+        const [y, m, d] = initialDate.split('-');
+        setCurrentYear(parseInt(y, 10));
+        setCurrentMonth(parseInt(m, 10) - 1);
         setSelectedDateStr(initialDate);
       } else {
-        setCurrentDate(new Date(2000, 0, 1)); // Default for Date of Birth
+        setCurrentYear(2000); // Default for Date of Birth
+        setCurrentMonth(0);
         setSelectedDateStr('');
       }
       setShowYearPicker(false);
@@ -68,18 +70,28 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
     }
   }, [visible, initialDate]);
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const year = currentYear;
+  const month = currentMonth;
 
   const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
   const getFirstDayOfMonth = (y, m) => new Date(y, m, 1).getDay();
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+    if (month === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(year - 1);
+    } else {
+      setCurrentMonth(month - 1);
+    }
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    if (month === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(year + 1);
+    } else {
+      setCurrentMonth(month + 1);
+    }
   };
 
   const handleSelectDay = (day) => {
@@ -132,7 +144,7 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
               key={y} 
               style={[styles.yearItem, year === y && styles.selectedYearItem]}
               onPress={() => {
-                setCurrentDate(new Date(y, month, 1));
+                setCurrentYear(y);
                 setShowYearPicker(false);
               }}
             >
