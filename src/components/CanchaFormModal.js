@@ -45,10 +45,12 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     style={[styles.choiceBtn, formData.tipo === t && styles.activeBtn]} 
                     onPress={() => {
                       let cap = "0";
-                      if (t === 'F5') cap = "10";
-                      if (t === 'F7') cap = "14";
-                      if (t === 'F11') cap = "22";
-                      setFormData({...formData, tipo: t, capacidad: cap});
+                      let dim = "";
+                      let precio = 0;
+                      if (t === 'F5') { cap = "10"; dim = "20x40m"; precio = 30000; }
+                      if (t === 'F7') { cap = "14"; dim = "30x50m"; precio = 65000; }
+                      if (t === 'F11') { cap = "22"; dim = "45x90m"; precio = 120000; }
+                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioBase: precio});
                     }}
                   >
                     <Text style={[styles.choiceText, formData.tipo === t ? styles.whiteText : styles.greenText]}>{t}</Text>
@@ -68,6 +70,15 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               <CustomInput 
                 label="CAPACIDAD MÁXIMA (Jugadores) - Autocalculado" 
                 value={formData.capacidad ? formData.capacidad.toString() : ""} 
+                editable={false}
+                containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
+                labelStyle={styles.greenLabelBold}
+                inputStyle={[styles.greenInputText, { color: '#64748b' }]}
+              />
+
+              <CustomInput 
+                label="PRECIO POR HORA - Autocalculado" 
+                value={formData.precioBase ? `$${formData.precioBase}` : ""} 
                 editable={false}
                 containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
                 labelStyle={styles.greenLabelBold}
