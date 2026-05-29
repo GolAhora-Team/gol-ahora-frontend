@@ -184,11 +184,11 @@ export default function UserScreen({ route, navigation }) {
         }
 
         Alert.alert("¡Usuario Creado!", `Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
-        loadUsers(); // Recargar lista completa para reflejar los IDs reales
+        loadUsers(); 
+        setModalVisible(false);
       }
-      setModalVisible(false);
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo guardar el usuario.');
+      setFormError(error.message || 'No se pudo guardar el usuario.');
     }
   };
 
