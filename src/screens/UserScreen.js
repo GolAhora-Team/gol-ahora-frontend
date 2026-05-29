@@ -126,11 +126,12 @@ export default function UserScreen({ route, navigation }) {
         await clienteService.delete(userToDelete.id);
       } else if (userToDelete.role === 'PROFE') {
         await profesorService.delete(userToDelete.id);
-      } else if (userToDelete.role === 'ADMIN') {
+      } else if (userToDelete.role === 'ADMIN' || userToDelete.role === 'PERSONAL') {
         await administradorService.delete(userToDelete.id);
       }
       setUsers(users.filter(u => u.id !== userToDelete.id));
-      Alert.alert("Éxito", "El usuario se eliminó correctamente.");
+      setSuccessMessage("El usuario se eliminó correctamente.");
+      setSuccessVisible(true);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
     }
