@@ -64,7 +64,8 @@ const LoginScreen = ({ navigation }) => {
       navigation.navigate('Dashboard', { 
         role: role.toUpperCase(), 
         nombreUsuario,
-        idPersona: response.idPersona
+        idPersona: response.idPersona,
+        idUsuario: response.idUsuario
       });
     } catch (error) {
       setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
