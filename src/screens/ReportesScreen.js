@@ -12,6 +12,7 @@ export default function ReportesScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
   const [historialCanchas, setHistorialCanchas] = useState([]);
+  const [ordenFecha, setOrdenFecha] = useState('desc');
   const estadisticas = getEstadisticas();
   const dataActual = estadisticas[reporteActivo];
 
@@ -113,6 +114,12 @@ export default function ReportesScreen({ route, navigation }) {
     }
   };
 
+  const sortedHistorialCanchas = [...historialCanchas].sort((a, b) => {
+    const dateA = new Date(a.fecha).getTime();
+    const dateB = new Date(b.fecha).getTime();
+    return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       <Text style={styles.title}>Panel de Reportes</Text>
@@ -146,7 +153,17 @@ export default function ReportesScreen({ route, navigation }) {
               </View>
             </View>
 
-            {historialCanchas.map(rep => (
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, elevation: 2 }}
+                onPress={() => setOrdenFecha(prev => prev === 'desc' ? 'asc' : 'desc')}
+              >
+                <Text style={{ color: '#1e293b', fontSize: 12, fontWeight: '800', marginRight: 5 }}>Ordenar por fecha</Text>
+                <MaterialCommunityIcons name={ordenFecha === 'asc' ? "arrow-up" : "arrow-down"} size={16} color="#1e293b" />
+              </TouchableOpacity>
+            </View>
+
+            {sortedHistorialCanchas.map(rep => (
               <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
