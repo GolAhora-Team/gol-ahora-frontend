@@ -32,6 +32,14 @@ export const getEstadisticas = () => {
       icon: "file-document-multiple",
       datosSemanales: [],
       descripcion: "Historial de reportes del estado técnico de las canchas generados por el personal."
+    },
+    Usuarios: {
+      total: "Historial",
+      detalle: "Reportes generados",
+      color: "#8b5cf6",
+      icon: "account-multiple",
+      datosSemanales: [],
+      descripcion: "Historial de reportes de usuarios tipo cliente."
     }
   };
 };

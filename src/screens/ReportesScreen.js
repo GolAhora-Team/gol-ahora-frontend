@@ -7,11 +7,13 @@ import * as FileSystem from 'expo-file-system';
 import ScreenTemplate from './ScreenTemplate';
 import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { clienteService } from '../services/clienteService';
 
 export default function ReportesScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
   const [historialCanchas, setHistorialCanchas] = useState([]);
+  const [historialUsuarios, setHistorialUsuarios] = useState([]);
   const [ordenFecha, setOrdenFecha] = useState('desc');
   const estadisticas = getEstadisticas();
   const dataActual = estadisticas[reporteActivo];
@@ -19,6 +21,8 @@ export default function ReportesScreen({ route, navigation }) {
   React.useEffect(() => {
     if (reporteActivo === 'Canchas') {
       reportHistoryService.getReportes().then(setHistorialCanchas);
+    } else if (reporteActivo === 'Usuarios') {
+      clienteService.getAll().then(setHistorialUsuarios);
     }
   }, [reporteActivo]);
 
@@ -120,6 +124,69 @@ export default function ReportesScreen({ route, navigation }) {
     return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
+  const sortedHistorialUsuarios = [...historialUsuarios].sort((a, b) => {
+    const dateA = new Date(a.fechaAlta).getTime();
+    const dateB = new Date(b.fechaAlta).getTime();
+    return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+
+  const generateUserHtml = (user) => {
+    const d = (val) => val ? val : "-";
+    const fechaFormat = (val) => val ? new Date(val).toLocaleDateString() : "-";
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 50px; font-weight: 900; margin: 0; }
+            .subtitle { font-size: 14px; font-weight: bold; margin-top: 5px; }
+            .line { border-bottom: 2px solid #000; margin: 20px 0; }
+            .content { margin-top: 20px; font-size: 16px; line-height: 1.6; }
+            .report-name { font-size: 22px; text-decoration: underline; margin-bottom: 20px; text-align: center; }
+            .grid { display: flex; flex-wrap: wrap; }
+            .item { width: 50%; margin-bottom: 15px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #444; border-top: 1px solid #ccc; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="brand">GOL AHORA</h1>
+            <div class="subtitle">SISTEMA DE GESTIÓN DEPORTIVA</div>
+          </div>
+          <div class="line"></div>
+          <div class="content">
+            <div class="report-name">REPORTE DE CLIENTE</div>
+            <div class="grid">
+              <div class="item"><b>Nombre:</b> ${d(user.nombre)}</div>
+              <div class="item"><b>Apellido:</b> ${d(user.apellido)}</div>
+              <div class="item"><b>DNI:</b> ${d(user.dni)}</div>
+              <div class="item"><b>Fecha de Creación:</b> ${fechaFormat(user.fechaAlta)}</div>
+              <div class="item"><b>Email:</b> ${d(user.email)}</div>
+              <div class="item"><b>Teléfono:</b> ${d(user.telefono)}</div>
+              <div class="item"><b>Género:</b> ${d(user.genero)}</div>
+              <div class="item"><b>Fecha Nacimiento:</b> ${fechaFormat(user.fechaNacimiento)}</div>
+              <div class="item"><b>Dirección:</b> ${d(user.direccion)}</div>
+              <div class="item"><b>Localidad:</b> ${d(user.localidad)}</div>
+              <div class="item"><b>Código Postal:</b> ${d(user.codigoPostal)}</div>
+              <div class="item"><b>Provincia:</b> ${d(user.provincia)}</div>
+              <div class="item"><b>País:</b> ${d(user.pais)}</div>
+              <div class="item"><b>Contacto Emergencia:</b> ${d(user.contactoEmergencia)}</div>
+              <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
+              <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
+              <div class="item"><b>Socio Activo:</b> ${user.esSocioActivo ? "Sí" : "No"}</div>
+              <div class="item"><b>Fecha Baja:</b> ${fechaFormat(user.fechaBaja)}</div>
+            </div>
+          </div>
+          <div class="footer">
+            Generado por ${currentUserRole} - ${new Date().toLocaleDateString()}
+          </div>
+        </body>
+      </html>
+    `;
+    return { html, fileName: \`Reporte_\${user.nombre}_\${user.apellido}\`.replace(/\\s+/g, '_') };
+  };
+
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       <Text style={styles.title}>Panel de Reportes</Text>
@@ -142,13 +209,13 @@ export default function ReportesScreen({ route, navigation }) {
       </View>
 
       <View style={styles.mainVisualArea}>
-        {reporteActivo === 'Canchas' ? (
+        {reporteActivo === 'Canchas' || reporteActivo === 'Usuarios' ? (
           <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
             <View style={styles.kpiCard}>
               <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
               <View style={{ marginLeft: 15 }}>
                 <Text style={styles.kpiLabel}>{reporteActivo.toUpperCase()}</Text>
-                <Text style={styles.kpiValue}>{historialCanchas.length} Reportes</Text>
+                <Text style={styles.kpiValue}>{reporteActivo === 'Canchas' ? historialCanchas.length : historialUsuarios.length} Reportes</Text>
                 <Text style={styles.kpiSub}>{dataActual.detalle}</Text>
               </View>
             </View>
@@ -163,33 +230,66 @@ export default function ReportesScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
 
-            {sortedHistorialCanchas.map(rep => (
-              <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
-                  <View style={{ marginLeft: 10 }}>
-                    <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Estado'}</Text>
-                    <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
+            {reporteActivo === 'Canchas' ? (
+              sortedHistorialCanchas.map(rep => (
+                <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Estado'}</Text>
+                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => downloadPdf(rep)}
+                    >
+                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => printHtml(rep.html)}
+                    >
+                      <MaterialCommunityIcons name="printer" size={18} color="#000" />
+                      <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity 
-                    style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                    onPress={() => downloadPdf(rep)}
-                  >
-                    <MaterialCommunityIcons name="download" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                    onPress={() => printHtml(rep.html)}
-                  >
-                    <MaterialCommunityIcons name="printer" size={18} color="#000" />
-                    <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+              ))
+            ) : (
+              sortedHistorialUsuarios.map(rep => {
+                const pdfData = generateUserHtml(rep);
+                return (
+                  <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
+                      <View style={{ marginLeft: 10 }}>
+                        <Text style={{ fontWeight: '800', color: '#1e293b' }}>{pdfData.fileName}</Text>
+                        <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fechaAlta).toLocaleString()}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity 
+                        style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                        onPress={() => downloadPdf(pdfData)}
+                      >
+                        <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                        <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                        onPress={() => printHtml(pdfData.html)}
+                      >
+                        <MaterialCommunityIcons name="printer" size={18} color="#000" />
+                        <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
             <View style={{ height: 100 }} />
           </ScrollView>
         ) : (
@@ -218,7 +318,7 @@ export default function ReportesScreen({ route, navigation }) {
           </ScrollView>
         )}
 
-        {reporteActivo !== 'Canchas' && (
+        {reporteActivo !== 'Canchas' && reporteActivo !== 'Usuarios' && (
           <View style={styles.recuadroRojoAcciones}>
             <TouchableOpacity 
               style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
