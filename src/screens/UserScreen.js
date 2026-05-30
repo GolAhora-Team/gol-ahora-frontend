@@ -10,6 +10,11 @@ import { administradorService } from '../services/administradorService';
 import { userService } from '../services/userService';
 import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
+import { reportHistoryService } from '../services/reportHistoryService';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -27,6 +32,9 @@ export default function UserScreen({ route, navigation }) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [formError, setFormError] = useState('');
   const [originalRole, setOriginalRole] = useState(null);
+  const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
+  const [userToReport, setUserToReport] = useState(null);
+  const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
   
   const initialFormState = {
     dni: '', nombre: '', apellido: '', genero: 'Masculino',
@@ -203,6 +211,100 @@ export default function UserScreen({ route, navigation }) {
     }
   };
 
+  const handleGenerateReport = (user) => {
+    setUserToReport(user);
+    setConfirmReportModalVisible(true);
+  };
+
+  const generateUserHtml = (user) => {
+    const d = (val) => val ? val : "-";
+    const fechaFormat = (val) => val ? new Date(val).toLocaleDateString() : "-";
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 50px; font-weight: 900; margin: 0; }
+            .subtitle { font-size: 14px; font-weight: bold; margin-top: 5px; }
+            .line { border-bottom: 2px solid #000; margin: 20px 0; }
+            .content { margin-top: 20px; font-size: 16px; line-height: 1.6; }
+            .report-name { font-size: 22px; text-decoration: underline; margin-bottom: 20px; text-align: center; }
+            .grid { display: flex; flex-wrap: wrap; }
+            .item { width: 50%; margin-bottom: 15px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #444; border-top: 1px solid #ccc; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="brand">GOL AHORA</h1>
+            <div class="subtitle">SISTEMA DE GESTIÓN DEPORTIVA</div>
+          </div>
+          <div class="line"></div>
+          <div class="content">
+            <div class="report-name">REPORTE DE CLIENTE</div>
+            <div class="grid">
+              <div class="item"><b>Nombre:</b> ${d(user.nombre)}</div>
+              <div class="item"><b>Apellido:</b> ${d(user.apellido)}</div>
+              <div class="item"><b>DNI:</b> ${d(user.dni)}</div>
+              <div class="item"><b>Fecha de Creación:</b> ${fechaFormat(user.fechaAlta)}</div>
+              <div class="item"><b>Email:</b> ${d(user.email)}</div>
+              <div class="item"><b>Teléfono:</b> ${d(user.telefono)}</div>
+              <div class="item"><b>Género:</b> ${d(user.genero)}</div>
+              <div class="item"><b>Fecha Nacimiento:</b> ${fechaFormat(user.fechaNacimiento)}</div>
+              <div class="item"><b>Dirección:</b> ${d(user.direccion)}</div>
+              <div class="item"><b>Localidad:</b> ${d(user.localidad)}</div>
+              <div class="item"><b>Código Postal:</b> ${d(user.codigoPostal)}</div>
+              <div class="item"><b>Provincia:</b> ${d(user.provincia)}</div>
+              <div class="item"><b>País:</b> ${d(user.pais)}</div>
+              <div class="item"><b>Contacto Emergencia:</b> ${d(user.contactoEmergencia)}</div>
+              <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
+              <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
+              <div class="item"><b>Socio Activo:</b> ${user.esSocioActivo ? "Sí" : "No"}</div>
+              <div class="item"><b>Fecha Baja:</b> ${fechaFormat(user.fechaBaja)}</div>
+            </div>
+          </div>
+          <div class="footer">
+            Generado por ${currentUserRole} - ${new Date().toLocaleDateString()}
+          </div>
+        </body>
+      </html>
+    `;
+    return { html, fileName: `Reporte-Usuario-${user.nombre}_${user.apellido}`.replace(/\s+/g, '_') };
+  };
+
+  const executeGenerateReport = async () => {
+    if (!userToReport) return;
+    try {
+      const pdfData = generateUserHtml(userToReport);
+      await reportHistoryService.saveReporte(pdfData.html, pdfData.fileName);
+      setCurrentPdfHtml(pdfData);
+      setSuccessMessage("¡PDF generado y guardado exitosamente!");
+      setConfirmReportModalVisible(false);
+      setSuccessVisible(true);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo generar el reporte.');
+    }
+  };
+
+  const downloadPdf = async (pdfData) => {
+    if (Platform.OS === 'web') {
+      const html2pdf = require('html2pdf.js');
+      const element = document.createElement('div');
+      element.innerHTML = pdfData.html;
+      html2pdf().from(element).set({
+        margin: 10,
+        filename: pdfData.fileName + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+    } else {
+      const { uri } = await Print.printToFileAsync({ html: pdfData.html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    }
+  };
+
   const filteredUsers = users.filter(u => {
     const nombre = u.nombre ? String(u.nombre).toLowerCase() : '';
     const apellido = u.apellido ? String(u.apellido).toLowerCase() : '';
@@ -256,7 +358,7 @@ export default function UserScreen({ route, navigation }) {
                 <Text style={styles.roleHeaderTextBlack}>{section.role} ({section.data.length})</Text>
             </View>
             {section.data.map(item => (
-              <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} canModify={canModifyTarget(item)} />
+              <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} canModify={canModifyTarget(item)} />
             ))}
           </View>
         ))}
@@ -279,9 +381,21 @@ export default function UserScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successVisible}
-        onClose={() => setSuccessVisible(false)}
+        onClose={() => { setSuccessVisible(false); setCurrentPdfHtml(null); }}
         title="¡Éxito!"
         message={successMessage}
+        actionButtonText={currentPdfHtml ? "DESCARGAR PDF" : null}
+        onAction={currentPdfHtml ? () => downloadPdf(currentPdfHtml) : null}
+      />
+
+      <ConfirmModal
+        visible={confirmReportModalVisible}
+        onClose={() => setConfirmReportModalVisible(false)}
+        onConfirm={executeGenerateReport}
+        title="Generar Reporte"
+        message="¿Desea generar un reporte con los datos de este usuario?"
+        confirmText="SÍ"
+        cancelText="CANCELAR"
       />
     </ScreenTemplate>
   );

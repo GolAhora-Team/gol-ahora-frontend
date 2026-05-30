@@ -28,6 +28,15 @@ export default function UserCard({ item, onEdit, onDelete, canModify }) {
       {/* Verificamos el permiso de modificación */}
       {canModify === true && (
         <View style={styles.actionSide}>
+          {item.role === 'CLIENTE' && (
+            <TouchableOpacity 
+              onPress={() => onReport && onReport(item)} 
+              style={[styles.actionBtn, { backgroundColor: '#fffbeb' }]}
+            >
+              <MaterialCommunityIcons name="file-document-edit-outline" size={20} color="#f59e0b" />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity 
             onPress={() => onEdit && onEdit(item)} 
             style={[styles.actionBtn, { backgroundColor: '#f0fdf4' }]}
