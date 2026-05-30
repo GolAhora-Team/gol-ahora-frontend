@@ -184,7 +184,7 @@ export default function ReportesScreen({ route, navigation }) {
         </body>
       </html>
     `;
-    return { html, fileName: \`Reporte_\${user.nombre}_\${user.apellido}\`.replace(/\\s+/g, '_') };
+    return { html, fileName: `Reporte_${user.nombre}_${user.apellido}`.replace(/\s+/g, '_') };
   };
 
   return (
