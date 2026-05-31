@@ -275,7 +275,6 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             <Text style={styles.memberName}>• Espindola, Nadia</Text>
             <Text style={styles.memberName}>• Fabbio, Benjamin </Text>
             <Text style={styles.memberName}>• Florentin, Javier</Text>
-            <Text style={styles.memberName}>• Roldan, Nicolas</Text>
             <Text style={styles.memberName}>• Salas, Alejandro</Text>
             <Text style={styles.memberName}>• Zalazar, Ezequiel</Text>
 
