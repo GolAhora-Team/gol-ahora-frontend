@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  SafeAreaView, 
-  ScrollView, 
-  Dimensions, 
-  Platform, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  ScrollView,
+  Dimensions,
+  Platform,
   TouchableOpacity,
   KeyboardAvoidingView,
   StatusBar,
@@ -26,7 +26,7 @@ const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
 export default function RegisterScreen({ navigation }) {
-  const [genero, setGenero] = useState(null); 
+  const [genero, setGenero] = useState(null);
   const [dni, setDni] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -52,7 +52,6 @@ export default function RegisterScreen({ navigation }) {
     else if (password !== confirmPassword) newErrors.confirmPassword = 'Las contraseñas no coinciden';
     if (!nombre) newErrors.nombre = 'Obligatorio';
     if (!apellido) newErrors.apellido = 'Obligatorio';
-    
     if (!genero) newErrors.genero = 'Debe seleccionar un género';
 
     if (Object.keys(newErrors).length > 0) {
@@ -85,7 +84,7 @@ export default function RegisterScreen({ navigation }) {
           AptoFisico: true
         }
       };
-      
+
       await userService.createUsuarioCliente(payload);
       setSuccessVisible(true);
     } catch (error) {
@@ -106,22 +105,22 @@ export default function RegisterScreen({ navigation }) {
       <Background />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer} 
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            
+
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />
 
               <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
-                
-                <View style={styles.headerClean}>   
+
+                <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
                   <View style={styles.roleTag}>
@@ -130,58 +129,55 @@ export default function RegisterScreen({ navigation }) {
                 </View>
 
                 <View style={styles.solidGlassCard}>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false} 
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
                     style={{ maxHeight: windowHeight * 0.45 }}
                     nestedScrollEnabled={true}
                   >
-                    <CustomInput 
-                      label="DNI" 
-                      iconName="card-account-details" 
-                      keyboardType="numeric" 
+                    <CustomInput
+                      label="DNI"
+                      iconName="card-account-details"
+                      keyboardType="numeric"
                       value={dni}
                       onChangeText={setDni}
                       error={errors.dni}
                     />
-                    
-                    <CustomInput 
-                      label="Contraseña" 
-                      iconName="lock" 
+
+                    <CustomInput
+                      label="Contraseña"
+                      iconName="lock"
                       isPassword={true}
                       value={password}
                       onChangeText={setPassword}
                       error={errors.password}
                     />
-                    
-                    <CustomInput 
-                      label="Confirmar Contraseña" 
-                      iconName="lock-check" 
+
+                    <CustomInput
+                      label="Confirmar Contraseña"
+                      iconName="lock-check"
                       isPassword={true}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       error={errors.confirmPassword}
                     />
-                    
-                    <View style={styles.row}>
-                        <View style={{flex: 1, marginRight: 5}}>
-                            <CustomInput 
-                              label="Nombre" 
-                              iconName="account" 
-                              value={nombre} 
-                              onChangeText={setNombre} 
-                              error={errors.nombre}
-                            />
-                        </View>
-                        <View style={{flex: 1, marginLeft: 5}}>
-                            <CustomInput 
-                              label="Apellido" 
-                              iconName="account" 
-                              value={apellido} 
-                              onChangeText={setApellido} 
-                              error={errors.apellido}
-                            />
-                        </View>
-                    </View>
+
+
+                    <CustomInput
+                      label="Nombre"
+                      iconName="account"
+                      value={nombre}
+                      onChangeText={setNombre}
+                      error={errors.nombre}
+                    />
+
+                    <CustomInput
+                      label="Apellido"
+                      iconName="account"
+                      value={apellido}
+                      onChangeText={setApellido}
+                      error={errors.apellido}
+                    />
+
 
                     <Text style={styles.labelInterno}>Género</Text>
                     <View style={[styles.genderContainer, errors.genero && { marginBottom: 5, borderColor: '#dc2626', borderWidth: 1, borderRadius: 12, padding: 2 }]}>
@@ -189,22 +185,22 @@ export default function RegisterScreen({ navigation }) {
                         style={[styles.genderBtn, genero === 'MASCULINO' && styles.genderBtnActive]}
                         onPress={() => { setGenero('MASCULINO'); setErrors({...errors, genero: null}); }}
                       >
-                        <MaterialCommunityIcons 
-                          name="gender-male" 
-                          size={20} 
-                          color={genero === 'MASCULINO' ? '#000' : '#666'} 
+                        <MaterialCommunityIcons
+                          name="gender-male"
+                          size={20}
+                          color={genero === 'MASCULINO' ? '#000' : '#666'}
                         />
                         <Text style={[styles.genderBtnText, genero === 'MASCULINO' && styles.textActive]}>MASCULINO</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[styles.genderBtn, genero === 'FEMENINO' && styles.genderBtnActive]}
                         onPress={() => { setGenero('FEMENINO'); setErrors({...errors, genero: null}); }}
                       >
-                        <MaterialCommunityIcons 
-                          name="gender-female" 
-                          size={20} 
-                          color={genero === 'FEMENINO' ? '#000' : '#666'} 
+                        <MaterialCommunityIcons
+                          name="gender-female"
+                          size={20}
+                          color={genero === 'FEMENINO' ? '#000' : '#666'}
                         />
                         <Text style={[styles.genderBtnText, genero === 'FEMENINO' && styles.textActive]}>FEMENINO</Text>
                       </TouchableOpacity>
@@ -231,24 +227,24 @@ export default function RegisterScreen({ navigation }) {
                       value={telefono} 
                       onChangeText={setTelefono} 
                     />
-                    <CustomInput 
-                      label="Dirección" 
-                      iconName="map-marker" 
-                      value={direccion} 
-                      onChangeText={setDireccion} 
+                    <CustomInput
+                      label="Dirección"
+                      iconName="map-marker"
+                      value={direccion}
+                      onChangeText={setDireccion}
                     />
-                    <CustomInput 
-                      label="Email" 
-                      iconName="email" 
-                      keyboardType="email-address" 
-                      value={email} 
-                      onChangeText={setEmail} 
+                    <CustomInput
+                      label="Email"
+                      iconName="email"
+                      keyboardType="email-address"
+                      value={email}
+                      onChangeText={setEmail}
                     />
-                    <CustomInput 
-                      label="Contacto Emergencia" 
-                      iconName="alert-circle" 
-                      value={contactoEmergencia} 
-                      onChangeText={setContactoEmergencia} 
+                    <CustomInput
+                      label="Contacto Emergencia"
+                      iconName="alert-circle"
+                      value={contactoEmergencia}
+                      onChangeText={setContactoEmergencia}
                     />
 
                     <View style={styles.warningContainer}>
@@ -264,8 +260,8 @@ export default function RegisterScreen({ navigation }) {
                     ) : null}
                   </ScrollView>
 
-                  <TouchableOpacity 
-                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
+                  <TouchableOpacity
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleRegister}
                     disabled={isLoading}
@@ -275,7 +271,7 @@ export default function RegisterScreen({ navigation }) {
                     </LinearGradient>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => navigation.navigate('Login')}
                     style={styles.backLink}
                   >
@@ -314,46 +310,46 @@ const styles = StyleSheet.create({
   mainTitle: { fontSize: 42, fontWeight: '900', color: '#fff', letterSpacing: -1 },
   roleTag: { backgroundColor: '#ffb300', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 4, marginTop: 5 },
   roleTagText: { color: '#000', fontSize: 10, fontWeight: '900' },
-  
+
   pitchContainer: {
-    width: isWeb ? 480 : '94%', 
-    height: isWeb ? 880 : windowHeight * 0.9, 
-    borderRadius: 35, 
-    borderWidth: 1.5, 
+    width: isWeb ? 480 : '94%',
+    height: isWeb ? 880 : windowHeight * 0.9,
+    borderRadius: 35,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
-    overflow: 'hidden', 
+    overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
     position: 'relative'
   },
   contentOverlay: { justifyContent: 'center', alignItems: 'center', padding: 15 },
-  solidGlassCard: { 
-    width: '90%', 
-    padding: 20, 
-    borderRadius: 25, 
-    backgroundColor: 'rgba(255, 255, 255, 0.96)', 
-    elevation: 15, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 10 
+  solidGlassCard: {
+    width: '90%',
+    padding: 20,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    elevation: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10
   },
   labelInterno: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  genderBtn: { 
-    flex: 0.48, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    height: 50, 
-    borderRadius: 12, 
-    backgroundColor: '#f5f5f5', 
-    borderWidth: 1, 
-    borderColor: '#eee' 
+  genderBtn: {
+    flex: 0.48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#eee'
   },
   genderBtnActive: { backgroundColor: '#ffb300', borderColor: '#ff9100' },
   genderBtnText: { marginLeft: 8, fontSize: 12, fontWeight: '700', color: '#666' },
   textActive: { color: '#000' },
-  
+
   row: { flexDirection: 'row', width: '100%' },
   mainButton: { marginTop: 15, borderRadius: 12, overflow: 'hidden', elevation: 5 },
   gradientButton: { height: 55, justifyContent: 'center', alignItems: 'center' },
