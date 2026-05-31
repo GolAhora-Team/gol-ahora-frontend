@@ -57,9 +57,13 @@ function StepCancha({ canchas, selectedCancha, onSelect }) {
 
 // ─── PASO 2: CLIENTE O INVITADO ────────────────────────────────────────────────
 function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedCliente, invitado, setInvitado, errors }) {
-  const [searchDni, setSearchDni] = useState('');
-  const filteredClientes = searchDni.length >= 2
-    ? clientes.filter(c => c.dni?.toString().includes(searchDni))
+  const [searchTerm, setSearchTerm] = useState('');
+  const filteredClientes = searchTerm.length >= 2
+    ? clientes.filter(c => 
+        c.dni?.toString().includes(searchTerm) || 
+        c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        c.apellido?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     : [];
 
   return (
@@ -85,16 +89,15 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
 
       {mode === 'CLIENTE' && (
         <View>
-          <Text style={s.fieldLabel}>Buscar cliente por DNI</Text>
+          <Text style={s.fieldLabel}>Buscar cliente por DNI o Nombre</Text>
           <View style={s.searchContainer}>
             <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
             <TextInput
               style={s.searchInput}
-              placeholder="Ingrese el DNI..."
+              placeholder="Ingrese el DNI o nombre..."
               placeholderTextColor="#94a3b8"
-              keyboardType="numeric"
-              value={searchDni}
-              onChangeText={setSearchDni}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
             />
           </View>
           {errors?.cliente && <Text style={s.errorText}>{errors.cliente}</Text>}
@@ -124,8 +127,8 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
             </ScrollView>
           )}
 
-          {searchDni.length >= 2 && filteredClientes.length === 0 && (
-            <Text style={s.noResultsText}>No se encontraron clientes con ese DNI.</Text>
+          {searchTerm.length >= 2 && filteredClientes.length === 0 && (
+            <Text style={s.noResultsText}>No se encontraron clientes con ese DNI o nombre.</Text>
           )}
 
           {selectedCliente && (
