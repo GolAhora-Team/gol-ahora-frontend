@@ -5,6 +5,7 @@ import { reportHistoryService } from '../services/reportHistoryService';
 import { clienteService } from '../services/clienteService';
 import { reservaService } from '../services/reservaService';
 import { userService } from '../services/userService';
+import ErrorModal from './ErrorModal';
 
 // ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
 function StepCancha({ canchas, selectedCancha, onSelect }) {
@@ -411,6 +412,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [codigoVale, setCodigoVale] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [errorModalMessage, setErrorModalMessage] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -640,11 +642,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       }
     } catch (error) {
       const msg = error.message || 'No se pudo registrar la reserva.';
-      if (Platform.OS === 'web') {
-        window.alert('Error: ' + msg);
-      } else {
-        Alert.alert('Error', msg);
-      }
+      setErrorModalMessage(msg);
     } finally {
       setIsLoading(false);
     }
@@ -764,6 +762,11 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           )}
         </View>
       </View>
+      <ErrorModal 
+        visible={!!errorModalMessage} 
+        message={errorModalMessage} 
+        onClose={() => setErrorModalMessage(null)} 
+      />
     </Modal>
   );
 }
