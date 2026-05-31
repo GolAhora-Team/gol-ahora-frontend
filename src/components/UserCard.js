@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function UserCard({ item, onEdit, onDelete, canModify }) {
+export default function UserCard({ item, onEdit, onDelete, onReport, canModify }) {
   // Manejo de errores de datos: si no hay item, no renderizamos nada
   if (!item) return null;
 
