@@ -17,6 +17,19 @@ export const administradorService = {
   },
 
   /**
+   * GET /api/Administrador/{id}
+   * Obtiene un administrador o personal por su id.
+   */
+  getById: async (id) => {
+    try {
+      return await http.get(`${URL}/${id}`);
+    } catch (error) {
+      console.error(`Error fetching administrador con id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * PUT /api/Administrador/{id}/simple
    * Actualización simple de datos del administrador.
    */
