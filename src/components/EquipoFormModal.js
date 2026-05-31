@@ -10,6 +10,13 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
   const [formData, setFormData] = useState(initialState);
   const [errors, setErrors] = useState({});
 
+  React.useEffect(() => {
+    if (visible) {
+      setFormData(initialState);
+      setErrors({});
+    }
+  }, [visible]);
+
   const validate = () => {
     let valid = true;
     let newErrors = {};
@@ -28,9 +35,9 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
       onSave({
         ...formData,
         cantidadMaxJugadores: 0,
-        competicionId: 0
+        competicionId: null
       });
-      setFormData(initialState);
+      // Do not clear the form immediately, let the parent handle success/close
     } else {
       Alert.alert('Error', 'Por favor, corrija los errores en el formulario.');
     }
