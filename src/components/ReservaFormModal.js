@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { clienteService } from '../services/clienteService';
+import { reservaService } from '../services/reservaService';
+import { userService } from '../services/userService';
 
 // ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
 function StepCancha({ canchas, selectedCancha, onSelect }) {
@@ -181,6 +182,8 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
 
 // ─── PASO 3: DÍA Y HORARIO ────────────────────────────────────────────────────
 function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, canchaId, errors }) {
+  const scrollRef = useRef(null);
+
   const getNext7Days = () => {
     const days = [];
     const today = new Date();
@@ -200,6 +203,12 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
     horarios.push(`${h.toString().padStart(2, '0')}:00`);
   }
 
+  const scrollDays = (direction) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ x: direction === 'right' ? 300 : 0, animated: true });
+    }
+  };
+
   const isHoraOcupada = (hora) => {
     if (!selectedDate || !canchaId) return false;
     const fechaStr = selectedDate.toISOString().split('T')[0];
@@ -218,24 +227,32 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
 
       <Text style={s.fieldLabel}>Seleccionar día</Text>
       {errors?.fecha && <Text style={s.errorText}>{errors.fecha}</Text>}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
-        {days.map((d, i) => {
-          const isSelected = selectedDate && d.toDateString() === selectedDate.toDateString();
-          return (
-            <TouchableOpacity
-              key={i}
-              style={[s.dayBtn, isSelected && s.dayBtnSelected]}
-              onPress={() => { setSelectedDate(d); setSelectedHora(null); }}
-            >
-              <Text style={[s.dayBtnDow, isSelected && { color: '#fff' }]}>{diasSemana[d.getDay()]}</Text>
-              <Text style={[s.dayBtnNum, isSelected && { color: '#fff' }]}>{d.getDate()}</Text>
-              <Text style={[s.dayBtnMonth, isSelected && { color: '#d1fae5' }]}>
-                {d.toLocaleDateString('es-AR', { month: 'short' })}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <View style={s.dayScrollRow}>
+        <TouchableOpacity style={s.dayArrowBtn} onPress={() => scrollDays('left')}>
+          <MaterialCommunityIcons name="chevron-left" size={24} color="#009b3a" />
+        </TouchableOpacity>
+        <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+          {days.map((d, i) => {
+            const isSelected = selectedDate && d.toDateString() === selectedDate.toDateString();
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[s.dayBtn, isSelected && s.dayBtnSelected]}
+                onPress={() => { setSelectedDate(d); setSelectedHora(null); }}
+              >
+                <Text style={[s.dayBtnDow, isSelected && { color: '#fff' }]}>{diasSemana[d.getDay()]}</Text>
+                <Text style={[s.dayBtnNum, isSelected && { color: '#fff' }]}>{d.getDate()}</Text>
+                <Text style={[s.dayBtnMonth, isSelected && { color: '#d1fae5' }]}>
+                  {d.toLocaleDateString('es-AR', { month: 'short' })}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <TouchableOpacity style={s.dayArrowBtn} onPress={() => scrollDays('right')}>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#009b3a" />
+        </TouchableOpacity>
+      </View>
 
       {selectedDate && (
         <>
@@ -382,10 +399,10 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
 }
 
 // ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
-export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, onReservaCreated }) {
+export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, nombreUsuario, onReservaCreated }) {
   const [step, setStep] = useState(1);
   const [selectedCancha, setSelectedCancha] = useState(null);
-  const [clienteMode, setClienteMode] = useState(null); // 'CLIENTE' | 'INVITADO'
+  const [clienteMode, setClienteMode] = useState(null);
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [invitado, setInvitado] = useState({ nombre: '', apellido: '', dni: '' });
   const [selectedDate, setSelectedDate] = useState(null);
@@ -394,7 +411,6 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [codigoVale, setCodigoVale] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [successData, setSuccessData] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -408,7 +424,6 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       setMetodoPago(null);
       setCodigoVale('');
       setErrors({});
-      setSuccessData(null);
     }
   }, [visible]);
 
@@ -479,11 +494,11 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
   const handleBack = () => {
     setErrors({});
-    if (step > 1 && step < 6) setStep(step - 1);
+    if (step > 1) setStep(step - 1);
   };
 
-  const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodoPago, esSocioActivo) => {
-    const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
+  const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodo, esSocioActivo, emitidoPor) => {
+    const descEfectivo = metodo === 'EFECTIVO' ? precioBase * 0.10 : 0;
     const descSocio = esSocioActivo ? precioBase * 0.10 : 0;
     const montoFinal = precioBase - descEfectivo - descSocio;
     const fechaStr = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -497,7 +512,6 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
             .header { text-align: center; border-bottom: 4px solid #009b3a; padding-bottom: 15px; margin-bottom: 25px; }
             .logo { font-size: 36px; font-weight: 900; color: #009b3a; margin: 0; }
             .sub { font-size: 12px; font-weight: bold; color: #64748b; }
-            .title { text-align: center; font-size: 22px; font-weight: 900; margin-bottom: 25px; text-transform: uppercase; }
             .container { border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; background: #f8fafc; }
             .row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
             .label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; }
@@ -518,14 +532,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
             <div class="row"><span class="label">Cancha</span> <span class="value">${cancha.nombre} (${cancha.tipo})</span></div>
             <div class="row"><span class="label">Día</span> <span class="value">${fechaStr}</span></div>
             <div class="row"><span class="label">Horario</span> <span class="value">${hora}hs</span></div>
-            <div class="row"><span class="label">Método de pago</span> <span class="value">${metodoPago === 'EFECTIVO' ? 'Efectivo' : 'Mercado Pago'}</span></div>
+            <div class="row"><span class="label">Método de pago</span> <span class="value">${metodo === 'EFECTIVO' ? 'Efectivo' : 'Mercado Pago'}</span></div>
             <div class="row"><span class="label">Monto original</span> <span class="value">$${precioBase.toLocaleString('es-AR')}</span></div>
             ${descEfectivo > 0 ? `<div class="row"><span class="label discount">Desc. 10% efectivo</span> <span class="discount">-$${descEfectivo.toLocaleString('es-AR')}</span></div>` : ''}
             ${descSocio > 0 ? `<div class="row"><span class="label discount">Desc. 10% socio activo</span> <span class="discount">-$${descSocio.toLocaleString('es-AR')}</span></div>` : ''}
             <p class="total">TOTAL: $${montoFinal.toLocaleString('es-AR')}</p>
           </div>
           <div class="footer">
-            Emitido el ${now.toLocaleDateString('es-AR')} a las ${now.toLocaleTimeString('es-AR')} — Gol Ahora © 2026 UNAJ
+            Emitido el ${now.toLocaleDateString('es-AR')} a las ${now.toLocaleTimeString('es-AR')}, por ${emitidoPor || 'Administración'}
           </div>
         </body>
       </html>
@@ -542,53 +556,92 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const descSocio = socio ? precioBase * 0.10 : 0;
       const montoFinal = precioBase - descEfectivo - descSocio;
 
-      // Generar comprobante HTML
-      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio);
-      const fileName = `Comprobante-Reserva-${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
+      // Si es invitado, crear cliente temporal
+      let clienteIdFinal = persona.clienteId;
+      if (clienteMode === 'INVITADO') {
+        try {
+          const payload = {
+            email: invitado.dni.toString(),
+            password: "1234",
+            cliente: {
+              nombre: invitado.nombre,
+              apellido: invitado.apellido,
+              dni: Number(invitado.dni),
+              genero: 'Otro',
+              telefono: '',
+              direccion: '',
+              localidad: '',
+              codigoPostal: '',
+              provincia: 'Buenos Aires',
+              pais: 'Argentina',
+              email: '',
+              contactoEmergencia: '',
+              activo: true,
+              esSocioActivo: false,
+              obraSocial: 'Ninguna',
+              aptoFisico: false,
+              fechaNacimiento: '2000-01-01T00:00:00.000Z'
+            }
+          };
+          const result = await userService.createUsuarioCliente(payload);
+          clienteIdFinal = result?.cliente?.id || result?.id;
+          
+          // Si no pudimos obtener el id del resultado, buscamos por DNI
+          if (!clienteIdFinal) {
+            const allClientes = await clienteService.getAll();
+            const found = allClientes.find(c => c.dni?.toString() === invitado.dni);
+            if (found) clienteIdFinal = found.id;
+          }
+        } catch (e) {
+          // Si falla porque ya existe, buscamos el cliente existente
+          try {
+            const allClientes = await clienteService.getAll();
+            const found = allClientes.find(c => c.dni?.toString() === invitado.dni);
+            if (found) clienteIdFinal = found.id;
+          } catch (e2) { /* ignore */ }
+        }
+      }
 
-      // Guardar comprobante como reporte
+      if (!clienteIdFinal) {
+        Alert.alert('Error', 'No se pudo registrar al cliente. Intente nuevamente.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Crear la reserva en el backend
+      const [horaH] = selectedHora.split(':').map(Number);
+      const reservaPayload = {
+        Fecha: selectedDate.toISOString().split('T')[0],
+        HoraInicio: `${selectedHora}:00`,
+        HoraFin: `${(horaH + 1).toString().padStart(2, '0')}:00:00`,
+        ClienteId: clienteIdFinal,
+        CanchaId: parseInt(selectedCancha.id)
+      };
+      await reservaService.create(reservaPayload);
+
+      // Generar y guardar comprobante
+      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario);
+      const fileName = `Comprobante-Reserva-${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
       await reportHistoryService.saveReporte(html, fileName);
 
-      setSuccessData({
-        html,
-        fileName,
-        persona,
-        cancha: selectedCancha,
-        fecha: selectedDate,
-        hora: selectedHora,
-        montoFinal,
-        metodoPago
-      });
-
-      setStep(6);
-      if (onReservaCreated) onReservaCreated();
+      // Cerrar modal y notificar éxito al padre
+      onClose();
+      if (onReservaCreated) {
+        onReservaCreated({
+          html,
+          fileName,
+          persona,
+          cancha: selectedCancha,
+          fecha: selectedDate,
+          hora: selectedHora,
+          montoFinal,
+          metodoPago
+        });
+      }
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo registrar la reserva.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const downloadPdf = async () => {
-    if (!successData) return;
-    try {
-      if (Platform.OS === 'web') {
-        const html2pdf = require('html2pdf.js');
-        const element = document.createElement('div');
-        element.innerHTML = successData.html;
-        html2pdf().from(element).set({
-          margin: 10,
-          filename: successData.fileName + '.pdf',
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).save();
-      } else {
-        const { uri } = await Print.printToFileAsync({ html: successData.html });
-        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-      }
-    } catch (e) {
-      Alert.alert('Error', 'No se pudo descargar el comprobante.');
     }
   };
 
@@ -599,7 +652,6 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       case 3: return 'Paso 3 de 4';
       case 4: return 'Paso 4 de 4';
       case 5: return 'Confirmación';
-      case 6: return '¡Listo!';
       default: return '';
     }
   };
@@ -614,17 +666,15 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       <View style={s.overlay}>
         <View style={s.container}>
           {/* Header */}
-          {step < 6 && (
-            <View style={s.header}>
-              <View>
-                <Text style={s.headerTitle}>NUEVA RESERVA</Text>
-                <Text style={s.headerStep}>{getStepLabel()}</Text>
-              </View>
-              <TouchableOpacity onPress={onClose}>
-                <MaterialCommunityIcons name="close" size={28} color="#94a3b8" />
-              </TouchableOpacity>
+          <View style={s.header}>
+            <View>
+              <Text style={s.headerTitle}>NUEVA RESERVA</Text>
+              <Text style={s.headerStep}>{getStepLabel()}</Text>
             </View>
-          )}
+            <TouchableOpacity onPress={onClose}>
+              <MaterialCommunityIcons name="close" size={28} color="#94a3b8" />
+            </TouchableOpacity>
+          </View>
 
           {/* Progress bar */}
           {step <= 4 && (
@@ -667,35 +717,17 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
                 metodoPago={metodoPago} precioBase={getPrecioBase()} esSocio={esSocio()}
               />
             )}
-            {step === 6 && (
-              <View style={s.successContainer}>
-                <View style={s.successIconBg}>
-                  <MaterialCommunityIcons name="check-circle" size={70} color="#009b3a" />
-                </View>
-                <Text style={s.successTitle}>¡Reserva confirmada!</Text>
-                <Text style={s.successMessage}>La reserva se registró con éxito.</Text>
-
-                <TouchableOpacity style={s.emitirBtn} onPress={downloadPdf}>
-                  <MaterialCommunityIcons name="file-pdf-box" size={22} color="#fff" />
-                  <Text style={s.emitirBtnText}>EMITIR COMPROBANTE</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={s.aceptarBtn} onPress={onClose}>
-                  <Text style={s.aceptarBtnText}>ACEPTAR</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </ScrollView>
 
           {/* Footer buttons */}
           {step >= 1 && step <= 4 && (
             <View style={s.footerBtns}>
-              {step > 1 && (
+              {step > 1 ? (
                 <TouchableOpacity style={s.backBtn} onPress={handleBack}>
                   <MaterialCommunityIcons name="arrow-left" size={20} color="#64748b" />
                   <Text style={s.backBtnText}>Atrás</Text>
                 </TouchableOpacity>
-              )}
+              ) : <View />}
               <TouchableOpacity
                 style={[s.nextBtn, !canGoNext() && s.nextBtnDisabled]}
                 onPress={handleNext}
@@ -736,21 +768,17 @@ const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 15 },
   container: { width: '100%', maxWidth: 520, backgroundColor: '#fff', borderRadius: 28, padding: 22, maxHeight: '92%' },
 
-  // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
   headerStep: { fontSize: 11, fontWeight: '700', color: '#009b3a', marginTop: 2 },
 
-  // Progress
   progressContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 18, gap: 8 },
   progressDot: { width: 40, height: 5, borderRadius: 3, backgroundColor: '#e2e8f0' },
   progressDotActive: { backgroundColor: '#009b3a' },
 
-  // Steps common
   stepTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 },
   stepSubtitle: { fontSize: 12, color: '#94a3b8', marginBottom: 15, fontWeight: '600' },
 
-  // Step 1 - Cancha
   canchaBtn: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 15, marginBottom: 10, borderWidth: 2, borderColor: '#e2e8f0' },
   canchaBtnDisabled: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.7 },
   canchaBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
@@ -760,7 +788,6 @@ const s = StyleSheet.create({
   canchaBtnPrice: { fontSize: 14, fontWeight: '900', color: '#009b3a' },
   mantenimientoText: { color: '#ef4444', fontWeight: '900', fontSize: 11, marginTop: 6, textAlign: 'center' },
 
-  // Step 2 - Cliente/Invitado
   modeRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
   modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, borderWidth: 2, borderColor: '#009b3a', gap: 8 },
   modeBtnActive: { backgroundColor: '#009b3a' },
@@ -785,7 +812,8 @@ const s = StyleSheet.create({
   selectedClienteInfo: { fontSize: 12, color: '#64748b', fontWeight: '600' },
   socioBadge: { fontSize: 11, fontWeight: '900', color: '#009b3a', marginTop: 3 },
 
-  // Step 3 - Día y Horario
+  dayScrollRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  dayArrowBtn: { padding: 4, backgroundColor: '#f0fdf4', borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0' },
   dayBtn: { width: 70, paddingVertical: 12, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', marginRight: 8, borderWidth: 2, borderColor: '#e2e8f0' },
   dayBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
   dayBtnDow: { fontSize: 12, fontWeight: '800', color: '#64748b' },
@@ -799,7 +827,6 @@ const s = StyleSheet.create({
   horaBtnText: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   horaBtnOcupadaLabel: { fontSize: 8, fontWeight: '700', color: '#cbd5e1', marginTop: 2 },
 
-  // Step 4 - Pago
   pagoBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, borderWidth: 2, borderColor: '#009b3a', gap: 4 },
   pagoBtnActive: { backgroundColor: '#009b3a' },
   pagoBtnActiveMP: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
@@ -816,7 +843,6 @@ const s = StyleSheet.create({
   totalLabel: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
   totalValue: { fontSize: 20, fontWeight: '900', color: '#009b3a' },
 
-  // Step 5 - Confirmación
   confirmIcon: { alignItems: 'center', marginBottom: 10 },
   confirmTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 18 },
   confirmCard: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#e2e8f0' },
@@ -825,17 +851,6 @@ const s = StyleSheet.create({
   confirmValue: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   confirmTotalValue: { fontSize: 18, fontWeight: '900', color: '#009b3a' },
 
-  // Step 6 - Éxito
-  successContainer: { alignItems: 'center', paddingVertical: 20 },
-  successIconBg: { backgroundColor: '#e6f5eb', borderRadius: 60, padding: 15, marginBottom: 15 },
-  successTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b', marginBottom: 8 },
-  successMessage: { fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 25, fontWeight: '600' },
-  emitirBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 16, paddingHorizontal: 30, borderRadius: 16, gap: 10, width: '100%', justifyContent: 'center', marginBottom: 12 },
-  emitirBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
-  aceptarBtn: { backgroundColor: '#f1f5f9', paddingVertical: 16, paddingHorizontal: 30, borderRadius: 16, width: '100%', alignItems: 'center' },
-  aceptarBtnText: { color: '#64748b', fontWeight: '900', fontSize: 15 },
-
-  // Footer
   footerBtns: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
   backBtn: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 5 },
   backBtnText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
