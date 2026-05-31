@@ -10,7 +10,6 @@ export default function EquipoCard({ item, canModify, onDelete }) {
           <Text style={styles.badgeText}>EQUIPO</Text>
         </View>
         <Text style={styles.title}>{item.nombre}</Text>
-        <Text style={styles.detail}>Max Jugadores: {item.cantidadMaxJugadores}</Text>
         <Text style={styles.detailSub}>{item.descripcion || 'Sin descripción'}</Text>
       </View>
 
