@@ -400,7 +400,7 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
 }
 
 // ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
-export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, nombreUsuario, onReservaCreated }) {
+export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, nombreUsuario, onReservaCreated, reservaToEdit }) {
   const [step, setStep] = useState(1);
   const [selectedCancha, setSelectedCancha] = useState(null);
   const [clienteMode, setClienteMode] = useState(null);
@@ -416,18 +416,51 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
   useEffect(() => {
     if (visible) {
-      setStep(1);
-      setSelectedCancha(null);
-      setClienteMode(null);
-      setSelectedCliente(null);
-      setInvitado({ nombre: '', apellido: '', dni: '' });
-      setSelectedDate(null);
-      setSelectedHora(null);
-      setMetodoPago(null);
-      setCodigoVale('');
+      if (reservaToEdit) {
+        setStep(1);
+        const c = canchas.find(x => x.id === reservaToEdit.canchaId);
+        setSelectedCancha(c || null);
+        
+        let foundCliente = null;
+        if (reservaToEdit.cliente) {
+           foundCliente = clientes.find(x => x.id === reservaToEdit.cliente.id);
+        } else if (reservaToEdit.clienteDni) {
+           foundCliente = clientes.find(x => x.dni?.toString() === reservaToEdit.clienteDni?.toString());
+        }
+
+        if (foundCliente) {
+          setClienteMode('CLIENTE');
+          setSelectedCliente(foundCliente);
+          setInvitado({ nombre: '', apellido: '', dni: '' });
+        } else {
+          setClienteMode('INVITADO');
+          setSelectedCliente(null);
+          const [n, ...a] = (reservaToEdit.clienteNombre || '').split(' ');
+          setInvitado({ nombre: n || '', apellido: a.join(' ') || '', dni: reservaToEdit.clienteDni?.toString() || '' });
+        }
+
+        if (reservaToEdit.fecha) {
+           const d = new Date(reservaToEdit.fecha + (reservaToEdit.fecha.includes('T') ? '' : 'T00:00:00'));
+           setSelectedDate(d);
+        } else setSelectedDate(null);
+
+        setSelectedHora(reservaToEdit.horaInicio?.substring(0, 5) || null);
+        setMetodoPago(null);
+        setCodigoVale('');
+      } else {
+        setStep(1);
+        setSelectedCancha(null);
+        setClienteMode(null);
+        setSelectedCliente(null);
+        setInvitado({ nombre: '', apellido: '', dni: '' });
+        setSelectedDate(null);
+        setSelectedHora(null);
+        setMetodoPago(null);
+        setCodigoVale('');
+      }
       setErrors({});
     }
-  }, [visible]);
+  }, [visible, reservaToEdit, canchas, clientes]);
 
   const validateStep2 = () => {
     const errs = {};
@@ -610,7 +643,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         return;
       }
 
-      // Crear la reserva en el backend
+      // Crear o actualizar la reserva en el backend
       const [horaH] = selectedHora.split(':').map(Number);
       const reservaPayload = {
         Fecha: selectedDate.toISOString().split('T')[0],
@@ -619,11 +652,16 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         ClienteId: clienteIdFinal,
         CanchaId: parseInt(selectedCancha.id)
       };
-      await reservaService.create(reservaPayload);
+
+      if (reservaToEdit) {
+        await reservaService.update(reservaToEdit.id, reservaPayload);
+      } else {
+        await reservaService.create(reservaPayload);
+      }
 
       // Generar y guardar comprobante
       const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario);
-      const fileName = `Comprobante-Reserva-${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
+      const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
       await reportHistoryService.saveReporte(html, fileName);
 
       // Cerrar modal y notificar éxito al padre
@@ -637,7 +675,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           fecha: selectedDate,
           hora: selectedHora,
           montoFinal,
-          metodoPago
+          metodoPago,
+          isEdit: !!reservaToEdit
         });
       }
     } catch (error) {

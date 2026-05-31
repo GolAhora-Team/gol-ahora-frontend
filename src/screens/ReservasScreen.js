@@ -22,6 +22,7 @@ export default function ReservaScreen({ route, navigation }) {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingReserva, setEditingReserva] = useState(null);
   
   // Success modal
   const [successVisible, setSuccessVisible] = useState(false);
@@ -164,7 +165,10 @@ export default function ReservaScreen({ route, navigation }) {
               item={item} 
               canModify={puedeOperarTurno(item)}
               onView={handleViewReserva}
-              onEdit={() => {}} 
+              onEdit={() => {
+                setEditingReserva(item);
+                setModalVisible(true);
+              }} 
               onDelete={async (res) => {
                 try {
                   await reservaService.cancelar(res.id);
@@ -180,7 +184,8 @@ export default function ReservaScreen({ route, navigation }) {
 
       <ReservaFormModal 
         visible={modalVisible} 
-        onClose={() => setModalVisible(false)} 
+        onClose={() => { setModalVisible(false); setEditingReserva(null); }} 
+        reservaToEdit={editingReserva}
         canchas={canchas}
         clientes={clientes}
         reservasActuales={reservas}
@@ -192,8 +197,8 @@ export default function ReservaScreen({ route, navigation }) {
       <SuccessModal
         visible={successVisible}
         onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); }}
-        title="¡Reserva confirmada!"
-        message="La reserva se registró con éxito."
+        title={successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!"}
+        message={successPdfData?.isEdit ? "La reserva se modificó con éxito." : "La reserva se registró con éxito."}
         actionButtonText={successPdfData ? "DESCARGAR PDF" : null}
         onAction={successPdfData ? downloadPdf : null}
       />

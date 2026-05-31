@@ -38,7 +38,13 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
           </TouchableOpacity>
         )}
 
-        {canModify && (
+        {canModify && onEdit && (
+          <TouchableOpacity onPress={() => onEdit(item)} style={[styles.actionBtn, { backgroundColor: '#fdf4ff' }]}>
+            <MaterialCommunityIcons name="pencil-outline" size={22} color="#c026d3" />
+          </TouchableOpacity>
+        )}
+
+        {canModify && onDelete && (
           <TouchableOpacity onPress={() => onDelete(item)} style={[styles.actionBtn, { backgroundColor: '#fef2f2' }]}>
             <MaterialCommunityIcons name="trash-can-outline" size={22} color="#ef4444" />
           </TouchableOpacity>

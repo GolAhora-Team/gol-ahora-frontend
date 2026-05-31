@@ -17,6 +17,7 @@ export default function FacturacionScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState('PAGOS');
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingComprobante, setViewingComprobante] = useState(null);
+  const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -192,13 +193,28 @@ export default function FacturacionScreen({ route, navigation }) {
           </>
         ) : (
           <>
+            {comprobantesReservas.length > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{comprobantesReservas.length} comprobantes</Text>
+                <TouchableOpacity onPress={() => setSortDesc(!sortDesc)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}>
+                  <MaterialCommunityIcons name={sortDesc ? "sort-calendar-descending" : "sort-calendar-ascending"} size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 }}>
+                    {sortDesc ? 'Más recientes' : 'Más antiguos'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {comprobantesReservas.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="file-document-outline" size={50} color="#94a3b8" />
                 <Text style={styles.emptyText}>No hay comprobantes de reservas.</Text>
               </View>
             ) : (
-              comprobantesReservas.map(comp => (
+              [...comprobantesReservas].sort((a, b) => {
+                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
+                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
+                return sortDesc ? d2 - d1 : d1 - d2;
+              }).map(comp => (
                 <View key={comp.id} style={styles.comprobanteCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
