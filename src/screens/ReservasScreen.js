@@ -4,55 +4,68 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import ReservaCard from '../components/ReservaCard';
 import ReservaFormModal from '../components/ReservaFormModal';
-import { confirmarEliminacion } from '../components/Delete';
 import { reservaService } from '../services/reservaService';
+import { canchaService } from '../services/canchaService';
+import { clienteService } from '../services/clienteService';
 
 export default function ReservaScreen({ route, navigation }) {
-  // --- CAPTURAMOS USUARIO ---
   const { role: currentUserRole, nombreUsuario: currentUserName } = route.params || { 
     role: "CLIENTE", 
     nombreUsuario: "Julián Antunes" 
   };
 
-  const [canchas] = useState([
-    { id: '1', nombre: 'Maracaná 1', enMantenimiento: false },
-    { id: '2', nombre: 'Centenario', enMantenimiento: true },
-    { id: '3', nombre: 'Wembley', enMantenimiento: false },
-  ]);
-
   const [reservas, setReservas] = useState([]);
+  const [canchas, setCanchas] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [modalVisible, setModalVisible] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // --- REGLA: El form nace con el nombre del usuario si no es STAFF ---
-  const initialForm = { 
-    clienteNombre: (currentUserRole === 'CLIENTE' || currentUserRole === 'PROFE') ? currentUserName : '', 
-    canchaId: '1', 
-    canchaNombre: 'Maracaná 1', 
-    horaInicio: '19:00', 
-    duracion: 60, 
-    estado: 'confirmado' 
-  };
-  
-  const [formData, setFormData] = useState(initialForm);
 
   // CARGA INICIAL DESDE EL BACKEND
   useEffect(() => {
-    loadReservas();
+    loadData();
   }, []);
 
-  const loadReservas = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await reservaService.getAll();
-      const mapped = (data || []).map(r => ({
+
+      // Cargar reservas
+      const reservasData = await reservaService.getAll();
+      const mappedReservas = (reservasData || []).map(r => ({
         ...r,
         id: r.id?.toString(),
-        canchaId: r.canchaId?.toString(),
+        canchaId: r.canchaId?.toString() || r.cancha?.id?.toString(),
+        canchaNombre: r.cancha?.nombre || r.canchaNombre || '',
+        clienteNombre: r.cliente ? `${r.cliente.nombre} ${r.cliente.apellido}` : (r.clienteNombre || ''),
+        horaInicio: r.horaInicio?.substring(0, 5) || r.horaInicio,
+        horaFin: r.horaFin?.substring(0, 5) || r.horaFin,
+        estado: r.estado || 'confirmado',
+        fecha: r.fecha,
       }));
-      setReservas(mapped);
+      setReservas(mappedReservas);
+
+      // Cargar canchas
+      try {
+        const canchasData = await canchaService.getAll();
+        const mappedCanchas = (canchasData || []).map(c => ({
+          id: c.id.toString(),
+          nombre: c.nombre,
+          tipo: c.tipo === "Futbol5" ? "F5" : (c.tipo === "Futbol7" ? "F7" : "F11"),
+          superficie: c.superficie === 1 ? "Sintético" : c.superficie === 2 ? "Césped Natural" : c.superficie === 3 ? "Parquet" : "Cemento",
+          capacidad: c.capacidad?.toString(),
+          enMantenimiento: c.estado === 'Mantenimiento',
+          precioPorHora: c.precioPorHora || 30000,
+          original: c
+        }));
+        setCanchas(mappedCanchas);
+      } catch (e) { console.error('Error cargando canchas:', e); }
+
+      // Cargar clientes
+      try {
+        const clientesData = await clienteService.getAll();
+        setClientes(clientesData || []);
+      } catch (e) { console.error('Error cargando clientes:', e); }
+
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar las reservas.');
     } finally {
@@ -64,58 +77,6 @@ export default function ReservaScreen({ route, navigation }) {
   const puedeOperarTurno = (reserva) => {
     if (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') return true;
     return reserva.clienteNombre === currentUserName;
-  };
-
-  const getStatusCancha = (canchaId) => {
-    const cancha = canchas.find(c => c.id === canchaId);
-    if (cancha?.enMantenimiento) return { label: 'MANTENIMIENTO', color: '#ef4444', icon: 'tools' };
-    const ahora = "15:30"; 
-    const ocupada = reservas.find(r => r.canchaId === canchaId && ahora >= r.horaInicio && ahora < r.horaFin);
-    if (ocupada) return { label: `OCUPADA (Libera ${ocupada.horaFin})`, color: '#ffb300', icon: 'clock-outline' };
-    return { label: 'LIBRE', color: '#009b3a', icon: 'check-circle-outline' };
-  };
-
-  const handleOpenModal = (reserva = null) => {
-    if (reserva) {
-      if (!puedeOperarTurno(reserva)) {
-        Alert.alert("Acceso denegado", "Solo podés modificar tus propias reservas.");
-        return;
-      }
-      setFormData({ ...reserva });
-      setIsEditing(true);
-    } else {
-      setFormData(initialForm);
-      setIsEditing(false);
-    }
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      if (!formData.clienteNombre || !formData.canchaId || !formData.horaInicio) {
-        Alert.alert("Atención", "Completa todos los campos obligatorios.");
-        return;
-      }
-
-      const [hStr, mStr] = formData.horaInicio.split(':');
-      const h = parseInt(hStr, 10);
-      const m = parseInt(mStr, 10);
-      const date = new Date();
-      date.setHours(h, m + formData.duracion);
-      const horaFinStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-
-      if (isEditing) {
-        await reservaService.update(formData.id, { ...formData, horaFin: horaFinStr });
-        setReservas(prev => prev.map(r => r.id === formData.id ? { ...formData, horaFin: horaFinStr } : r));
-      } else {
-        const result = await reservaService.create({ ...formData, horaFin: horaFinStr });
-        const nueva = { ...formData, id: result?.id?.toString() || Date.now().toString(), horaFin: horaFinStr };
-        setReservas(prev => [...prev, nueva]);
-      }
-      setModalVisible(false);
-    } catch (error) {
-      Alert.alert("Error", error.message || "Ocurrió un problema al procesar la reserva.");
-    }
   };
 
   if (loading) {
@@ -131,76 +92,59 @@ export default function ReservaScreen({ route, navigation }) {
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
-      
-      {/* MONITOR DE CANCHAS */}
-      <View style={styles.monitorSection}>
-        <Text style={styles.sectionTitle}>MONITOR DE CANCHAS</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {canchas.map(c => {
-            const status = getStatusCancha(c.id);
-            return (
-              <View key={c.id} style={[styles.statusCard, { borderColor: status.color }]}>
-                <MaterialCommunityIcons name={status.icon} size={20} color={status.color} />
-                <View style={styles.statusInfo}>
-                  <Text style={styles.statusCanchaName}>{c.nombre}</Text>
-                  <Text style={[styles.statusLabel, { color: status.color }]}>{status.label}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
 
       <View style={styles.headerRow}>
         <Text style={styles.mainTitle}>Cronograma</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>NUEVA</Text>
+          <Text style={styles.addButtonText}>Nueva reserva</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {reservas.map(item => (
-          <ReservaCard 
-            key={item.id} 
-            item={item} 
-            canModify={puedeOperarTurno(item)} 
-            onEdit={handleOpenModal} 
-            onDelete={async (res) => {
-              try {
-                await reservaService.cancelar(res.id);
-                setReservas(prev => prev.filter(r => r.id !== res.id));
-              } catch (error) {
-                Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
-              }
-            }} 
-          />
-        ))}
+        {reservas.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="calendar-blank-outline" size={60} color="#94a3b8" />
+            <Text style={styles.emptyText}>No hay reservas registradas.</Text>
+          </View>
+        ) : (
+          reservas.map(item => (
+            <ReservaCard 
+              key={item.id} 
+              item={item} 
+              canModify={puedeOperarTurno(item)} 
+              onEdit={() => {}} 
+              onDelete={async (res) => {
+                try {
+                  await reservaService.cancelar(res.id);
+                  setReservas(prev => prev.filter(r => r.id !== res.id));
+                } catch (error) {
+                  Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
+                }
+              }} 
+            />
+          ))
+        )}
       </ScrollView>
 
       <ReservaFormModal 
         visible={modalVisible} 
         onClose={() => setModalVisible(false)} 
-        formData={formData} 
-        setFormData={setFormData} 
-        onSave={handleSave} 
-        canchas={canchas} 
+        canchas={canchas}
+        clientes={clientes}
         reservasActuales={reservas}
         currentUserRole={currentUserRole}
+        onReservaCreated={loadData}
       />
     </ScreenTemplate>
   );
 }
 
 const styles = StyleSheet.create({
-  monitorSection: { marginBottom: 30 },
-  sectionTitle: { color: '#94a3b8', fontWeight: '900', fontSize: 11, letterSpacing: 1.5, marginBottom: 15 },
-  statusCard: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginRight: 12, borderWidth: 2, minWidth: 160, elevation: 2 },
-  statusInfo: { marginLeft: 10 },
-  statusCanchaName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
-  statusLabel: { fontSize: 10, fontWeight: '900', marginTop: 2 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   mainTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', padding: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60 },
+  emptyText: { color: '#94a3b8', fontSize: 15, fontWeight: '600', marginTop: 12 },
 });

@@ -1,124 +1,847 @@
-import React from 'react';
-import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import CustomInput from './CustomInput';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { reportHistoryService } from '../services/reportHistoryService';
 
-export default function ReservaFormModal({ visible, onClose, formData, setFormData, onSave, canchas = [], reservasActuales = [], currentUserRole }) {
+// ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
+function StepCancha({ canchas, selectedCancha, onSelect }) {
+  return (
+    <View>
+      <Text style={s.stepTitle}>Seleccioná una cancha</Text>
+      <Text style={s.stepSubtitle}>Las canchas en mantenimiento no están disponibles para reservar.</Text>
+      {canchas.map(c => {
+        const enMantenimiento = c.enMantenimiento;
+        const isSelected = selectedCancha?.id === c.id;
+        return (
+          <TouchableOpacity
+            key={c.id}
+            style={[
+              s.canchaBtn,
+              enMantenimiento && s.canchaBtnDisabled,
+              isSelected && !enMantenimiento && s.canchaBtnSelected
+            ]}
+            disabled={enMantenimiento}
+            onPress={() => onSelect(c)}
+          >
+            <View style={s.canchaBtnInner}>
+              <MaterialCommunityIcons
+                name={enMantenimiento ? 'tools' : 'soccer-field'}
+                size={28}
+                color={enMantenimiento ? '#94a3b8' : isSelected ? '#fff' : '#009b3a'}
+              />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={[s.canchaBtnName, enMantenimiento && { color: '#94a3b8' }, isSelected && !enMantenimiento && { color: '#fff' }]}>
+                  {c.nombre}
+                </Text>
+                <Text style={[s.canchaBtnType, enMantenimiento && { color: '#cbd5e1' }, isSelected && !enMantenimiento && { color: '#d1fae5' }]}>
+                  {c.tipo} • {c.superficie} • Cap: {c.capacidad}
+                </Text>
+              </View>
+              <Text style={[s.canchaBtnPrice, enMantenimiento && { color: '#cbd5e1' }, isSelected && !enMantenimiento && { color: '#fff' }]}>
+                ${c.precioPorHora?.toLocaleString('es-AR') || '---'}/h
+              </Text>
+            </View>
+            {enMantenimiento && (
+              <Text style={s.mantenimientoText}>⚠ EN MANTENIMIENTO</Text>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
 
-  const horaActual = formData?.horaInicio || "19:00";
+// ─── PASO 2: CLIENTE O INVITADO ────────────────────────────────────────────────
+function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedCliente, invitado, setInvitado, errors }) {
+  const [searchDni, setSearchDni] = useState('');
+  const filteredClientes = searchDni.length >= 2
+    ? clientes.filter(c => c.dni?.toString().includes(searchDni))
+    : [];
 
-  const adjustTime = (type, amount) => {
-    let [h, m] = horaActual.split(':').map(Number);
-    if (type === 'h') h = (h + amount + 24) % 24;
-    else m = (m + amount + 60) % 60;
-    
-    const newTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-    setFormData({ ...formData, horaInicio: newTime });
+  return (
+    <View>
+      <Text style={s.stepTitle}>¿A nombre de quién es la reserva?</Text>
+
+      <View style={s.modeRow}>
+        <TouchableOpacity
+          style={[s.modeBtn, mode === 'CLIENTE' && s.modeBtnActive]}
+          onPress={() => setMode('CLIENTE')}
+        >
+          <MaterialCommunityIcons name="account-search" size={22} color={mode === 'CLIENTE' ? '#fff' : '#009b3a'} />
+          <Text style={[s.modeBtnText, mode === 'CLIENTE' && { color: '#fff' }]}>Cliente</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.modeBtn, mode === 'INVITADO' && s.modeBtnActive]}
+          onPress={() => setMode('INVITADO')}
+        >
+          <MaterialCommunityIcons name="account-plus" size={22} color={mode === 'INVITADO' ? '#fff' : '#009b3a'} />
+          <Text style={[s.modeBtnText, mode === 'INVITADO' && { color: '#fff' }]}>Invitado</Text>
+        </TouchableOpacity>
+      </View>
+
+      {mode === 'CLIENTE' && (
+        <View>
+          <Text style={s.fieldLabel}>Buscar cliente por DNI</Text>
+          <View style={s.searchContainer}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+            <TextInput
+              style={s.searchInput}
+              placeholder="Ingrese el DNI..."
+              placeholderTextColor="#94a3b8"
+              keyboardType="numeric"
+              value={searchDni}
+              onChangeText={setSearchDni}
+            />
+          </View>
+          {errors?.cliente && <Text style={s.errorText}>{errors.cliente}</Text>}
+
+          {filteredClientes.length > 0 && (
+            <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+              {filteredClientes.map(c => {
+                const isSelected = selectedCliente?.id === c.id;
+                return (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[s.clienteResult, isSelected && s.clienteResultSelected]}
+                    onPress={() => setSelectedCliente(c)}
+                  >
+                    <View>
+                      <Text style={[s.clienteResultName, isSelected && { color: '#fff' }]}>
+                        {c.nombre} {c.apellido}
+                      </Text>
+                      <Text style={[s.clienteResultDni, isSelected && { color: '#d1fae5' }]}>
+                        DNI: {c.dni} {c.esSocioActivo ? '• ⭐ SOCIO' : ''}
+                      </Text>
+                    </View>
+                    {isSelected && <MaterialCommunityIcons name="check-circle" size={22} color="#fff" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {searchDni.length >= 2 && filteredClientes.length === 0 && (
+            <Text style={s.noResultsText}>No se encontraron clientes con ese DNI.</Text>
+          )}
+
+          {selectedCliente && (
+            <View style={s.selectedClienteCard}>
+              <MaterialCommunityIcons name="account-check" size={24} color="#009b3a" />
+              <View style={{ marginLeft: 10 }}>
+                <Text style={s.selectedClienteName}>{selectedCliente.nombre} {selectedCliente.apellido}</Text>
+                <Text style={s.selectedClienteInfo}>DNI: {selectedCliente.dni} • Tel: {selectedCliente.telefono || 'N/A'}</Text>
+                {selectedCliente.esSocioActivo && (
+                  <Text style={s.socioBadge}>⭐ SOCIO ACTIVO - 10% DESC.</Text>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {mode === 'INVITADO' && (
+        <View>
+          <Text style={s.fieldLabel}>Nombre *</Text>
+          <TextInput
+            style={[s.fieldInput, errors?.nombre && s.fieldInputError]}
+            placeholder="Nombre del invitado"
+            placeholderTextColor="#94a3b8"
+            value={invitado.nombre}
+            onChangeText={v => setInvitado({ ...invitado, nombre: v })}
+          />
+          {errors?.nombre && <Text style={s.errorText}>{errors.nombre}</Text>}
+
+          <Text style={s.fieldLabel}>Apellido *</Text>
+          <TextInput
+            style={[s.fieldInput, errors?.apellido && s.fieldInputError]}
+            placeholder="Apellido del invitado"
+            placeholderTextColor="#94a3b8"
+            value={invitado.apellido}
+            onChangeText={v => setInvitado({ ...invitado, apellido: v })}
+          />
+          {errors?.apellido && <Text style={s.errorText}>{errors.apellido}</Text>}
+
+          <Text style={s.fieldLabel}>DNI *</Text>
+          <TextInput
+            style={[s.fieldInput, errors?.dni && s.fieldInputError]}
+            placeholder="DNI del invitado"
+            placeholderTextColor="#94a3b8"
+            keyboardType="numeric"
+            value={invitado.dni}
+            onChangeText={v => setInvitado({ ...invitado, dni: v })}
+          />
+          {errors?.dni && <Text style={s.errorText}>{errors.dni}</Text>}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── PASO 3: DÍA Y HORARIO ────────────────────────────────────────────────────
+function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, canchaId, errors }) {
+  const getNext7Days = () => {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push(d);
+    }
+    return days;
   };
 
-  const checkDisponibilidad = () => {
-    if (!formData?.canchaId) return { status: 'pending', msg: 'Seleccioná una cancha' };
-    
-    const cancha = canchas.find(c => c.id === formData.canchaId);
-    if (cancha?.enMantenimiento) return { status: 'error', msg: 'Cancha en mantenimiento' };
+  const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const days = getNext7Days();
 
-    const conflicto = reservasActuales.find(r => 
-      r.canchaId === formData.canchaId && 
-      r.id !== formData.id && 
-      horaActual >= r.horaInicio && horaActual < r.horaFin
-    );
+  const horarios = [];
+  for (let h = 10; h <= 23; h++) {
+    horarios.push(`${h.toString().padStart(2, '0')}:00`);
+  }
 
-    return conflicto ? { status: 'error', msg: `Ocupada por ${conflicto.clienteNombre}` } : { status: 'success', msg: 'Horario disponible' };
+  const isHoraOcupada = (hora) => {
+    if (!selectedDate || !canchaId) return false;
+    const fechaStr = selectedDate.toISOString().split('T')[0];
+    return reservasOcupadas.some(r => {
+      const rFecha = r.fecha?.split('T')[0];
+      const rCanchaId = r.canchaId?.toString() || r.cancha?.id?.toString();
+      if (rFecha !== fechaStr || rCanchaId !== canchaId.toString()) return false;
+      const rInicio = r.horaInicio?.substring(0, 5);
+      return rInicio === hora;
+    });
   };
 
-  const disp = checkDisponibilidad();
-  const [hora, minuto] = horaActual.split(':');
+  return (
+    <View>
+      <Text style={s.stepTitle}>Día y Horario</Text>
 
-  // REGLA: ¿Es un usuario administrativo?
-  const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+      <Text style={s.fieldLabel}>Seleccionar día</Text>
+      {errors?.fecha && <Text style={s.errorText}>{errors.fecha}</Text>}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
+        {days.map((d, i) => {
+          const isSelected = selectedDate && d.toDateString() === selectedDate.toDateString();
+          return (
+            <TouchableOpacity
+              key={i}
+              style={[s.dayBtn, isSelected && s.dayBtnSelected]}
+              onPress={() => { setSelectedDate(d); setSelectedHora(null); }}
+            >
+              <Text style={[s.dayBtnDow, isSelected && { color: '#fff' }]}>{diasSemana[d.getDay()]}</Text>
+              <Text style={[s.dayBtnNum, isSelected && { color: '#fff' }]}>{d.getDate()}</Text>
+              <Text style={[s.dayBtnMonth, isSelected && { color: '#d1fae5' }]}>
+                {d.toLocaleDateString('es-AR', { month: 'short' })}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {selectedDate && (
+        <>
+          <Text style={s.fieldLabel}>Seleccionar horario</Text>
+          {errors?.hora && <Text style={s.errorText}>{errors.hora}</Text>}
+          <View style={s.horariosGrid}>
+            {horarios.map(h => {
+              const ocupada = isHoraOcupada(h);
+              const isSelected = selectedHora === h;
+              return (
+                <TouchableOpacity
+                  key={h}
+                  style={[s.horaBtn, ocupada && s.horaBtnOcupada, isSelected && !ocupada && s.horaBtnSelected]}
+                  disabled={ocupada}
+                  onPress={() => setSelectedHora(h)}
+                >
+                  <Text style={[s.horaBtnText, ocupada && { color: '#cbd5e1' }, isSelected && !ocupada && { color: '#fff' }]}>
+                    {h}
+                  </Text>
+                  {ocupada && <Text style={s.horaBtnOcupadaLabel}>Ocupado</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+// ─── PASO 4: PAGO ──────────────────────────────────────────────────────────────
+function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precioBase, esSocio, errors }) {
+  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
+  const descSocio = esSocio ? precioBase * 0.10 : 0;
+  const totalDescuentos = descEfectivo + descSocio;
+  const montoFinal = precioBase - totalDescuentos;
+
+  return (
+    <View>
+      <Text style={s.stepTitle}>Pago</Text>
+
+      <Text style={s.fieldLabel}>Método de pago</Text>
+      {errors?.metodoPago && <Text style={s.errorText}>{errors.metodoPago}</Text>}
+      <View style={s.modeRow}>
+        <TouchableOpacity
+          style={[s.pagoBtn, metodoPago === 'EFECTIVO' && s.pagoBtnActive]}
+          onPress={() => setMetodoPago('EFECTIVO')}
+        >
+          <MaterialCommunityIcons name="cash-multiple" size={28} color={metodoPago === 'EFECTIVO' ? '#fff' : '#009b3a'} />
+          <Text style={[s.pagoBtnText, metodoPago === 'EFECTIVO' && { color: '#fff' }]}>Efectivo</Text>
+          <Text style={[s.pagoBtnSub, metodoPago === 'EFECTIVO' && { color: '#d1fae5' }]}>10% desc.</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.pagoBtn, metodoPago === 'MERCADOPAGO' && s.pagoBtnActiveMP]}
+          onPress={() => setMetodoPago('MERCADOPAGO')}
+        >
+          <MaterialCommunityIcons name="cellphone-nfc" size={28} color={metodoPago === 'MERCADOPAGO' ? '#fff' : '#3b82f6'} />
+          <Text style={[s.pagoBtnText, metodoPago === 'MERCADOPAGO' && { color: '#fff' }]}>Mercado Pago</Text>
+          <Text style={[s.pagoBtnSub, metodoPago === 'MERCADOPAGO' && { color: '#bfdbfe' }]}>Sin desc.</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={s.fieldLabel}>Código de Vale (opcional)</Text>
+      <TextInput
+        style={s.fieldInput}
+        placeholder="Ingrese código de vale si tiene uno"
+        placeholderTextColor="#94a3b8"
+        value={codigoVale}
+        onChangeText={setCodigoVale}
+      />
+
+      <View style={s.resumenPago}>
+        <View style={s.resumenRow}>
+          <Text style={s.resumenLabel}>Monto original (1 hora)</Text>
+          <Text style={s.resumenValue}>${precioBase?.toLocaleString('es-AR')}</Text>
+        </View>
+
+        {descEfectivo > 0 && (
+          <View style={s.resumenRow}>
+            <Text style={s.descuentoLabel}>Descuento 10% pago en efectivo</Text>
+            <Text style={s.descuentoValue}>-${descEfectivo.toLocaleString('es-AR')}</Text>
+          </View>
+        )}
+
+        {descSocio > 0 && (
+          <View style={s.resumenRow}>
+            <Text style={s.descuentoLabel}>Descuento 10% socio activo</Text>
+            <Text style={s.descuentoValue}>-${descSocio.toLocaleString('es-AR')}</Text>
+          </View>
+        )}
+
+        <View style={s.resumenDivider} />
+        <View style={s.resumenRow}>
+          <Text style={s.totalLabel}>MONTO FINAL A PAGAR</Text>
+          <Text style={s.totalValue}>${montoFinal.toLocaleString('es-AR')}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── PASO 5: CONFIRMACIÓN ──────────────────────────────────────────────────────
+function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase, esSocio }) {
+  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
+  const descSocio = esSocio ? precioBase * 0.10 : 0;
+  const montoFinal = precioBase - descEfectivo - descSocio;
+  const fechaStr = fecha ? fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+  return (
+    <View>
+      <View style={s.confirmIcon}>
+        <MaterialCommunityIcons name="help-circle-outline" size={50} color="#ffb300" />
+      </View>
+      <Text style={s.confirmTitle}>¿Estás seguro que deseas confirmar la reserva?</Text>
+
+      <View style={s.confirmCard}>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>Cliente</Text>
+          <Text style={s.confirmValue}>{persona.nombre} {persona.apellido}</Text>
+        </View>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>DNI</Text>
+          <Text style={s.confirmValue}>{persona.dni}</Text>
+        </View>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>Cancha</Text>
+          <Text style={s.confirmValue}>{cancha.nombre}</Text>
+        </View>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>Día</Text>
+          <Text style={s.confirmValue}>{fechaStr}</Text>
+        </View>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>Hora</Text>
+          <Text style={s.confirmValue}>{hora}</Text>
+        </View>
+        <View style={[s.confirmRow, { borderBottomWidth: 0 }]}>
+          <Text style={s.confirmLabel}>Monto final</Text>
+          <Text style={s.confirmTotalValue}>${montoFinal.toLocaleString('es-AR')}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
+export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, onReservaCreated }) {
+  const [step, setStep] = useState(1);
+  const [selectedCancha, setSelectedCancha] = useState(null);
+  const [clienteMode, setClienteMode] = useState(null); // 'CLIENTE' | 'INVITADO'
+  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [invitado, setInvitado] = useState({ nombre: '', apellido: '', dni: '' });
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedHora, setSelectedHora] = useState(null);
+  const [metodoPago, setMetodoPago] = useState(null);
+  const [codigoVale, setCodigoVale] = useState('');
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [successData, setSuccessData] = useState(null);
+
+  useEffect(() => {
+    if (visible) {
+      setStep(1);
+      setSelectedCancha(null);
+      setClienteMode(null);
+      setSelectedCliente(null);
+      setInvitado({ nombre: '', apellido: '', dni: '' });
+      setSelectedDate(null);
+      setSelectedHora(null);
+      setMetodoPago(null);
+      setCodigoVale('');
+      setErrors({});
+      setSuccessData(null);
+    }
+  }, [visible]);
+
+  const validateStep2 = () => {
+    const errs = {};
+    if (!clienteMode) {
+      errs.cliente = 'Seleccioná Cliente o Invitado.';
+      setErrors(errs);
+      return false;
+    }
+    if (clienteMode === 'CLIENTE' && !selectedCliente) {
+      errs.cliente = 'Buscá y seleccioná un cliente.';
+      setErrors(errs);
+      return false;
+    }
+    if (clienteMode === 'INVITADO') {
+      const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/;
+      if (!invitado.nombre.trim()) errs.nombre = 'El nombre es obligatorio.';
+      else if (!nameRegex.test(invitado.nombre)) errs.nombre = 'El nombre solo puede contener letras.';
+
+      if (!invitado.apellido.trim()) errs.apellido = 'El apellido es obligatorio.';
+      else if (!nameRegex.test(invitado.apellido)) errs.apellido = 'El apellido solo puede contener letras.';
+
+      if (!invitado.dni.trim()) errs.dni = 'El DNI es obligatorio.';
+      else if (!/^\d+$/.test(invitado.dni)) errs.dni = 'El DNI solo puede contener números.';
+      else if (invitado.dni.length < 7 || invitado.dni.length > 8) errs.dni = 'El DNI debe tener 7 u 8 dígitos.';
+
+      if (Object.keys(errs).length > 0) { setErrors(errs); return false; }
+    }
+    setErrors({});
+    return true;
+  };
+
+  const validateStep3 = () => {
+    const errs = {};
+    if (!selectedDate) errs.fecha = 'Seleccioná un día para la reserva.';
+    if (!selectedHora) errs.hora = 'Seleccioná un horario para la reserva.';
+    if (Object.keys(errs).length > 0) { setErrors(errs); return false; }
+    setErrors({});
+    return true;
+  };
+
+  const validateStep4 = () => {
+    const errs = {};
+    if (!metodoPago) errs.metodoPago = 'Seleccioná un método de pago.';
+    if (Object.keys(errs).length > 0) { setErrors(errs); return false; }
+    setErrors({});
+    return true;
+  };
+
+  const getPersona = () => {
+    if (clienteMode === 'CLIENTE' && selectedCliente) {
+      return { nombre: selectedCliente.nombre, apellido: selectedCliente.apellido, dni: selectedCliente.dni, esSocio: selectedCliente.esSocioActivo, clienteId: selectedCliente.id };
+    }
+    return { nombre: invitado.nombre, apellido: invitado.apellido, dni: invitado.dni, esSocio: false, clienteId: null };
+  };
+
+  const getPrecioBase = () => selectedCancha?.precioPorHora || 0;
+  const esSocio = () => clienteMode === 'CLIENTE' && selectedCliente?.esSocioActivo;
+
+  const handleNext = () => {
+    setErrors({});
+    if (step === 1 && selectedCancha) setStep(2);
+    else if (step === 2 && validateStep2()) setStep(3);
+    else if (step === 3 && validateStep3()) setStep(4);
+    else if (step === 4 && validateStep4()) setStep(5);
+  };
+
+  const handleBack = () => {
+    setErrors({});
+    if (step > 1 && step < 6) setStep(step - 1);
+  };
+
+  const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodoPago, esSocioActivo) => {
+    const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
+    const descSocio = esSocioActivo ? precioBase * 0.10 : 0;
+    const montoFinal = precioBase - descEfectivo - descSocio;
+    const fechaStr = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const now = new Date();
+
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 4px solid #009b3a; padding-bottom: 15px; margin-bottom: 25px; }
+            .logo { font-size: 36px; font-weight: 900; color: #009b3a; margin: 0; }
+            .sub { font-size: 12px; font-weight: bold; color: #64748b; }
+            .title { text-align: center; font-size: 22px; font-weight: 900; margin-bottom: 25px; text-transform: uppercase; }
+            .container { border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; background: #f8fafc; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+            .label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; }
+            .value { font-weight: 900; color: #1e293b; font-size: 14px; }
+            .discount { color: #ef4444; font-size: 13px; }
+            .total { font-size: 24px; font-weight: 900; color: #009b3a; text-align: right; margin-top: 15px; border-top: 3px solid #009b3a; padding-top: 10px; }
+            .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="logo">GOL AHORA</h1>
+            <p class="sub">COMPROBANTE DE RESERVA</p>
+          </div>
+          <div class="container">
+            <div class="row"><span class="label">Cliente</span> <span class="value">${persona.nombre} ${persona.apellido}</span></div>
+            <div class="row"><span class="label">DNI</span> <span class="value">${persona.dni}</span></div>
+            <div class="row"><span class="label">Cancha</span> <span class="value">${cancha.nombre} (${cancha.tipo})</span></div>
+            <div class="row"><span class="label">Día</span> <span class="value">${fechaStr}</span></div>
+            <div class="row"><span class="label">Horario</span> <span class="value">${hora}hs</span></div>
+            <div class="row"><span class="label">Método de pago</span> <span class="value">${metodoPago === 'EFECTIVO' ? 'Efectivo' : 'Mercado Pago'}</span></div>
+            <div class="row"><span class="label">Monto original</span> <span class="value">$${precioBase.toLocaleString('es-AR')}</span></div>
+            ${descEfectivo > 0 ? `<div class="row"><span class="label discount">Desc. 10% efectivo</span> <span class="discount">-$${descEfectivo.toLocaleString('es-AR')}</span></div>` : ''}
+            ${descSocio > 0 ? `<div class="row"><span class="label discount">Desc. 10% socio activo</span> <span class="discount">-$${descSocio.toLocaleString('es-AR')}</span></div>` : ''}
+            <p class="total">TOTAL: $${montoFinal.toLocaleString('es-AR')}</p>
+          </div>
+          <div class="footer">
+            Emitido el ${now.toLocaleDateString('es-AR')} a las ${now.toLocaleTimeString('es-AR')} — Gol Ahora © 2026 UNAJ
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      const persona = getPersona();
+      const precioBase = getPrecioBase();
+      const socio = esSocio();
+      const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
+      const descSocio = socio ? precioBase * 0.10 : 0;
+      const montoFinal = precioBase - descEfectivo - descSocio;
+
+      // Generar comprobante HTML
+      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio);
+      const fileName = `Comprobante-Reserva-${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
+
+      // Guardar comprobante como reporte
+      await reportHistoryService.saveReporte(html, fileName);
+
+      setSuccessData({
+        html,
+        fileName,
+        persona,
+        cancha: selectedCancha,
+        fecha: selectedDate,
+        hora: selectedHora,
+        montoFinal,
+        metodoPago
+      });
+
+      setStep(6);
+      if (onReservaCreated) onReservaCreated();
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo registrar la reserva.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!successData) return;
+    try {
+      if (Platform.OS === 'web') {
+        const html2pdf = require('html2pdf.js');
+        const element = document.createElement('div');
+        element.innerHTML = successData.html;
+        html2pdf().from(element).set({
+          margin: 10,
+          filename: successData.fileName + '.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).save();
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: successData.html });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo descargar el comprobante.');
+    }
+  };
+
+  const getStepLabel = () => {
+    switch (step) {
+      case 1: return 'Paso 1 de 4';
+      case 2: return 'Paso 2 de 4';
+      case 3: return 'Paso 3 de 4';
+      case 4: return 'Paso 4 de 4';
+      case 5: return 'Confirmación';
+      case 6: return '¡Listo!';
+      default: return '';
+    }
+  };
+
+  const canGoNext = () => {
+    if (step === 1) return !!selectedCancha;
+    return true;
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>NUEVA RESERVA</Text>
-            <TouchableOpacity onPress={onClose}><MaterialCommunityIcons name="close" size={30} color="#94a3b8" /></TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Banner de estado */}
-            <View style={[styles.statusBanner, disp.status === 'error' ? styles.bgRed : disp.status === 'success' ? styles.bgGreen : styles.bgGray]}>
-              <Text style={styles.bannerText}>{disp.msg.toUpperCase()}</Text>
+      <View style={s.overlay}>
+        <View style={s.container}>
+          {/* Header */}
+          {step < 6 && (
+            <View style={s.header}>
+              <View>
+                <Text style={s.headerTitle}>NUEVA RESERVA</Text>
+                <Text style={s.headerStep}>{getStepLabel()}</Text>
+              </View>
+              <TouchableOpacity onPress={onClose}>
+                <MaterialCommunityIcons name="close" size={28} color="#94a3b8" />
+              </TouchableOpacity>
             </View>
+          )}
 
-            {/* REGLA APLICADA: El campo CLIENTE es editable solo para STAFF */}
-            <CustomInput 
-              label="CLIENTE" 
-              value={formData.clienteNombre} 
-              editable={isStaff}
-              onChangeText={v => setFormData({...formData, clienteNombre: v})} 
-              containerStyle={!isStaff && { backgroundColor: '#f1f5f9', opacity: 0.8 }}
-            />
-
-            <Text style={styles.label}>SELECCIONAR CANCHA</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
-              {canchas.map(c => (
-                <TouchableOpacity 
-                  key={c.id} 
-                  style={[styles.choiceBtn, formData.canchaId === c.id && styles.activeBtn]} 
-                  onPress={() => setFormData({...formData, canchaId: c.id, canchaNombre: c.nombre})}
-                >
-                  <Text style={[styles.choiceText, formData.canchaId === c.id && {color: '#fff'}]}>{c.nombre}</Text>
-                </TouchableOpacity>
+          {/* Progress bar */}
+          {step <= 4 && (
+            <View style={s.progressContainer}>
+              {[1, 2, 3, 4].map(i => (
+                <View key={i} style={[s.progressDot, i <= step && s.progressDotActive]} />
               ))}
-            </ScrollView>
-
-            <Text style={styles.label}>HORARIO (FLECHAS)</Text>
-            <View style={styles.timePickerContainer}>
-              <View style={styles.timeBlock}>
-                <TouchableOpacity onPress={() => adjustTime('h', 1)}><MaterialCommunityIcons name="chevron-up" size={40} color="#009b3a" /></TouchableOpacity>
-                <Text style={styles.timeValue}>{hora}</Text>
-                <TouchableOpacity onPress={() => adjustTime('h', -1)}><MaterialCommunityIcons name="chevron-down" size={40} color="#009b3a" /></TouchableOpacity>
-              </View>
-              <Text style={styles.timeSeparator}>:</Text>
-              <View style={styles.timeBlock}>
-                <TouchableOpacity onPress={() => adjustTime('m', 15)}><MaterialCommunityIcons name="chevron-up" size={40} color="#009b3a" /></TouchableOpacity>
-                <Text style={styles.timeValue}>{minuto}</Text>
-                <TouchableOpacity onPress={() => adjustTime('m', -15)}><MaterialCommunityIcons name="chevron-down" size={40} color="#009b3a" /></TouchableOpacity>
-              </View>
             </View>
+          )}
 
-            <TouchableOpacity 
-              style={[styles.saveBtn, disp.status !== 'success' && {backgroundColor: '#cbd5e1'}]} 
-              onPress={onSave}
-              disabled={disp.status !== 'success'}
-            >
-              <Text style={styles.saveBtnText}>CONFIRMAR TURNO</Text>
-            </TouchableOpacity>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            {step === 1 && (
+              <StepCancha canchas={canchas} selectedCancha={selectedCancha} onSelect={setSelectedCancha} />
+            )}
+            {step === 2 && (
+              <StepCliente
+                mode={clienteMode} setMode={setClienteMode}
+                clientes={clientes} selectedCliente={selectedCliente} setSelectedCliente={setSelectedCliente}
+                invitado={invitado} setInvitado={setInvitado} errors={errors}
+              />
+            )}
+            {step === 3 && (
+              <StepDiaHorario
+                selectedDate={selectedDate} setSelectedDate={setSelectedDate}
+                selectedHora={selectedHora} setSelectedHora={setSelectedHora}
+                reservasOcupadas={reservasActuales} canchaId={selectedCancha?.id} errors={errors}
+              />
+            )}
+            {step === 4 && (
+              <StepPago
+                metodoPago={metodoPago} setMetodoPago={setMetodoPago}
+                codigoVale={codigoVale} setCodigoVale={setCodigoVale}
+                precioBase={getPrecioBase()} esSocio={esSocio()} errors={errors}
+              />
+            )}
+            {step === 5 && (
+              <StepConfirmacion
+                cancha={selectedCancha} persona={getPersona()}
+                fecha={selectedDate} hora={selectedHora}
+                metodoPago={metodoPago} precioBase={getPrecioBase()} esSocio={esSocio()}
+              />
+            )}
+            {step === 6 && (
+              <View style={s.successContainer}>
+                <View style={s.successIconBg}>
+                  <MaterialCommunityIcons name="check-circle" size={70} color="#009b3a" />
+                </View>
+                <Text style={s.successTitle}>¡Reserva confirmada!</Text>
+                <Text style={s.successMessage}>La reserva se registró con éxito.</Text>
+
+                <TouchableOpacity style={s.emitirBtn} onPress={downloadPdf}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={22} color="#fff" />
+                  <Text style={s.emitirBtnText}>EMITIR COMPROBANTE</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={s.aceptarBtn} onPress={onClose}>
+                  <Text style={s.aceptarBtnText}>ACEPTAR</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </ScrollView>
+
+          {/* Footer buttons */}
+          {step >= 1 && step <= 4 && (
+            <View style={s.footerBtns}>
+              {step > 1 && (
+                <TouchableOpacity style={s.backBtn} onPress={handleBack}>
+                  <MaterialCommunityIcons name="arrow-left" size={20} color="#64748b" />
+                  <Text style={s.backBtnText}>Atrás</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[s.nextBtn, !canGoNext() && s.nextBtnDisabled]}
+                onPress={handleNext}
+                disabled={!canGoNext()}
+              >
+                <Text style={s.nextBtnText}>Siguiente</Text>
+                <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {step === 5 && (
+            <View style={s.footerBtns}>
+              <TouchableOpacity style={s.backBtn} onPress={handleBack}>
+                <MaterialCommunityIcons name="arrow-left" size={20} color="#64748b" />
+                <Text style={s.backBtnText}>Atrás</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.confirmBtn} onPress={handleConfirm} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="check-bold" size={20} color="#fff" />
+                    <Text style={s.confirmBtnText}>Confirmar Reserva</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  container: { width: '100%', maxWidth: 500, backgroundColor: '#fff', borderRadius: 30, padding: 25, maxHeight: '90%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+// ─── ESTILOS ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 15 },
+  container: { width: '100%', maxWidth: 520, backgroundColor: '#fff', borderRadius: 28, padding: 22, maxHeight: '92%' },
+
+  // Header
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-  label: { color: '#009b3a', fontWeight: '900', fontSize: 13, marginBottom: 10, marginTop: 15 },
-  statusBanner: { padding: 12, borderRadius: 12, marginBottom: 20, alignItems: 'center' },
-  bgRed: { backgroundColor: '#ef4444' }, bgGreen: { backgroundColor: '#009b3a' }, bgGray: { backgroundColor: '#94a3b8' },
-  bannerText: { color: '#fff', fontWeight: '900', fontSize: 12 },
-  timePickerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', borderRadius: 20, padding: 15 },
-  timeBlock: { alignItems: 'center', width: 70 },
-  timeValue: { fontSize: 35, fontWeight: '900', color: '#1e293b' },
-  timeSeparator: { fontSize: 35, fontWeight: '900', color: '#cbd5e1', marginHorizontal: 10 },
-  choiceBtn: { padding: 12, borderRadius: 12, borderWidth: 2, borderColor: '#009b3a', marginRight: 8 },
-  activeBtn: { backgroundColor: '#009b3a' },
-  choiceText: { fontWeight: '800', color: '#009b3a' },
-  saveBtn: { backgroundColor: '#009b3a', padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 25 },
-  saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 17 }
+  headerStep: { fontSize: 11, fontWeight: '700', color: '#009b3a', marginTop: 2 },
+
+  // Progress
+  progressContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 18, gap: 8 },
+  progressDot: { width: 40, height: 5, borderRadius: 3, backgroundColor: '#e2e8f0' },
+  progressDotActive: { backgroundColor: '#009b3a' },
+
+  // Steps common
+  stepTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 },
+  stepSubtitle: { fontSize: 12, color: '#94a3b8', marginBottom: 15, fontWeight: '600' },
+
+  // Step 1 - Cancha
+  canchaBtn: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 15, marginBottom: 10, borderWidth: 2, borderColor: '#e2e8f0' },
+  canchaBtnDisabled: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.7 },
+  canchaBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  canchaBtnInner: { flexDirection: 'row', alignItems: 'center' },
+  canchaBtnName: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
+  canchaBtnType: { fontSize: 12, color: '#64748b', fontWeight: '600', marginTop: 2 },
+  canchaBtnPrice: { fontSize: 14, fontWeight: '900', color: '#009b3a' },
+  mantenimientoText: { color: '#ef4444', fontWeight: '900', fontSize: 11, marginTop: 6, textAlign: 'center' },
+
+  // Step 2 - Cliente/Invitado
+  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+  modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, borderWidth: 2, borderColor: '#009b3a', gap: 8 },
+  modeBtnActive: { backgroundColor: '#009b3a' },
+  modeBtnText: { fontSize: 15, fontWeight: '800', color: '#009b3a' },
+
+  fieldLabel: { fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 6, marginTop: 10 },
+  fieldInput: { backgroundColor: '#f8fafc', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 15, color: '#1e293b', fontWeight: '600', marginBottom: 4 },
+  fieldInputError: { borderColor: '#ef4444', backgroundColor: '#fef2f2' },
+  errorText: { color: '#ef4444', fontSize: 12, fontWeight: '700', marginBottom: 6 },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 12, marginBottom: 10 },
+  searchInput: { flex: 1, padding: 12, fontSize: 15, color: '#1e293b', fontWeight: '600', outlineStyle: 'none' },
+
+  clienteResult: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: '#e2e8f0' },
+  clienteResultSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  clienteResultName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  clienteResultDni: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+  noResultsText: { textAlign: 'center', color: '#94a3b8', fontSize: 13, fontWeight: '600', marginVertical: 10 },
+
+  selectedClienteCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 14, borderRadius: 14, marginTop: 12, borderWidth: 1, borderColor: '#bbf7d0' },
+  selectedClienteName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+  selectedClienteInfo: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+  socioBadge: { fontSize: 11, fontWeight: '900', color: '#009b3a', marginTop: 3 },
+
+  // Step 3 - Día y Horario
+  dayBtn: { width: 70, paddingVertical: 12, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', marginRight: 8, borderWidth: 2, borderColor: '#e2e8f0' },
+  dayBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  dayBtnDow: { fontSize: 12, fontWeight: '800', color: '#64748b' },
+  dayBtnNum: { fontSize: 22, fontWeight: '900', color: '#1e293b', marginVertical: 2 },
+  dayBtnMonth: { fontSize: 11, fontWeight: '700', color: '#94a3b8' },
+
+  horariosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  horaBtn: { width: '22%', paddingVertical: 12, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+  horaBtnOcupada: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.5 },
+  horaBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  horaBtnText: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  horaBtnOcupadaLabel: { fontSize: 8, fontWeight: '700', color: '#cbd5e1', marginTop: 2 },
+
+  // Step 4 - Pago
+  pagoBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, borderWidth: 2, borderColor: '#009b3a', gap: 4 },
+  pagoBtnActive: { backgroundColor: '#009b3a' },
+  pagoBtnActiveMP: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+  pagoBtnText: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
+  pagoBtnSub: { fontSize: 10, fontWeight: '700', color: '#94a3b8' },
+
+  resumenPago: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, marginTop: 18, borderWidth: 1, borderColor: '#e2e8f0' },
+  resumenRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  resumenLabel: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  resumenValue: { fontSize: 14, color: '#1e293b', fontWeight: '800' },
+  descuentoLabel: { fontSize: 12, color: '#ef4444', fontWeight: '700' },
+  descuentoValue: { fontSize: 13, color: '#ef4444', fontWeight: '800' },
+  resumenDivider: { height: 2, backgroundColor: '#e2e8f0', marginVertical: 10 },
+  totalLabel: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
+  totalValue: { fontSize: 20, fontWeight: '900', color: '#009b3a' },
+
+  // Step 5 - Confirmación
+  confirmIcon: { alignItems: 'center', marginBottom: 10 },
+  confirmTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 18 },
+  confirmCard: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#e2e8f0' },
+  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  confirmLabel: { fontSize: 12, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' },
+  confirmValue: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  confirmTotalValue: { fontSize: 18, fontWeight: '900', color: '#009b3a' },
+
+  // Step 6 - Éxito
+  successContainer: { alignItems: 'center', paddingVertical: 20 },
+  successIconBg: { backgroundColor: '#e6f5eb', borderRadius: 60, padding: 15, marginBottom: 15 },
+  successTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b', marginBottom: 8 },
+  successMessage: { fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 25, fontWeight: '600' },
+  emitirBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 16, paddingHorizontal: 30, borderRadius: 16, gap: 10, width: '100%', justifyContent: 'center', marginBottom: 12 },
+  emitirBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  aceptarBtn: { backgroundColor: '#f1f5f9', paddingVertical: 16, paddingHorizontal: 30, borderRadius: 16, width: '100%', alignItems: 'center' },
+  aceptarBtnText: { color: '#64748b', fontWeight: '900', fontSize: 15 },
+
+  // Footer
+  footerBtns: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  backBtn: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 5 },
+  backBtnText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
+  nextBtnDisabled: { backgroundColor: '#cbd5e1' },
+  nextBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
+  confirmBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
 });
