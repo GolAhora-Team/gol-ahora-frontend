@@ -639,7 +639,12 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         });
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo registrar la reserva.');
+      const msg = error.message || 'No se pudo registrar la reserva.';
+      if (Platform.OS === 'web') {
+        window.alert('Error: ' + msg);
+      } else {
+        Alert.alert('Error', msg);
+      }
     } finally {
       setIsLoading(false);
     }
