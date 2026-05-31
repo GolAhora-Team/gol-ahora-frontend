@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 
-export default function EquipoFormModal({ visible, onClose, onSave }) {
+export default function EquipoFormModal({ visible, onClose, onSave, editData }) {
   const initialState = {
     nombre: '',
     descripcion: ''
@@ -12,7 +12,14 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
 
   React.useEffect(() => {
     if (visible) {
-      setFormData(initialState);
+      if (editData) {
+        setFormData({
+          nombre: editData.nombre || '',
+          descripcion: editData.descripcion || ''
+        });
+      } else {
+        setFormData(initialState);
+      }
       setErrors({});
     }
   }, [visible]);
@@ -34,10 +41,9 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
     if (validate()) {
       onSave({
         ...formData,
-        cantidadMaxJugadores: 0,
-        competicionId: null
+        cantidadMaxJugadores: editData?.cantidadMaxJugadores || 0,
+        competicionId: editData?.competicionId || null
       });
-      // Do not clear the form immediately, let the parent handle success/close
     } else {
       Alert.alert('Error', 'Por favor, corrija los errores en el formulario.');
     }
@@ -49,11 +55,13 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
     onClose();
   };
 
+  const isEditing = !!editData;
+
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Agregar Equipo</Text>
+          <Text style={styles.modalTitle}>{isEditing ? 'Editar Equipo' : 'Agregar Equipo'}</Text>
           
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.label}>Nombre del Equipo *</Text>
@@ -80,7 +88,7 @@ export default function EquipoFormModal({ visible, onClose, onSave }) {
               <Text style={styles.cancelText}>CANCELAR</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveText}>REGISTRAR EQUIPO</Text>
+              <Text style={styles.saveText}>{isEditing ? 'GUARDAR CAMBIOS' : 'REGISTRAR EQUIPO'}</Text>
             </TouchableOpacity>
           </View>
         </View>

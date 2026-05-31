@@ -7,8 +7,12 @@ import CompetenciaFormModal from '../components/CompetenciaFormModal';
 import EquipoCard from '../components/EquipoCard';
 import EquipoFormModal from '../components/EquipoFormModal';
 import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
+import AddJugadoresModal from '../components/AddJugadoresModal';
+import RemoveJugadoresModal from '../components/RemoveJugadoresModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
+import { jugadorService } from '../services/jugadorService';
 
 export default function CompetenciasScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
@@ -23,8 +27,23 @@ export default function CompetenciasScreen({ route, navigation }) {
   const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '' };
   const [formData, setFormData] = useState(initialForm);
 
+  // Equipo modals
   const [equipoModalVisible, setEquipoModalVisible] = useState(false);
+  const [editingEquipo, setEditingEquipo] = useState(null);
+
+  // Success modal
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Delete confirm modal
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [equipoToDelete, setEquipoToDelete] = useState(null);
+
+  // Jugadores modals
+  const [addJugadoresVisible, setAddJugadoresVisible] = useState(false);
+  const [removeJugadoresVisible, setRemoveJugadoresVisible] = useState(false);
+  const [selectedEquipo, setSelectedEquipo] = useState(null);
 
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const canCreateEquipo = currentUserRole !== 'PROFE';
@@ -50,6 +69,7 @@ export default function CompetenciasScreen({ route, navigation }) {
     }
   };
 
+  // ── Competencia handlers ──
   const handleCreate = async () => {
     if (!formData.nombre || !formData.fechaInicio) {
       return Alert.alert("Atención", "El nombre y la fecha de inicio son obligatorios");
@@ -62,18 +82,6 @@ export default function CompetenciasScreen({ route, navigation }) {
       setModalVisible(false);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo crear la competencia.');
-    }
-  };
-
-  const handleCreateEquipo = async (equipoFormData) => {
-    try {
-      const result = await equipoService.create(equipoFormData);
-      const nuevo = { ...equipoFormData, id: result?.id?.toString() || Date.now().toString() };
-      setEquipos(prev => [...prev, nuevo]);
-      setEquipoModalVisible(false);
-      setSuccessModalVisible(true);
-    } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo crear el equipo.');
     }
   };
 
@@ -96,6 +104,87 @@ export default function CompetenciasScreen({ route, navigation }) {
         }
       ]
     );
+  };
+
+  // ── Equipo handlers ──
+  const handleCreateEquipo = async (equipoFormData) => {
+    try {
+      const result = await equipoService.create(equipoFormData);
+      const nuevo = { ...result, id: result?.id?.toString() || Date.now().toString() };
+      setEquipos(prev => [...prev, nuevo]);
+      setEquipoModalVisible(false);
+      showSuccess('¡Equipo Registrado!', 'El equipo fue creado exitosamente.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo crear el equipo.');
+    }
+  };
+
+  const handleEditEquipo = (equipo) => {
+    setEditingEquipo(equipo);
+    setEquipoModalVisible(true);
+  };
+
+  const handleUpdateEquipo = async (equipoFormData) => {
+    try {
+      await equipoService.update(editingEquipo.id, equipoFormData);
+      setEquipos(prev => prev.map(e => e.id === editingEquipo.id ? { ...e, ...equipoFormData } : e));
+      setEquipoModalVisible(false);
+      setEditingEquipo(null);
+      showSuccess('¡Cambios Guardados!', 'El equipo se actualizó correctamente.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo actualizar el equipo.');
+    }
+  };
+
+  const askDeleteEquipo = (equipo) => {
+    setEquipoToDelete(equipo);
+    setDeleteConfirmVisible(true);
+  };
+
+  const handleDeleteEquipo = async () => {
+    if (!equipoToDelete) return;
+    try {
+      await equipoService.delete(equipoToDelete.id);
+      setEquipos(prev => prev.filter(e => e.id !== equipoToDelete.id));
+      showSuccess('Equipo Eliminado', `El equipo ${equipoToDelete.nombre} ha sido eliminado.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar el equipo.');
+    }
+  };
+
+  // ── Jugadores handlers ──
+  const openAddJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setAddJugadoresVisible(true);
+  };
+
+  const openRemoveJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setRemoveJugadoresVisible(true);
+  };
+
+  const handleAddJugadores = async (clientesSeleccionados) => {
+    try {
+      for (const cliente of clientesSeleccionados) {
+        await jugadorService.create({
+          numero: 0,
+          posicion: 0,
+          clienteId: cliente.id,
+          equipoId: parseInt(selectedEquipo.id)
+        });
+      }
+      setAddJugadoresVisible(false);
+      showSuccess('¡Jugadores Agregados!', `Se agregaron ${clientesSeleccionados.length} jugador(es) correctamente al equipo.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron agregar los jugadores.');
+    }
+  };
+
+  // ── Helpers ──
+  const showSuccess = (title, message) => {
+    setSuccessTitle(title);
+    setSuccessMessage(message);
+    setSuccessModalVisible(true);
   };
 
   if (loading) {
@@ -169,7 +258,7 @@ export default function CompetenciasScreen({ route, navigation }) {
           <View style={styles.headerRow}>
             <Text style={styles.mainTitle}>Equipos Registrados</Text>
             {canCreateEquipo && (
-              <TouchableOpacity style={styles.addButton} onPress={() => setEquipoModalVisible(true)}>
+              <TouchableOpacity style={styles.addButton} onPress={() => { setEditingEquipo(null); setEquipoModalVisible(true); }}>
                 <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
                 <Text style={styles.addButtonText}>Agregar Equipo</Text>
               </TouchableOpacity>
@@ -181,14 +270,10 @@ export default function CompetenciasScreen({ route, navigation }) {
                 key={item.id} 
                 item={item} 
                 canModify={isStaff}
-                onDelete={async () => {
-                  try {
-                    await equipoService.delete(item.id);
-                    setEquipos(prev => prev.filter(e => e.id !== item.id));
-                  } catch (error) {
-                    Alert.alert('Error', error.message || 'No se pudo eliminar el equipo.');
-                  }
-                }}
+                onEdit={() => handleEditEquipo(item)}
+                onDelete={() => askDeleteEquipo(item)}
+                onAddJugadores={() => openAddJugadores(item)}
+                onRemoveJugadores={() => openRemoveJugadores(item)}
               />
             ))}
             {equipos.length === 0 && (
@@ -198,6 +283,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         </>
       )}
 
+      {/* ── Modals ── */}
       <CompetenciaFormModal 
         visible={modalVisible} 
         onClose={() => setModalVisible(false)} 
@@ -208,16 +294,42 @@ export default function CompetenciasScreen({ route, navigation }) {
 
       <EquipoFormModal 
         visible={equipoModalVisible}
-        onClose={() => setEquipoModalVisible(false)}
-        onSave={handleCreateEquipo}
-        competencias={competencias}
+        onClose={() => { setEquipoModalVisible(false); setEditingEquipo(null); }}
+        onSave={editingEquipo ? handleUpdateEquipo : handleCreateEquipo}
+        editData={editingEquipo}
+      />
+
+      <ConfirmModal
+        visible={deleteConfirmVisible}
+        onClose={() => setDeleteConfirmVisible(false)}
+        onConfirm={handleDeleteEquipo}
+        title="Eliminar Equipo"
+        message={`¿Está seguro que desea eliminar el equipo "${equipoToDelete?.nombre}"?`}
+        confirmText="ELIMINAR"
+        cancelText="Cancelar"
+        icon="alert-circle-outline"
+        color="#ef4444"
+      />
+
+      <AddJugadoresModal
+        visible={addJugadoresVisible}
+        onClose={() => setAddJugadoresVisible(false)}
+        onConfirm={handleAddJugadores}
+        equipoId={selectedEquipo?.id}
+      />
+
+      <RemoveJugadoresModal
+        visible={removeJugadoresVisible}
+        onClose={() => setRemoveJugadoresVisible(false)}
+        equipoId={selectedEquipo?.id}
+        equipoNombre={selectedEquipo?.nombre}
       />
 
       <SuccessModal
         visible={successModalVisible}
         onClose={() => setSuccessModalVisible(false)}
-        title="¡Equipo Registrado!"
-        message="El equipo fue creado y registrado exitosamente en la competencia."
+        title={successTitle}
+        message={successMessage}
       />
     </ScreenTemplate>
   );
