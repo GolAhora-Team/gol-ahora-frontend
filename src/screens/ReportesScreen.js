@@ -121,14 +121,14 @@ export default function ReportesScreen({ route, navigation }) {
   };
 
   const sortedHistorialCanchas = [...historialCanchas].sort((a, b) => {
-    const dateA = new Date(a.fecha).getTime();
-    const dateB = new Date(b.fecha).getTime();
+    const dateA = new Date(a.fecha.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
+    const dateB = new Date(b.fecha.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
     return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
   const sortedHistorialUsuarios = [...historialUsuarios].sort((a, b) => {
-    const dateA = new Date(a.fecha).getTime();
-    const dateB = new Date(b.fecha).getTime();
+    const dateA = new Date(a.fecha.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
+    const dateB = new Date(b.fecha.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
     return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
@@ -182,7 +182,7 @@ export default function ReportesScreen({ route, navigation }) {
                     <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
                     <View style={{ marginLeft: 10 }}>
                       <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Estado'}</Text>
-                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
+                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha.endsWith('Z') ? rep.fecha : rep.fecha + 'Z').toLocaleString()}</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -210,7 +210,7 @@ export default function ReportesScreen({ route, navigation }) {
                     <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
                     <View style={{ marginLeft: 10 }}>
                       <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Usuario'}</Text>
-                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha).toLocaleString()}</Text>
+                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha.endsWith('Z') ? rep.fecha : rep.fecha + 'Z').toLocaleString()}</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
