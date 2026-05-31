@@ -10,6 +10,7 @@ import SuccessModal from '../components/SuccessModal';
 import ConfirmModal from '../components/ConfirmModal';
 import AddJugadoresModal from '../components/AddJugadoresModal';
 import RemoveJugadoresModal from '../components/RemoveJugadoresModal';
+import VerJugadoresModal from '../components/VerJugadoresModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
@@ -43,6 +44,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   // Jugadores modals
   const [addJugadoresVisible, setAddJugadoresVisible] = useState(false);
   const [removeJugadoresVisible, setRemoveJugadoresVisible] = useState(false);
+  const [verJugadoresVisible, setVerJugadoresVisible] = useState(false);
   const [selectedEquipo, setSelectedEquipo] = useState(null);
 
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
@@ -163,18 +165,23 @@ export default function CompetenciasScreen({ route, navigation }) {
     setRemoveJugadoresVisible(true);
   };
 
-  const handleAddJugadores = async (clientesSeleccionados) => {
+  const openVerJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setVerJugadoresVisible(true);
+  };
+
+  const handleAddJugadores = async (jugadoresSeleccionados) => {
     try {
-      for (const cliente of clientesSeleccionados) {
+      for (const jugador of jugadoresSeleccionados) {
         await jugadorService.create({
-          numero: 0,
-          posicion: 0,
-          clienteId: cliente.id,
+          numero: jugador.numero,
+          posicion: jugador.posicion,
+          clienteId: jugador.clienteId,
           equipoId: parseInt(selectedEquipo.id)
         });
       }
       setAddJugadoresVisible(false);
-      showSuccess('¡Jugadores Agregados!', `Se agregaron ${clientesSeleccionados.length} jugador(es) correctamente al equipo.`);
+      showSuccess('¡Jugadores Agregados!', `Se agregaron ${jugadoresSeleccionados.length} jugador(es) correctamente al equipo.`);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudieron agregar los jugadores.');
     }
@@ -274,6 +281,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                 onDelete={() => askDeleteEquipo(item)}
                 onAddJugadores={() => openAddJugadores(item)}
                 onRemoveJugadores={() => openRemoveJugadores(item)}
+                onVerJugadores={() => openVerJugadores(item)}
               />
             ))}
             {equipos.length === 0 && (
@@ -321,6 +329,13 @@ export default function CompetenciasScreen({ route, navigation }) {
       <RemoveJugadoresModal
         visible={removeJugadoresVisible}
         onClose={() => setRemoveJugadoresVisible(false)}
+        equipoId={selectedEquipo?.id}
+        equipoNombre={selectedEquipo?.nombre}
+      />
+
+      <VerJugadoresModal
+        visible={verJugadoresVisible}
+        onClose={() => setVerJugadoresVisible(false)}
         equipoId={selectedEquipo?.id}
         equipoNombre={selectedEquipo?.nombre}
       />

@@ -74,7 +74,7 @@ export default function RemoveJugadoresModal({ visible, onClose, equipoId, equip
                     <MaterialCommunityIcons name="account" size={22} color="#3b82f6" />
                     <View style={{ marginLeft: 10, flex: 1 }}>
                       <Text style={styles.jugadorNombre}>{getClienteNombre(jugador.clienteId)}</Text>
-                      <Text style={styles.jugadorDetail}>Número: {jugador.numero} | Posición: {jugador.posicion}</Text>
+                      <Text style={styles.jugadorDetail}>Nº {jugador.numero} | {({0:'Sin posición',1:'ARQ',2:'DEF',3:'MED',4:'DEL'})[jugador.posicion] || 'Sin posición'}</Text>
                     </View>
                   </View>
                   <TouchableOpacity onPress={() => askRemove(jugador)} style={styles.removeBtn}>

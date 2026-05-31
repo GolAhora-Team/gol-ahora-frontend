@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJugadores, onRemoveJugadores }) {
+export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJugadores, onRemoveJugadores, onVerJugadores }) {
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -14,6 +14,12 @@ export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJug
       </View>
 
       <View style={styles.actions}>
+        <View style={styles.actionRow}>
+          <TouchableOpacity onPress={onVerJugadores} style={styles.actionBtn}>
+            <MaterialCommunityIcons name="eye" size={20} color="#6366f1" />
+            <Text style={[styles.actionText, { color: '#6366f1' }]}>Ver jugadores</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={onAddJugadores} style={styles.actionBtn}>
             <MaterialCommunityIcons name="account-plus" size={20} color="#009b3a" />
