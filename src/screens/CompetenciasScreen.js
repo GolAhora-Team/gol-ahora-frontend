@@ -4,13 +4,18 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import CompetenciaCard from '../components/CompetenciaCard';
 import CompetenciaFormModal from '../components/CompetenciaFormModal';
-import { confirmarEliminacion } from '../components/Delete';
+import EquipoCard from '../components/EquipoCard';
+import EquipoFormModal from '../components/EquipoFormModal';
+import SuccessModal from '../components/SuccessModal';
 import { competicionService } from '../services/competicionService';
+import { equipoService } from '../services/equipoService';
 
 export default function CompetenciasScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
 
+  const [activeTab, setActiveTab] = useState('COMPETENCIAS');
   const [competencias, setCompetencias] = useState([]);
+  const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
@@ -18,30 +23,32 @@ export default function CompetenciasScreen({ route, navigation }) {
   const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '' };
   const [formData, setFormData] = useState(initialForm);
 
-  const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+  const [equipoModalVisible, setEquipoModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
-  // CARGA INICIAL DESDE EL BACKEND
+  const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+  const canCreateEquipo = currentUserRole !== 'PROFE';
+
   useEffect(() => {
-    loadCompetencias();
+    loadData();
   }, []);
 
-  const loadCompetencias = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       const data = await competicionService.getAll();
-      const mapped = (data || []).map(c => ({
-        ...c,
-        id: c.id?.toString(),
-      }));
+      const mapped = (data || []).map(c => ({ ...c, id: c.id?.toString() }));
       setCompetencias(mapped);
+
+      const eqData = await equipoService.getAll();
+      const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
+      setEquipos(mappedEq);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las competencias.');
+      Alert.alert('Error', 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
     }
   };
-
-  const isStaffCheck = isStaff;
 
   const handleCreate = async () => {
     if (!formData.nombre || !formData.fechaInicio) {
@@ -55,6 +62,18 @@ export default function CompetenciasScreen({ route, navigation }) {
       setModalVisible(false);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo crear la competencia.');
+    }
+  };
+
+  const handleCreateEquipo = async (equipoFormData) => {
+    try {
+      const result = await equipoService.create(equipoFormData);
+      const nuevo = { ...equipoFormData, id: result?.id?.toString() || Date.now().toString() };
+      setEquipos(prev => [...prev, nuevo]);
+      setEquipoModalVisible(false);
+      setSuccessModalVisible(true);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo crear el equipo.');
     }
   };
 
@@ -84,7 +103,7 @@ export default function CompetenciasScreen({ route, navigation }) {
       <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#009b3a" />
-          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando competencias...</Text>
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando datos...</Text>
         </View>
       </ScreenTemplate>
     );
@@ -105,35 +124,79 @@ export default function CompetenciasScreen({ route, navigation }) {
         </ScrollView>
       </View>
 
-      <View style={styles.headerRow}>
-        <Text style={styles.mainTitle}>Ligas y Torneos</Text>
-        {isStaff && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>NUEVA</Text>
-          </TouchableOpacity>
-        )}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity style={[styles.tabBtn, activeTab === 'COMPETENCIAS' && styles.tabBtnActive]} onPress={() => setActiveTab('COMPETENCIAS')}>
+          <Text style={[styles.tabText, activeTab === 'COMPETENCIAS' && styles.tabTextActive]}>Competencias</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tabBtn, activeTab === 'EQUIPOS' && styles.tabBtnActive]} onPress={() => setActiveTab('EQUIPOS')}>
+          <Text style={[styles.tabText, activeTab === 'EQUIPOS' && styles.tabTextActive]}>Equipos</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {competencias.map(item => (
-          <CompetenciaCard 
-            key={item.id} 
-            item={item} 
-            canModify={isStaff}
-            yaInscripto={misInscripciones.includes(item.id)}
-            onInscribir={() => handleInscripcion(item)}
-            onDelete={async () => {
-              try {
-                await competicionService.delete(item.id);
-                setCompetencias(prev => prev.filter(c => c.id !== item.id));
-              } catch (error) {
-                Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
-              }
-            }}
-          />
-        ))}
-      </ScrollView>
+      {activeTab === 'COMPETENCIAS' ? (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.mainTitle}>Ligas y Torneos</Text>
+            {isStaff && (
+              <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+                <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>NUEVA</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+            {competencias.map(item => (
+              <CompetenciaCard 
+                key={item.id} 
+                item={item} 
+                canModify={isStaff}
+                yaInscripto={misInscripciones.includes(item.id)}
+                onInscribir={() => handleInscripcion(item)}
+                onDelete={async () => {
+                  try {
+                    await competicionService.delete(item.id);
+                    setCompetencias(prev => prev.filter(c => c.id !== item.id));
+                  } catch (error) {
+                    Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
+                  }
+                }}
+              />
+            ))}
+          </ScrollView>
+        </>
+      ) : (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.mainTitle}>Equipos Registrados</Text>
+            {canCreateEquipo && (
+              <TouchableOpacity style={styles.addButton} onPress={() => setEquipoModalVisible(true)}>
+                <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>Agregar Equipo</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+            {equipos.map(item => (
+              <EquipoCard 
+                key={item.id} 
+                item={item} 
+                canModify={isStaff}
+                onDelete={async () => {
+                  try {
+                    await equipoService.delete(item.id);
+                    setEquipos(prev => prev.filter(e => e.id !== item.id));
+                  } catch (error) {
+                    Alert.alert('Error', error.message || 'No se pudo eliminar el equipo.');
+                  }
+                }}
+              />
+            ))}
+            {equipos.length === 0 && (
+              <Text style={{color: '#94a3b8', textAlign: 'center', marginTop: 20}}>No hay equipos registrados.</Text>
+            )}
+          </ScrollView>
+        </>
+      )}
 
       <CompetenciaFormModal 
         visible={modalVisible} 
@@ -141,6 +204,20 @@ export default function CompetenciasScreen({ route, navigation }) {
         formData={formData} 
         setFormData={setFormData} 
         onSave={handleCreate} 
+      />
+
+      <EquipoFormModal 
+        visible={equipoModalVisible}
+        onClose={() => setEquipoModalVisible(false)}
+        onSave={handleCreateEquipo}
+        competencias={competencias}
+      />
+
+      <SuccessModal
+        visible={successModalVisible}
+        onClose={() => setSuccessModalVisible(false)}
+        title="¡Equipo Registrado!"
+        message="El equipo fue creado y registrado exitosamente en la competencia."
       />
     </ScreenTemplate>
   );
@@ -152,6 +229,11 @@ const styles = StyleSheet.create({
   monitorCard: { backgroundColor: '#004d1a', padding: 15, borderRadius: 20, marginRight: 12, minWidth: 160, borderWidth: 1, borderColor: '#009b3a' },
   monitorTitle: { color: '#fff', fontWeight: '900', fontSize: 13, marginTop: 5 },
   monitorSub: { color: '#ffb300', fontWeight: '800', fontSize: 10, marginTop: 2 },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginBottom: 20 },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabBtnActive: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  tabText: { fontWeight: '700', color: '#64748b' },
+  tabTextActive: { color: '#009b3a', fontWeight: '900' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   mainTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
