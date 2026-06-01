@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const slides = [
@@ -54,31 +54,38 @@ const slides = [
 ];
 
 export default function InfoCarousel() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < 600;
+  
   const scrollViewRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  // El slide toma un 85% en móvil y un 60% en web (max 550px) para dejar ver los costados
+  const slideWidth = isMobile ? containerWidth * 0.85 : Math.min(550, containerWidth * 0.6);
+  const padding = containerWidth > 0 ? (containerWidth - slideWidth) / 2 : 0;
+
   const handleScroll = (event) => {
-    if (containerWidth === 0) return;
+    if (slideWidth === 0) return;
     const scrollPosition = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollPosition / containerWidth);
+    const index = Math.round(scrollPosition / slideWidth);
     if (index !== activeIndex) setActiveIndex(index);
   };
 
   useEffect(() => {
-    if (containerWidth === 0) return;
+    if (containerWidth === 0 || slideWidth === 0) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => {
         let nextIndex = prev + 1;
         if (nextIndex >= slides.length) nextIndex = 0;
         if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ x: nextIndex * containerWidth, y: 0, animated: true });
+          scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: true });
         }
         return nextIndex;
       });
     }, 2000);
     return () => clearInterval(interval);
-  }, [containerWidth]);
+  }, [containerWidth, slideWidth]);
 
   return (
     <View
@@ -90,22 +97,25 @@ export default function InfoCarousel() {
           <ScrollView
             ref={scrollViewRef}
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
+            snapToInterval={slideWidth}
+            decelerationRate="fast"
+            snapToAlignment="center"
+            contentContainerStyle={{ paddingHorizontal: Math.max(0, padding) }}
             onMomentumScrollEnd={handleScroll}
             scrollEventThrottle={16}
             style={{ width: containerWidth }}
           >
             {slides.map((slide) => (
-              <View key={slide.id} style={{ width: containerWidth, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>
+              <View key={slide.id} style={{ width: slideWidth, paddingHorizontal: 10, justifyContent: 'center' }}>
                 <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40' }]}>
-                <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
-                  <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
-                </View>
-                <View style={styles.textContainer}>
-                  <Text style={[styles.title, { color: slide.color }]} selectable={false}>{slide.title}</Text>
-                  <Text style={styles.desc} selectable={false}>{slide.desc}</Text>
-                </View>
+                  <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
+                    <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={[styles.title, { color: slide.color }]} selectable={false}>{slide.title}</Text>
+                    <Text style={styles.desc} selectable={false}>{slide.desc}</Text>
+                  </View>
                 </View>
               </View>
             ))}
@@ -131,13 +141,12 @@ export default function InfoCarousel() {
 
 const styles = StyleSheet.create({
   carouselContainer: {
-    marginTop: 25,
-    marginBottom: 10,
+    marginTop: 0,
+    marginBottom: 25,
     width: '100%',
   },
   slideInner: {
     width: '100%',
-    maxWidth: 800,
     borderRadius: 24,
     padding: 24,
     flexDirection: 'row',

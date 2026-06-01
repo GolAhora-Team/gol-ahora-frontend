@@ -183,6 +183,8 @@ export default function Dashboard({ route, navigation }) {
                     <MaterialCommunityIcons name="shield-check-outline" size={isMobile ? 32 : 40} color="#f1f5f9" style={styles.bannerDecoration} />
                   </View>
 
+                  <InfoCarousel />
+
                   <View style={styles.grid}>
                     {visibleModules.map((item) => (
                       <ModuleCard 
@@ -198,8 +200,6 @@ export default function Dashboard({ route, navigation }) {
                   </View>
                 </View>
               </View>
-
-              <InfoCarousel />
 
               {(role === 'ADMIN' || role === 'PERSONAL') && (
                 <View style={styles.statsOuterContainer}>

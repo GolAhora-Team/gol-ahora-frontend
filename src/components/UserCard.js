@@ -16,7 +16,7 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
         
         <View style={styles.specRow}>
           <Text style={styles.specText}>
-            [{item.role}] • DNI: {item.dni || 'N/A'} • Tel: {item.telefono || 'N/A'}
+            DNI: {item.dni || 'N/A'} • Tel: {item.telefono || 'N/A'}
           </Text>
         </View>
         

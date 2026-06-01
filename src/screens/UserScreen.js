@@ -387,7 +387,7 @@ export default function UserScreen({ route, navigation }) {
               }}
             >
               <View style={styles.roleHeader}>
-                <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#fff" />
+                <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#000" />
                 <Text style={styles.roleHeaderText}>{section.role}</Text>
               </View>
               {section.data.map(item => (
@@ -462,8 +462,8 @@ const styles = StyleSheet.create({
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', padding: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
   roleSection: { marginBottom: 25 },
-  roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, alignSelf: 'flex-start' },
-  roleHeaderText: { color: '#fff', fontWeight: '900', fontSize: 16, marginLeft: 8 },
+  roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, backgroundColor: '#ffb300', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, alignSelf: 'flex-start' },
+  roleHeaderText: { color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8 },
   alphabetBar: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', width: 45, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, shadowColor: '#000', shadowOffset: { width: -2, height: 0 }, shadowOpacity: 0.1, shadowRadius: 5 },
   roleNavText: { fontSize: 9, fontWeight: '900', color: '#009b3a', marginTop: 2 }
 });
