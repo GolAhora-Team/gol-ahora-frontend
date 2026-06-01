@@ -17,21 +17,22 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     if (isEnJuego) {
       const updateTimer = () => {
         const now = new Date();
-        const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
         
         const [h, m] = (item.horaInicio || '00:00').split(':').map(Number);
-        const dateStr = item.fecha ? item.fecha.split('T')[0] : argTime.toISOString().split('T')[0];
+        const dateStr = item.fecha ? item.fecha.split('T')[0] : now.toISOString().split('T')[0];
         const [year, month, day] = dateStr.split('-').map(Number);
         
         const startTime = new Date(year, month - 1, day, h, m, 0);
-        const diffMs = argTime.getTime() - startTime.getTime();
+        const diffMs = now.getTime() - startTime.getTime();
         
         if (diffMs < 0) {
            setRunningTime('00:00');
         } else {
-           const diffMins = Math.floor(diffMs / 60000);
-           const diffSecs = Math.floor((diffMs % 60000) / 1000);
-           setRunningTime(`${diffMins.toString().padStart(2, '0')}:${diffSecs.toString().padStart(2, '0')}`);
+           const totalSecs = Math.floor(diffMs / 1000);
+           const cappedSecs = Math.min(totalSecs, 3600); // Cap at 60:00
+           const mins = Math.floor(cappedSecs / 60);
+           const secs = cappedSecs % 60;
+           setRunningTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
         }
       };
       updateTimer();

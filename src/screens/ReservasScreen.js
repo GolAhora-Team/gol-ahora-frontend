@@ -84,6 +84,10 @@ export default function ReservaScreen({ route, navigation }) {
     return () => clearInterval(intervalId);
   }, [reservas]);
 
+  const formatGroupDate = (date) => {
+    return date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+
   const groupedReservas = React.useMemo(() => {
     const sorted = [...reservas].sort((a, b) => {
       let fA = a.fecha || '';
@@ -92,25 +96,28 @@ export default function ReservaScreen({ route, navigation }) {
       return (a.horaInicio || '').localeCompare(b.horaInicio || '');
     });
 
-    const groups = { hoy: [], manana: [], pasado: [], proximas: [], anteriores: [] };
+    const groups = { hoy: [], manana: [], estaSemana: [], proximas: [], anteriores: [] };
     const now = new Date();
-    const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-    argTime.setUTCHours(0,0,0,0);
+    const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    const dManana = new Date(argTime); dManana.setDate(dManana.getDate() + 1);
-    const dPasado = new Date(argTime); dPasado.setDate(dPasado.getDate() + 2);
+    const dManana = new Date(hoy); dManana.setDate(dManana.getDate() + 1);
+    // Fin de la semana (domingo inclusive, hasta 6 días después de hoy)
+    const dFinSemana = new Date(hoy); dFinSemana.setDate(dFinSemana.getDate() + 6);
 
-    const sHoy = argTime.toISOString().split('T')[0];
+    const sHoy = hoy.toISOString().split('T')[0];
     const sManana = dManana.toISOString().split('T')[0];
-    const sPasado = dPasado.toISOString().split('T')[0];
+    const sFinSemana = dFinSemana.toISOString().split('T')[0];
+    const dHaceUnaSemana = new Date(hoy); dHaceUnaSemana.setDate(dHaceUnaSemana.getDate() - 7);
+    const sHaceUnaSemana = dHaceUnaSemana.toISOString().split('T')[0];
 
     sorted.forEach(r => {
       let resDateStr = r.fecha ? (r.fecha.includes('T') ? r.fecha.split('T')[0] : r.fecha) : '';
       if (resDateStr === sHoy) groups.hoy.push(r);
       else if (resDateStr === sManana) groups.manana.push(r);
-      else if (resDateStr === sPasado) groups.pasado.push(r);
-      else if (resDateStr < sHoy) groups.anteriores.push(r);
-      else groups.proximas.push(r);
+      else if (resDateStr < sHoy && resDateStr >= sHaceUnaSemana) groups.anteriores.push(r);
+      else if (resDateStr <= sFinSemana && resDateStr > sHoy) groups.estaSemana.push(r);
+      else if (resDateStr > sFinSemana) groups.proximas.push(r);
+      // Las reservas con fecha anterior a hace 1 semana no se incluyen
     });
 
     // Ordenar 'hoy' para que 'En Juego' vaya primero y 'Finalizado' al final
@@ -126,7 +133,7 @@ export default function ReservaScreen({ route, navigation }) {
       return (a.horaInicio || '').localeCompare(b.horaInicio || '');
     });
 
-    return groups;
+    return { groups, sHoy: hoy, sManana: dManana };
   }, [reservas]);
 
   const loadData = async () => {
@@ -333,34 +340,34 @@ export default function ReservaScreen({ route, navigation }) {
           </View>
         ) : (
           <>
-            {groupedReservas.hoy.length > 0 && (
+            {groupedReservas.groups.hoy.length > 0 && (
               <View style={styles.groupSection}>
-                <Text style={styles.groupTitle}>Reservas para Hoy</Text>
-                {renderReservaList(groupedReservas.hoy)}
+                <Text style={styles.groupTitle}>Reservas para hoy - {formatGroupDate(groupedReservas.sHoy)}</Text>
+                {renderReservaList(groupedReservas.groups.hoy)}
               </View>
             )}
-            {groupedReservas.manana.length > 0 && (
+            {groupedReservas.groups.manana.length > 0 && (
               <View style={styles.groupSection}>
-                <Text style={styles.groupTitle}>Mañana</Text>
-                {renderReservaList(groupedReservas.manana)}
+                <Text style={styles.groupTitle}>Reservas para mañana - {formatGroupDate(groupedReservas.sManana)}</Text>
+                {renderReservaList(groupedReservas.groups.manana)}
               </View>
             )}
-            {groupedReservas.pasado.length > 0 && (
+            {groupedReservas.groups.estaSemana.length > 0 && (
               <View style={styles.groupSection}>
-                <Text style={styles.groupTitle}>Pasado Mañana</Text>
-                {renderReservaList(groupedReservas.pasado)}
+                <Text style={styles.groupTitle}>Reservas de esta semana</Text>
+                {renderReservaList(groupedReservas.groups.estaSemana)}
               </View>
             )}
-            {groupedReservas.proximas.length > 0 && (
+            {groupedReservas.groups.proximas.length > 0 && (
               <View style={styles.groupSection}>
-                <Text style={styles.groupTitle}>Próximas Reservas</Text>
-                {renderReservaList(groupedReservas.proximas)}
+                <Text style={styles.groupTitle}>Próximas reservas</Text>
+                {renderReservaList(groupedReservas.groups.proximas)}
               </View>
             )}
-            {groupedReservas.anteriores.length > 0 && (
+            {groupedReservas.groups.anteriores.length > 0 && (
               <View style={styles.groupSection}>
                 <Text style={styles.groupTitle}>Historial Anteriores</Text>
-                {renderReservaList(groupedReservas.anteriores)}
+                {renderReservaList(groupedReservas.groups.anteriores)}
               </View>
             )}
           </>
@@ -471,10 +478,10 @@ export default function ReservaScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 10 }}>
-              {groupedReservas.hoy.length === 0 ? (
+              {groupedReservas.groups.hoy.length === 0 ? (
                 <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>No hay reservas para hoy.</Text>
               ) : (
-                renderReservaList(groupedReservas.hoy)
+                renderReservaList(groupedReservas.groups.hoy)
               )}
             </ScrollView>
           </View>
