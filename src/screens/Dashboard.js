@@ -17,6 +17,7 @@ import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import StatCards from '../components/StatCards';
+import InfoCarousel from '../components/InfoCarousel';
 
 const { width: windowWidth } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
@@ -197,6 +198,8 @@ export default function Dashboard({ route, navigation }) {
                   </View>
                 </View>
               </View>
+
+              <InfoCarousel />
 
               {(role === 'ADMIN' || role === 'PERSONAL') && (
                 <View style={styles.statsOuterContainer}>
