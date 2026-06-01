@@ -79,12 +79,14 @@ export default function InfoCarousel() {
     if (index !== activeIndex) setActiveIndex(index);
   };
 
-  useEffect(() => {
-    if (slideWidth > 0 && scrollViewRef.current && !isReady) {
-      scrollViewRef.current.scrollTo({ x: START_INDEX * slideWidth, animated: false });
-      setIsReady(true);
+  const handleContentSizeChange = (contentWidth) => {
+    if (!isReady && slideWidth > 0 && contentWidth >= START_INDEX * slideWidth) {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: START_INDEX * slideWidth, animated: false });
+        setIsReady(true);
+      }
     }
-  }, [slideWidth, isReady]);
+  };
 
   useEffect(() => {
     if (containerWidth === 0 || slideWidth === 0 || !isReady) return;
@@ -125,18 +127,19 @@ export default function InfoCarousel() {
             snapToInterval={slideWidth}
             decelerationRate="fast"
             snapToAlignment="center"
+            onContentSizeChange={handleContentSizeChange}
             contentContainerStyle={{ paddingHorizontal: Math.max(0, padding), alignItems: 'stretch' }}
             onMomentumScrollEnd={handleScroll}
             scrollEventThrottle={16}
             style={{ width: containerWidth }}
           >
             {extendedSlides.map((slide, i) => (
-              <View key={slide.uniqueId} style={{ width: slideWidth, paddingHorizontal: 10, justifyContent: 'center' }}>
-                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40', height: '100%' }, isMobile && styles.slideInnerMobile]}>
+              <View key={slide.uniqueId} style={{ width: slideWidth, paddingHorizontal: 10 }}>
+                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40', flex: 1 }, isMobile && styles.slideInnerMobile]}>
                   <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }, isMobile && styles.iconContainerMobile]}>
                     <MaterialCommunityIcons name={slide.icon} size={isMobile ? 36 : 42} color={slide.color} />
                   </View>
-                  <View style={[styles.textContainer, isMobile && styles.textContainerMobile]}>
+                  <View style={[styles.textContainer, !isMobile && { flex: 1 }, isMobile && styles.textContainerMobile]}>
                     <Text style={[styles.title, { color: slide.color }, isMobile && styles.titleMobile]} selectable={false}>{slide.title}</Text>
                     <Text style={[styles.desc, isMobile && styles.descMobile]} selectable={false}>{slide.desc}</Text>
                   </View>
@@ -191,7 +194,6 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   textContainer: {
-    flex: 1,
     justifyContent: 'center',
   },
   title: {
@@ -222,7 +224,7 @@ const styles = StyleSheet.create({
   },
   textContainerMobile: {
     alignItems: 'center',
-    flex: 0,
+    marginTop: 8,
   },
   titleMobile: {
     fontSize: 18,
