@@ -20,13 +20,54 @@ import ReportesScreen from './src/screens/ReportesScreen';
 import ClientesScreen from './src/screens/ClientesScreen';
 import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 
+import { Platform } from 'react-native';
+import { 
+  useFonts, 
+  Montserrat_300Light,
+  Montserrat_400Regular, 
+  Montserrat_500Medium, 
+  Montserrat_600SemiBold, 
+  Montserrat_700Bold, 
+  Montserrat_800ExtraBold, 
+  Montserrat_900Black 
+} from '@expo-google-fonts/montserrat';
+
 const Stack = createNativeStackNavigator();
 
 import AutoLogoutWrapper from './src/components/AutoLogoutWrapper';
 
+// Inyección global de estilos solo para Web
+if (Platform.OS === 'web') {
+  const style = document.createElement('style');
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(`
+    * {
+      font-family: 'Montserrat_400Regular', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    }
+    h1, h2, h3, h4, h5, h6, b, strong, th {
+      font-family: 'Montserrat_800ExtraBold', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    }
+  `));
+  document.head.appendChild(style);
+}
+
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Montserrat_300Light,
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+    Montserrat_800ExtraBold,
+    Montserrat_900Black,
+  });
+
   const navigationRef = useNavigationContainerRef();
   const [currentRouteName, setCurrentRouteName] = useState('Login');
+
+  if (!fontsLoaded) {
+    return null; // Espera a que las fuentes carguen
+  }
 
   const appTheme = {
     ...DefaultTheme,
