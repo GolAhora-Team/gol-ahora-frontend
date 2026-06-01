@@ -122,6 +122,8 @@ export default function RegisterScreen({ navigation }) {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
+            overScrollMode="never"
           >
 
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>

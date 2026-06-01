@@ -115,6 +115,8 @@ const LoginScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.scrollContainer} 
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
+            overScrollMode="never"
           >
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />

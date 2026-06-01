@@ -161,7 +161,8 @@ export default function Dashboard({ route, navigation }) {
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
-          bounces={true}
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={styles.topContent}>
             <View style={styles.centralContainer}>
