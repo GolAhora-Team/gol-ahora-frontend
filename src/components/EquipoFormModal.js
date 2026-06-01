@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 
 const COLORES_DISPONIBLES = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308', 
-  '#84cc16', '#22c55e', '#10b981', '#06b6d4', 
-  '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', 
-  '#d946ef', '#f43f5e', '#ffffff', '#1e293b'
+  '#000000', // negro
+  '#ffffff', // blanco
+  '#1d4ed8', // azul
+  '#facc15', // amarillo
+  '#ef4444', // rojo
+  '#38bdf8', // celeste
+  '#f97316', // naranja
+  '#22c55e'  // verde
 ];
 
 export default function EquipoFormModal({ visible, onClose, onSave, editData }) {

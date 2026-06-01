@@ -26,17 +26,14 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
         const diffMs = now.getTime() - startTime.getTime();
         
         if (diffMs < 0) {
-           setRunningTime('00:00');
+           setRunningTime('0 min');
         } else {
-           const totalSecs = Math.floor(diffMs / 1000);
-           const cappedSecs = Math.min(totalSecs, 3600); // Cap at 60:00
-           const mins = Math.floor(cappedSecs / 60);
-           const secs = cappedSecs % 60;
-           setRunningTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+           const diffMins = Math.floor(diffMs / 60000);
+           setRunningTime(`${diffMins} min`);
         }
       };
       updateTimer();
-      interval = setInterval(updateTimer, 1000);
+      interval = setInterval(updateTimer, 60000); // actualiza cada 1 minuto
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -55,12 +52,13 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     <View style={[
       styles.card, 
       isFinalizado && styles.cardFinalizado, 
-      isEnJuego && styles.cardEnJuego
+      isEnJuego && styles.cardEnJuego,
+      isCancelada && styles.cardCancelada
     ]}>
       <View style={styles.timeContainer}>
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }]}>{item.horaInicio}</Text>
-        <View style={[styles.timeDivider, isFinalizado && { backgroundColor: '#cbd5e1' }]} />
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }]}>{item.horaFin}</Text>
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaInicio}</Text>
+        <View style={[styles.timeDivider, isFinalizado && { backgroundColor: '#cbd5e1' }, isCancelada && { backgroundColor: '#fca5a5' }]} />
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaFin}</Text>
         {item.fecha && (
           <Text style={styles.dateText}>{formatFecha(item.fecha)}</Text>
         )}
@@ -76,12 +74,14 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
           <View style={[
             styles.statusBadge, 
             isEnJuego && { backgroundColor: '#10b981' },
-            isFinalizado && { backgroundColor: '#cbd5e1' }
+            isFinalizado && { backgroundColor: '#cbd5e1' },
+            isCancelada && { backgroundColor: '#ef4444' }
           ]}>
             <Text style={[
               styles.statusText, 
               isEnJuego && { color: '#fff' },
-              isFinalizado && { color: '#475569' }
+              isFinalizado && { color: '#475569' },
+              isCancelada && { color: '#fff' }
             ]}>
               {(item.estado || '').toUpperCase()}
             </Text>
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 15, marginBottom: 12, flexDirection: 'row', alignItems: 'center', elevation: 3 },
   cardFinalizado: { opacity: 0.6, backgroundColor: '#f8fafc', elevation: 1 },
   cardEnJuego: { borderWidth: 2, borderColor: '#10b981', backgroundColor: '#ecfdf5', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 8 },
+  cardCancelada: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#fef2f2' },
   timeContainer: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#f1f5f9', width: 80 },
   timeText: { fontSize: 16, fontWeight: '900', color: '#009b3a' },
   timeDivider: { height: 2, width: 20, backgroundColor: '#ffb300', marginVertical: 4 },
