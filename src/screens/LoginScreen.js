@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
-import { 
-  StyleSheet, Text, View, TextInput, TouchableOpacity, 
-  SafeAreaView, ScrollView, Dimensions, Platform, 
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  SafeAreaView, ScrollView, Dimensions, Platform,
   KeyboardAvoidingView, StatusBar, Modal, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -61,7 +61,7 @@ const LoginScreen = ({ navigation, route }) => {
           const parsed = JSON.parse(savedSession);
           navigation.replace('Dashboard', parsed);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -98,8 +98,8 @@ const LoginScreen = ({ navigation, route }) => {
         ? `${response.nombre} ${response.apellido || ''}`
         : email;
 
-      const sessionData = { 
-        role: role.toUpperCase(), 
+      const sessionData = {
+        role: role.toUpperCase(),
         nombreUsuario,
         idPersona: response.idPersona,
         idUsuario: response.idUsuario
@@ -128,13 +128,13 @@ const LoginScreen = ({ navigation, route }) => {
       <StatusBar barStyle="light-content" backgroundColor="#06230e" />
       <Background />
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer} 
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
@@ -144,8 +144,8 @@ const LoginScreen = ({ navigation, route }) => {
               <BackgroundLogin />
 
               <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
-                
-                <View style={styles.headerClean}>   
+
+                <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
                   <View style={styles.badgeLine}>
@@ -157,14 +157,14 @@ const LoginScreen = ({ navigation, route }) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Usuario / DNI</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="account" 
-                        size={22} 
-                        color={focusedInput === 'user' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={22}
+                        color={focusedInput === 'user' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu usuario o DNI" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu usuario o DNI"
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
@@ -181,14 +181,14 @@ const LoginScreen = ({ navigation, route }) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Contraseña</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'pass' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="lock" 
-                        size={22} 
-                        color={focusedInput === 'pass' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="lock"
+                        size={22}
+                        color={focusedInput === 'pass' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu contraseña" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu contraseña"
                         placeholderTextColor="#999"
                         secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
@@ -207,14 +207,14 @@ const LoginScreen = ({ navigation, route }) => {
                   </View>
 
                   {/* CHECKBOX RECORDAR USUARIO */}
-                  <TouchableOpacity 
-                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }} 
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }}
                     onPress={() => setRememberMe(!rememberMe)}
                   >
-                    <MaterialCommunityIcons 
-                      name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"} 
-                      size={24} 
-                      color={rememberMe ? "#009b3a" : "#666"} 
+                    <MaterialCommunityIcons
+                      name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"}
+                      size={24}
+                      color={rememberMe ? "#009b3a" : "#666"}
                     />
                     <Text style={{ marginLeft: 8, color: '#1e293b', fontSize: 14, fontWeight: '600' }}>
                       Mantener la sesión iniciada
@@ -229,8 +229,8 @@ const LoginScreen = ({ navigation, route }) => {
                     </View>
                   )}
 
-                  <TouchableOpacity 
-                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
+                  <TouchableOpacity
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
                     disabled={isLoading}
@@ -257,9 +257,9 @@ const LoginScreen = ({ navigation, route }) => {
                 <Text style={styles.dataFiscalText}>Complejo Gol Ahora</Text>
                 <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
               </View>
-              <Image 
-                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }} 
-                style={styles.dataFiscalImage} 
+              <Image
+                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }}
+                style={styles.dataFiscalImage}
               />
             </View>
           </ScrollView>
@@ -276,7 +276,7 @@ const LoginScreen = ({ navigation, route }) => {
             <Text style={{ fontSize: 14, color: '#64748b', marginTop: 10, textAlign: 'center' }}>
               Tu sesión se ha cerrado por inactividad.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ marginTop: 20, backgroundColor: '#009b3a', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }}
               onPress={() => setShowInactivityModal(false)}
             >
@@ -297,12 +297,12 @@ const styles = StyleSheet.create({
   badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
   subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   pitchContainer: {
-    width: isWeb ? 450 : '92%', 
-    height: isWeb ? 850 : windowHeight * 0.85, 
-    borderRadius: 30, 
-    borderWidth: 1.5, 
+    width: isWeb ? 450 : '92%',
+    height: isWeb ? 850 : windowHeight * 0.85,
+    borderRadius: 30,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
-    overflow: 'hidden', 
+    overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
     position: 'relative'
   },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 58, borderRadius: 12, paddingHorizontal: 15, backgroundColor: '#f5f5f5', borderWidth: 1.5, borderColor: '#eee' },
   inputFocused: { borderColor: '#009b3a', backgroundColor: '#fff' },
-  input: { 
+  input: {
     flex: 1, color: '#000', marginLeft: 10, fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } })
   },
