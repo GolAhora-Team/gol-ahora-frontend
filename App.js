@@ -20,7 +20,7 @@ import ReportesScreen from './src/screens/ReportesScreen';
 import ClientesScreen from './src/screens/ClientesScreen';
 import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 
-import { Platform } from 'react-native';
+import { Platform, Text, TextInput } from 'react-native';
 import { 
   useFonts, 
   Montserrat_300Light,
@@ -36,19 +36,19 @@ const Stack = createNativeStackNavigator();
 
 import AutoLogoutWrapper from './src/components/AutoLogoutWrapper';
 
-// Inyección global de estilos solo para Web
-if (Platform.OS === 'web') {
-  const style = document.createElement('style');
-  style.type = 'text/css';
-  style.appendChild(document.createTextNode(`
-    * {
-      font-family: 'Montserrat_400Regular', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-    }
-    h1, h2, h3, h4, h5, h6, b, strong, th {
-      font-family: 'Montserrat_800ExtraBold', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-    }
-  `));
-  document.head.appendChild(style);
+// Configurar fuente por defecto para componentes de texto de React Native
+const customTextProps = { style: { fontFamily: 'Montserrat_400Regular' } };
+
+if (Text.defaultProps) {
+  Text.defaultProps.style = { ...Text.defaultProps.style, fontFamily: 'Montserrat_400Regular' };
+} else {
+  Text.defaultProps = customTextProps;
+}
+
+if (TextInput.defaultProps) {
+  TextInput.defaultProps.style = { ...TextInput.defaultProps.style, fontFamily: 'Montserrat_400Regular' };
+} else {
+  TextInput.defaultProps = customTextProps;
 }
 
 export default function App() {
