@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const slides = [
@@ -88,28 +89,37 @@ export default function InfoCarousel() {
     }
   };
 
-  useEffect(() => {
-    if (containerWidth === 0 || slideWidth === 0 || !isReady) return;
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => {
-        let nextIndex = prev + 1;
-        // Si el usuario llega muy cerca del final, lo reiniciamos silenciosamente al centro
-        if (nextIndex >= extendedSlides.length - slides.length) {
-          nextIndex = START_INDEX;
+  useFocusEffect(
+    React.useCallback(() => {
+      if (containerWidth === 0 || slideWidth === 0 || !isReady) return;
+
+      // Al volver al panel, reiniciamos el índice al primer slide
+      setActiveIndex(START_INDEX);
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: START_INDEX * slideWidth, animated: false });
+      }
+
+      const interval = setInterval(() => {
+        setActiveIndex((prev) => {
+          let nextIndex = prev + 1;
+          if (nextIndex >= extendedSlides.length - slides.length) {
+            nextIndex = START_INDEX;
+            if (scrollViewRef.current) {
+              scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: false });
+            }
+            return nextIndex;
+          }
+
           if (scrollViewRef.current) {
-            scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: false });
+            scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: true });
           }
           return nextIndex;
-        }
+        });
+      }, 4000);
 
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: true });
-        }
-        return nextIndex;
-      });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [containerWidth, slideWidth, isReady]);
+      return () => clearInterval(interval);
+    }, [containerWidth, slideWidth, isReady, START_INDEX])
+  );
 
   const realIndex = activeIndex % slides.length;
 
