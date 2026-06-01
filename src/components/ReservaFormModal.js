@@ -512,8 +512,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       } else {
         setStep(1);
         setSelectedCancha(null);
-        setClienteMode(null);
-        setSelectedCliente(null);
+        if (currentUserRole === 'CLIENTE') {
+          setClienteMode('CLIENTE');
+          const found = clientes.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          setSelectedCliente(found || null);
+        } else {
+          setClienteMode(null);
+          setSelectedCliente(null);
+        }
         setInvitado({ nombre: '', apellido: '', dni: '' });
         setSelectedDate(null);
         setSelectedHora(null);
@@ -595,7 +601,10 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
   const handleNext = () => {
     setErrors({});
-    if (step === 1 && selectedCancha) setStep(2);
+    if (step === 1 && selectedCancha) {
+      if (currentUserRole === 'CLIENTE') setStep(3);
+      else setStep(2);
+    }
     else if (step === 2 && validateStep2()) setStep(3);
     else if (step === 3 && validateStep3()) setStep(4);
     else if (step === 4 && validateStep4()) setStep(5);
@@ -603,7 +612,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
   const handleBack = () => {
     setErrors({});
-    if (step > 1) setStep(step - 1);
+    if (step === 3 && currentUserRole === 'CLIENTE') setStep(1);
+    else if (step > 1) setStep(step - 1);
   };
 
   const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodo, esSocioActivo, emitidoPor) => {
@@ -789,6 +799,15 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   };
 
   const getStepLabel = () => {
+    if (currentUserRole === 'CLIENTE') {
+      switch (step) {
+        case 1: return 'Paso 1 de 3';
+        case 3: return 'Paso 2 de 3';
+        case 4: return 'Paso 3 de 3';
+        case 5: return 'Confirmación';
+        default: return '';
+      }
+    }
     switch (step) {
       case 1: return 'Paso 1 de 4';
       case 2: return 'Paso 2 de 4';
@@ -822,9 +841,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           {/* Progress bar */}
           {step <= 4 && (
             <View style={s.progressContainer}>
-              {[1, 2, 3, 4].map(i => (
-                <View key={i} style={[s.progressDot, i <= step && s.progressDotActive]} />
-              ))}
+              {currentUserRole === 'CLIENTE' 
+                ? [1, 3, 4].map((sVal, idx) => (
+                    <View key={sVal} style={[s.progressDot, step >= sVal && s.progressDotActive]} />
+                  ))
+                : [1, 2, 3, 4].map(i => (
+                    <View key={i} style={[s.progressDot, i <= step && s.progressDotActive]} />
+                  ))
+              }
             </View>
           )}
 
@@ -832,7 +856,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
             {step === 1 && (
               <StepCancha canchas={canchas} selectedCancha={selectedCancha} onSelect={setSelectedCancha} />
             )}
-            {step === 2 && (
+            {step === 2 && currentUserRole !== 'CLIENTE' && (
               <StepCliente
                 mode={clienteMode} setMode={setClienteMode}
                 clientes={clientes} selectedCliente={selectedCliente} setSelectedCliente={setSelectedCliente}

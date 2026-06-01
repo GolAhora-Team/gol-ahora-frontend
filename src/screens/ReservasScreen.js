@@ -181,7 +181,7 @@ export default function ReservaScreen({ route, navigation }) {
       };
 
       const reservasData = await reservaService.getAll();
-      const mappedReservas = (reservasData || []).map(r => ({
+      let mappedReservas = (reservasData || []).map(r => ({
         ...r,
         id: r.id?.toString(),
         canchaId: r.canchaId?.toString() || r.cancha?.id?.toString(),
@@ -195,6 +195,11 @@ export default function ReservaScreen({ route, navigation }) {
         estado: getEstadoDerivado(r),
         fecha: r.fecha,
       }));
+
+      if (currentUserRole === 'CLIENTE') {
+        mappedReservas = mappedReservas.filter(r => r.clienteNombre === currentUserName);
+      }
+
       setReservas(mappedReservas);
 
       try {
