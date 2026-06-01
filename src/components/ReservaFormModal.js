@@ -358,8 +358,11 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
           onPress={() => setMetodoPago('MERCADOPAGO')}
         >
           <Image 
-            source={{ uri: 'https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.1/mercadopago/logo__small@2x.png' }} 
-            style={{ width: 100, height: 28, resizeMode: 'contain', tintColor: metodoPago === 'MERCADOPAGO' ? '#fff' : '#009ee3', marginBottom: 6 }} 
+            source={require('../../assets/mercadopagoLogo.png')} 
+            style={[
+              { width: 110, height: 32, resizeMode: 'contain', marginBottom: 4 },
+              metodoPago === 'MERCADOPAGO' ? { tintColor: '#fff' } : null
+            ]} 
           />
           <Text style={[s.pagoBtnSub, metodoPago === 'MERCADOPAGO' && { color: '#bfdbfe' }]}>Sin desc.</Text>
         </TouchableOpacity>
@@ -750,7 +753,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         return;
       }
 
-      // Cerrar modal y notificar éxito al padre (Efectivo)
+      // Cerrar modal y notificar éxito al padre
       onClose();
       if (onReservaCreated) {
         onReservaCreated({
