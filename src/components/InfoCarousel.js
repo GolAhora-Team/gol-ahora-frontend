@@ -68,17 +68,17 @@ export default function InfoCarousel() {
   useEffect(() => {
     if (containerWidth === 0) return;
     const interval = setInterval(() => {
-      let nextIndex = activeIndex + 1;
-      if (nextIndex >= slides.length) {
-        nextIndex = 0;
-      }
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ x: nextIndex * containerWidth, animated: true });
-      }
-      setActiveIndex(nextIndex);
+      setActiveIndex((prev) => {
+        let nextIndex = prev + 1;
+        if (nextIndex >= slides.length) nextIndex = 0;
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ x: nextIndex * containerWidth, y: 0, animated: true });
+        }
+        return nextIndex;
+      });
     }, 4000);
     return () => clearInterval(interval);
-  }, [activeIndex, containerWidth]);
+  }, [containerWidth]);
 
   return (
     <View
@@ -86,17 +86,19 @@ export default function InfoCarousel() {
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
       {containerWidth > 0 && (
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScroll}
-          scrollEventThrottle={16}
-        >
-          {slides.map((slide) => (
-            <View key={slide.id} style={{ width: containerWidth, paddingHorizontal: 2 }}>
-              <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40' }]}>
+        <View style={{ width: containerWidth, overflow: 'hidden' }}>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScroll}
+            scrollEventThrottle={16}
+            style={{ width: containerWidth }}
+          >
+            {slides.map((slide) => (
+              <View key={slide.id} style={{ width: containerWidth, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40' }]}>
                 <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
                   <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
                 </View>
@@ -104,10 +106,11 @@ export default function InfoCarousel() {
                   <Text style={[styles.title, { color: slide.color }]}>{slide.title}</Text>
                   <Text style={styles.desc}>{slide.desc}</Text>
                 </View>
+                </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {/* Dots */}
@@ -129,12 +132,12 @@ export default function InfoCarousel() {
 const styles = StyleSheet.create({
   carouselContainer: {
     marginTop: 25,
+    marginBottom: 10,
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   slideInner: {
     width: '100%',
+    maxWidth: 800,
     borderRadius: 24,
     padding: 24,
     flexDirection: 'row',
