@@ -7,6 +7,7 @@ import ScreenTemplate from './ScreenTemplate';
 import ReservaCard from '../components/ReservaCard';
 import ReservaFormModal from '../components/ReservaFormModal';
 import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { reservaService } from '../services/reservaService';
 import { canchaService } from '../services/canchaService';
 import { clienteService } from '../services/clienteService';
@@ -27,6 +28,11 @@ export default function ReservaScreen({ route, navigation }) {
   // Success modal
   const [successVisible, setSuccessVisible] = useState(false);
   const [successPdfData, setSuccessPdfData] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Cancel detail modal
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [reservaToCancel, setReservaToCancel] = useState(null);
 
   // View detail modal
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -283,22 +289,13 @@ export default function ReservaScreen({ route, navigation }) {
         item={item} 
         canModify={puedeOperarTurno(item)}
         onView={handleViewReserva}
+        onEdit={(res) => {
+          setEditingReserva(res);
+          setModalVisible(true);
+        }}
         onDelete={(res) => {
-          Alert.alert(
-            "Cancelar Reserva",
-            "¿Estás seguro que querés cancelar esta reserva?",
-            [
-              { text: "No", style: "cancel" },
-              { text: "Sí, cancelar", style: "destructive", onPress: async () => {
-                try {
-                  await reservaService.cancelar(res.id);
-                  setReservas(prev => prev.map(r => r.id === res.id ? { ...r, estado: 'Cancelada' } : r));
-                } catch (error) {
-                  Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
-                }
-              }}
-            ]
-          );
+          setReservaToCancel(res);
+          setCancelModalVisible(true);
         }} 
       />
     ));
@@ -381,11 +378,34 @@ export default function ReservaScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successVisible}
-        onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); }}
-        title={successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!"}
-        message={successPdfData?.isEdit ? "La reserva se modificó con éxito." : "La reserva se registró con éxito."}
+        onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); setSuccessMessage(''); }}
+        title={successMessage ? "¡Operación exitosa!" : (successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!")}
+        message={successMessage || (successPdfData?.isEdit ? "La reserva se modificó con éxito." : "La reserva se registró con éxito.")}
         actionButtonText={successPdfData ? "DESCARGAR PDF" : null}
         onAction={successPdfData ? downloadPdf : null}
+      />
+
+      {/* Modal Confirmar Cancelación */}
+      <ConfirmModal
+        visible={cancelModalVisible}
+        onClose={() => { setCancelModalVisible(false); setReservaToCancel(null); }}
+        onConfirm={async () => {
+          if (!reservaToCancel) return;
+          try {
+            await reservaService.cancelar(reservaToCancel.id);
+            setReservas(prev => prev.map(r => r.id === reservaToCancel.id ? { ...r, estado: 'Cancelada' } : r));
+            setSuccessMessage("La reserva ha sido cancelada correctamente.");
+            setSuccessVisible(true);
+          } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
+          }
+        }}
+        title="Cancelar Reserva"
+        message={reservaToCancel ? `¿Estás seguro que querés cancelar la reserva de ${reservaToCancel.clienteNombre} en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?` : ""}
+        confirmText="Sí, cancelar"
+        cancelText="No, volver"
+        icon="cancel"
+        color="#ef4444"
       />
 
       {/* Modal Ver Detalle Reserva */}

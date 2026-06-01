@@ -10,7 +10,20 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
   const isCancelada = item.estado?.toLowerCase() === 'cancelada' || item.estado?.toLowerCase() === 'cancelado';
   const isPendiente = item.estado === 'Pendiente';
 
-  // Solo se pueden modificar si no están finalizadas, en juego o canceladas
+  let isMoreThan12HoursAway = false;
+  try {
+    if (item.fecha && item.horaInicio) {
+      const now = new Date();
+      const dateStr = item.fecha.includes('T') ? item.fecha.split('T')[0] : item.fecha;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [h, m] = item.horaInicio.split(':').map(Number);
+      const startTime = new Date(year, month - 1, day, h, m, 0);
+      const diffMs = startTime.getTime() - now.getTime();
+      isMoreThan12HoursAway = (diffMs / (1000 * 60 * 60)) > 12;
+    }
+  } catch (e) {}
+
+  // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas
   const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada;
 
   useEffect(() => {
@@ -106,7 +119,7 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
           </TouchableOpacity>
         )}
 
-        {allowModify && onEdit && (
+        {canModify && isPendiente && isMoreThan12HoursAway && onEdit && (
           <TouchableOpacity onPress={() => onEdit(item)} style={[styles.actionBtn, { backgroundColor: '#fdf4ff' }]}>
             <MaterialCommunityIcons name="pencil-outline" size={22} color="#c026d3" />
           </TouchableOpacity>
@@ -114,7 +127,7 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
 
         {allowModify && onDelete && (
           <TouchableOpacity onPress={() => onDelete(item)} style={[styles.actionBtn, { backgroundColor: '#fef2f2' }]}>
-            <MaterialCommunityIcons name="trash-can-outline" size={22} color="#ef4444" />
+            <MaterialCommunityIcons name="cancel" size={22} color="#ef4444" />
           </TouchableOpacity>
         )}
       </View>
