@@ -3,7 +3,7 @@ import { userService } from '../services/userService';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, 
   SafeAreaView, ScrollView, Dimensions, Platform, 
-  KeyboardAvoidingView, StatusBar, Modal
+  KeyboardAvoidingView, StatusBar, Modal, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
@@ -22,6 +23,7 @@ const LoginScreen = ({ navigation, route }) => {
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
   const [showInactivityModal, setShowInactivityModal] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     if (route?.params?.sessionClosedByInactivity) {
@@ -37,6 +39,20 @@ const LoginScreen = ({ navigation, route }) => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('#004d1a');
     }
+
+    const loadRememberedUser = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem('GOL_AHORA_REMEMBER_USER');
+        if (savedUser) {
+          setEmail(savedUser);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.log('Error loading remembered user', error);
+      }
+    };
+    loadRememberedUser();
+
     // Auto-login if session exists
     if (Platform.OS === 'web') {
       try {
@@ -91,6 +107,12 @@ const LoginScreen = ({ navigation, route }) => {
 
       if (Platform.OS === 'web') {
         localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
+      }
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('GOL_AHORA_REMEMBER_USER', email.trim());
+      } else {
+        await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
       }
 
       navigation.replace('Dashboard', sessionData);
@@ -184,6 +206,21 @@ const LoginScreen = ({ navigation, route }) => {
                     </View>
                   </View>
 
+                  {/* CHECKBOX RECORDAR USUARIO */}
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }} 
+                    onPress={() => setRememberMe(!rememberMe)}
+                  >
+                    <MaterialCommunityIcons 
+                      name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"} 
+                      size={24} 
+                      color={rememberMe ? "#009b3a" : "#666"} 
+                    />
+                    <Text style={{ marginLeft: 8, color: '#1e293b', fontSize: 14, fontWeight: '600' }}>
+                      Mantener la sesión iniciada
+                    </Text>
+                  </TouchableOpacity>
+
                   {/* MENSAJE DE ERROR DINÁMICO */}
                   {errorMessage !== '' && (
                     <View style={styles.errorContainer}>
@@ -215,6 +252,16 @@ const LoginScreen = ({ navigation, route }) => {
               </View>
             </View>
             <Footer />
+            <View style={styles.dataFiscalContainer}>
+              <View style={styles.dataFiscalTextContainer}>
+                <Text style={styles.dataFiscalText}>Gol Ahora Argentina</Text>
+                <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
+              </View>
+              <Image 
+                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }} 
+                style={styles.dataFiscalImage} 
+              />
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -289,6 +336,10 @@ const styles = StyleSheet.create({
   buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
   linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
+  dataFiscalTextContainer: { alignItems: 'flex-end', marginRight: 15 },
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13 },
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4 }
 });
 
 export default LoginScreen;
