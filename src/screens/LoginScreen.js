@@ -254,7 +254,7 @@ const LoginScreen = ({ navigation, route }) => {
             <Footer />
             <View style={styles.dataFiscalContainer}>
               <View style={styles.dataFiscalTextContainer}>
-                <Text style={styles.dataFiscalText}>Complejo Gol Ahora Argentina</Text>
+                <Text style={styles.dataFiscalText}>Complejo Gol Ahora</Text>
                 <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
               </View>
               <Image 
