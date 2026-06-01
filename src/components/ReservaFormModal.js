@@ -175,7 +175,7 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
             placeholderTextColor="#94a3b8"
             keyboardType="numeric"
             value={invitado.dni}
-            onChangeText={v => setInvitado({ ...invitado, dni: v })}
+            onChangeText={v => setInvitado({ ...invitado, dni: v.replace(/[^0-9]/g, '') })}
           />
           {errors?.dni && <Text style={s.errorText}>{errors.dni}</Text>}
         </View>

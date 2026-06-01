@@ -22,9 +22,12 @@ import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 
 const Stack = createNativeStackNavigator();
 
+import AutoLogoutWrapper from './src/components/AutoLogoutWrapper';
+
 export default function App() {
   return (
     <NavigationContainer>
+      <AutoLogoutWrapper>
       <Stack.Navigator 
         initialRouteName="Login"
         screenOptions={{
@@ -51,6 +54,7 @@ export default function App() {
         <Stack.Screen name="ClasesProfeScreen" component={ClasesProfeScreen} options={{ title: "Gol Ahora - Mis Clases" }} />
 
       </Stack.Navigator>
+      </AutoLogoutWrapper>
     </NavigationContainer>
   );
 }

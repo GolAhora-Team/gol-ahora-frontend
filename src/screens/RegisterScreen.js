@@ -139,7 +139,7 @@ export default function RegisterScreen({ navigation }) {
                       iconName="card-account-details"
                       keyboardType="numeric"
                       value={dni}
-                      onChangeText={setDni}
+                      onChangeText={(text) => setDni(text.replace(/[^0-9]/g, ''))}
                       error={errors.dni}
                     />
 

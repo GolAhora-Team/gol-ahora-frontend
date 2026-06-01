@@ -3,7 +3,7 @@ import { userService } from '../services/userService';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, 
   SafeAreaView, ScrollView, Dimensions, Platform, 
-  KeyboardAvoidingView, StatusBar 
+  KeyboardAvoidingView, StatusBar, Modal
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,12 +15,23 @@ import Footer from '../components/Footer';
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSecure, setIsSecure] = useState(true);
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
+  const [showInactivityModal, setShowInactivityModal] = useState(false);
+
+  useEffect(() => {
+    if (route?.params?.sessionClosedByInactivity) {
+      setShowInactivityModal(true);
+      const timer = setTimeout(() => {
+        setShowInactivityModal(false);
+      }, 60000); // 1 minuto
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.sessionClosedByInactivity]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -133,7 +144,8 @@ const LoginScreen = ({ navigation }) => {
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={setEmail}
+                        onChangeText={(text) => setEmail(text.replace(/[^0-9]/g, ''))}
+                        keyboardType="numeric"
                         value={email}
                         autoCapitalize="none"
                         underlineColorAndroid="transparent"
@@ -204,6 +216,26 @@ const LoginScreen = ({ navigation }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal visible={showInactivityModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', padding: 25, borderRadius: 20, alignItems: 'center', width: '80%', maxWidth: 400 }}>
+            <MaterialCommunityIcons name="timer-sand" size={50} color="#ffb300" />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 15, textAlign: 'center' }}>
+              Sesión cerrada
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748b', marginTop: 10, textAlign: 'center' }}>
+              Tu sesión se ha cerrado por inactividad.
+            </Text>
+            <TouchableOpacity 
+              style={{ marginTop: 20, backgroundColor: '#009b3a', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }}
+              onPress={() => setShowInactivityModal(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
