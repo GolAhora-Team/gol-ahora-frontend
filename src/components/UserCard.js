@@ -23,6 +23,23 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
         {item.email ? (
           <Text style={styles.userEmail}>{item.email}</Text>
         ) : null}
+
+        {(item.aptoFisico || item.esSocioActivo) && (
+          <View style={styles.badgesRow}>
+            {item.aptoFisico && (
+              <View style={[styles.badge, styles.badgeApto]}>
+                <MaterialCommunityIcons name="heart-pulse" size={12} color="#059669" />
+                <Text style={styles.badgeTextApto}>Apto Físico</Text>
+              </View>
+            )}
+            {item.esSocioActivo && (
+              <View style={[styles.badge, styles.badgeSocio]}>
+                <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
+                <Text style={styles.badgeTextSocio}>Socio Activo</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Verificamos el permiso de modificación */}
@@ -99,5 +116,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)'
-  }
+  },
+  badgesRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, gap: 4 },
+  badgeApto: { backgroundColor: '#d1fae5' },
+  badgeTextApto: { color: '#059669', fontSize: 10, fontWeight: '800' },
+  badgeSocio: { backgroundColor: '#fef3c7' },
+  badgeTextSocio: { color: '#d97706', fontSize: 10, fontWeight: '800' }
 });

@@ -61,6 +61,17 @@ export default function ReportesScreen({ route, navigation }) {
     }
   };
 
+  const viewHtml = async (htmlContent) => {
+    if (Platform.OS === 'web') {
+      const viewWindow = window.open('', '_blank');
+      viewWindow.document.write(htmlContent);
+      viewWindow.document.close();
+      viewWindow.focus();
+    } else {
+      await Print.printAsync({ html: htmlContent });
+    }
+  };
+
   const handleExportExcel = async () => {
     const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
     let csvContent = `Reporte: ${reporteActivo}\nTotal: ${dataActual.total}\nDetalle: ${dataActual.detalle}\n\nDia,Valor\n`;
@@ -187,6 +198,13 @@ export default function ReportesScreen({ route, navigation }) {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity 
+                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => viewHtml(rep.html)}
+                    >
+                      <MaterialCommunityIcons name="eye" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
                       style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
                       onPress={() => downloadPdf(rep)}
                     >
@@ -214,6 +232,13 @@ export default function ReportesScreen({ route, navigation }) {
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => viewHtml(rep.html)}
+                    >
+                      <MaterialCommunityIcons name="eye" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity 
                       style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
                       onPress={() => downloadPdf(rep)}

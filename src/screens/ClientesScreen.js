@@ -31,9 +31,19 @@ const ClientesScreen = () => {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.name}>{item.nombre} {item.apellido}</Text>
-        {item.aptoFisico && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Apto Físico</Text>
+        
+        {(item.aptoFisico || item.esSocioActivo) && (
+          <View style={styles.badgesRow}>
+            {item.aptoFisico && (
+              <View style={[styles.badge, styles.badgeApto]}>
+                <Text style={styles.badgeTextApto}>Apto Físico</Text>
+              </View>
+            )}
+            {item.esSocioActivo && (
+              <View style={[styles.badge, styles.badgeSocio]}>
+                <Text style={styles.badgeTextSocio}>Socio Activo</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -137,16 +147,31 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     flex: 1,
   },
+  badgesRow: {
+    flexDirection: 'column',
+    gap: 4,
+    alignItems: 'flex-end',
+  },
   badge: {
-    backgroundColor: '#DEF7EC',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  badgeText: {
+  badgeApto: {
+    backgroundColor: '#DEF7EC',
+  },
+  badgeTextApto: {
     color: '#03543F',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  badgeSocio: {
+    backgroundColor: '#fef3c7',
+  },
+  badgeTextSocio: {
+    color: '#d97706',
+    fontSize: 11,
+    fontWeight: '700',
   },
   divider: {
     height: 1,
