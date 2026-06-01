@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
@@ -324,10 +324,23 @@ export default function UserScreen({ route, navigation }) {
            dni.includes(searchLower);
   });
 
-  const sections = ['ADMIN', 'PERSONAL', 'PROFE', 'CLIENTE'].map(role => ({
-    role,
-    data: filteredUsers.filter(u => u.role === role)
+  const sortedUsers = [...filteredUsers].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  const sections = alphabet.map(letter => ({
+    title: letter,
+    data: sortedUsers.filter(u => (u.nombre || '').toUpperCase().startsWith(letter))
   })).filter(section => section.data.length > 0);
+
+  const scrollViewRef = useRef(null);
+  const letterPositions = useRef({});
+
+  const scrollToLetter = (letter) => {
+    const yPos = letterPositions.current[letter];
+    if (yPos !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: yPos, animated: true });
+    }
+  };
 
   if (loading) {
     return (
@@ -358,19 +371,47 @@ export default function UserScreen({ route, navigation }) {
         )}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-        {sections.map(section => (
-          <View key={section.role} style={styles.roleSection}>
-            <View style={styles.roleHeaderHighlighter}>
-                <MaterialCommunityIcons name={rolesIcons[section.role]} size={18} color="#000" />
-                <Text style={styles.roleHeaderTextBlack}>{section.role} ({section.data.length})</Text>
+      <View style={{ flex: 1, flexDirection: 'row' }}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          style={{ flex: 1, paddingRight: 25 }}
+          ref={scrollViewRef}
+        >
+          {sections.map(section => (
+            <View 
+              key={section.title} 
+              style={styles.roleSection}
+              onLayout={(event) => {
+                const layout = event.nativeEvent.layout;
+                letterPositions.current[section.title] = layout.y;
+              }}
+            >
+              <View style={styles.letterHeader}>
+                  <Text style={styles.letterHeaderText}>{section.title}</Text>
+              </View>
+              {section.data.map(item => (
+                <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} canModify={canModifyTarget(item)} />
+              ))}
             </View>
-            {section.data.map(item => (
-              <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} canModify={canModifyTarget(item)} />
-            ))}
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+        
+        {/* Barra Alfabética */}
+        <View style={styles.alphabetBar}>
+          {alphabet.map(letter => {
+            const hasData = sections.some(s => s.title === letter);
+            return (
+              <TouchableOpacity 
+                key={letter} 
+                onPress={() => hasData && scrollToLetter(letter)}
+                style={{ paddingVertical: 2, paddingHorizontal: 5 }}
+              >
+                <Text style={[styles.alphabetLetter, !hasData && { color: '#cbd5e1' }]}>{letter}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
 
       <UserFormModal 
         visible={modalVisible} onClose={() => setModalVisible(false)} 
@@ -419,6 +460,8 @@ const styles = StyleSheet.create({
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', padding: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
   roleSection: { marginBottom: 25 },
-  roleHeaderHighlighter: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, backgroundColor: '#ffb300', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 6, alignSelf: 'flex-start' },
-  roleHeaderTextBlack: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 1, marginLeft: 8 },
+  letterHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, backgroundColor: '#009b3a', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 6, alignSelf: 'flex-start' },
+  letterHeaderText: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
+  alphabetBar: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', width: 25, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 12 },
+  alphabetLetter: { fontSize: 11, fontWeight: '800', color: '#009b3a' }
 });

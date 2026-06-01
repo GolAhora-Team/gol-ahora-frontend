@@ -37,7 +37,7 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
         }
       };
       updateTimer();
-      interval = setInterval(updateTimer, 1000);
+      interval = setInterval(updateTimer, 1000); // update every second for mm:ss
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -56,12 +56,13 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     <View style={[
       styles.card, 
       isFinalizado && styles.cardFinalizado, 
-      isEnJuego && styles.cardEnJuego
+      isEnJuego && styles.cardEnJuego,
+      isCancelada && styles.cardCancelada
     ]}>
       <View style={styles.timeContainer}>
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }]}>{item.horaInicio}</Text>
-        <View style={[styles.timeDivider, isFinalizado && { backgroundColor: '#cbd5e1' }]} />
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }]}>{item.horaFin}</Text>
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaInicio}</Text>
+        <View style={[styles.timeDivider, isFinalizado && { backgroundColor: '#cbd5e1' }, isCancelada && { backgroundColor: '#fca5a5' }]} />
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaFin}</Text>
         {item.fecha && (
           <Text style={styles.dateText}>{formatFecha(item.fecha)}</Text>
         )}
@@ -128,6 +129,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 15, marginBottom: 12, flexDirection: 'row', alignItems: 'center', elevation: 3 },
   cardFinalizado: { opacity: 0.6, backgroundColor: '#f8fafc', elevation: 1 },
   cardEnJuego: { borderWidth: 2, borderColor: '#10b981', backgroundColor: '#ecfdf5', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 8 },
+  cardCancelada: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#fef2f2' },
   timeContainer: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#f1f5f9', width: 80 },
   timeText: { fontSize: 16, fontWeight: '900', color: '#009b3a' },
   timeDivider: { height: 2, width: 20, backgroundColor: '#ffb300', marginVertical: 4 },

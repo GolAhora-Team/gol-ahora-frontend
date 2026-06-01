@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const TIPO_COLORS = { F5: '#10b981', F7: '#3b82f6', F11: '#f59e0b' };
 const TIPO_LABELS = { F5: 'Fútbol 5', F7: 'Fútbol 7', F11: 'Fútbol 11' };
@@ -13,12 +12,11 @@ export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJug
   const colorSecundario = item.colorSecundario || '#f1f5f9';
 
   return (
-    <LinearGradient 
-      colors={[colorPrimario, colorSecundario]} 
-      start={{ x: 0, y: 0 }} 
-      end={{ x: 1, y: 1 }} 
-      style={styles.card}
-    >
+    <View style={styles.card}>
+      <View style={styles.escudoContainer}>
+        <MaterialCommunityIcons name="shield" size={56} color={colorPrimario} style={styles.escudoIcon} />
+        <MaterialCommunityIcons name="shield-half-full" size={56} color={colorSecundario} style={styles.escudoIcon} />
+      </View>
       <View style={styles.infoSide}>
         <View style={styles.badgeRow}>
           <View style={styles.badge}>
@@ -93,12 +91,13 @@ export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJug
           </>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 15,
     marginBottom: 12,
@@ -110,7 +109,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: '#e2e8f0',
+  },
+  escudoContainer: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  escudoIcon: {
+    position: 'absolute',
   },
   infoSide: { flex: 1 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 5, alignItems: 'center' },
@@ -121,16 +130,16 @@ const styles = StyleSheet.create({
   formBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.8)' },
   formBadgeText: { color: '#475569', fontWeight: '900', fontSize: 10 },
   titleContainer: { backgroundColor: 'rgba(255,255,255,0.6)', alignSelf: 'flex-start', paddingHorizontal: 4, borderRadius: 4, marginBottom: 2 },
-  title: { fontSize: 17, fontWeight: '900', color: '#000' },
-  detailSub: { fontSize: 11, color: '#333', fontWeight: '700' },
+  title: { fontSize: 17, fontWeight: '900', color: '#1e293b' },
+  detailSub: { fontSize: 11, color: '#64748b', fontWeight: '700' },
   capitanRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   capitanIcon: { fontSize: 11 },
-  capitanText: { fontSize: 10, color: '#000', fontWeight: '800' },
+  capitanText: { fontSize: 10, color: '#475569', fontWeight: '800' },
   actions: { alignItems: 'flex-end', gap: 6 },
   actionRow: { marginBottom: 2 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.5)', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8 },
   btnTextBg: { backgroundColor: 'transparent' },
   actionText: { fontSize: 11, fontWeight: '800' },
-  iconRow: { flexDirection: 'row', gap: 8, marginTop: 4, backgroundColor: 'rgba(255,255,255,0.5)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12 },
+  iconRow: { flexDirection: 'row', gap: 8, marginTop: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12 },
   iconBtn: { padding: 4 },
 });
