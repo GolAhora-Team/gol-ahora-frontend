@@ -32,9 +32,84 @@ export default function ReservaScreen({ route, navigation }) {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingReserva, setViewingReserva] = useState(null);
 
+  // --- NUEVOS ESTADOS DASHBOARD ---
+  const [activeCourtsCount, setActiveCourtsCount] = useState(0);
+  const [todayReservationsCount, setTodayReservationsCount] = useState(0);
+
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const updateActiveCourts = () => {
+      if (!reservas || reservas.length === 0) {
+        setActiveCourtsCount(0);
+        setTodayReservationsCount(0);
+        return;
+      }
+      
+      const now = new Date();
+      // Asumiendo horario de Argentina (GMT-3) manual
+      const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000)); 
+      const argDateStr = argTime.toISOString().split('T')[0];
+      const currentHours = argTime.getUTCHours().toString().padStart(2, '0');
+      const currentMinutes = argTime.getUTCMinutes().toString().padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      
+      let inUse = 0;
+      let todayCount = 0;
+      
+      reservas.forEach(r => {
+        let resDateStr = r.fecha ? (r.fecha.includes('T') ? r.fecha.split('T')[0] : r.fecha) : '';
+        if (resDateStr === argDateStr) {
+          todayCount++;
+          if ((r.estado || 'Confirmada').toLowerCase() === 'confirmada') {
+            if (currentTimeStr >= r.horaInicio && currentTimeStr <= r.horaFin) {
+              inUse++;
+            }
+          }
+        }
+      });
+      
+      setActiveCourtsCount(inUse);
+      setTodayReservationsCount(todayCount);
+    };
+
+    updateActiveCourts();
+    const intervalId = setInterval(updateActiveCourts, 60000); // Actualiza cada minuto
+    return () => clearInterval(intervalId);
+  }, [reservas]);
+
+  const groupedReservas = React.useMemo(() => {
+    const sorted = [...reservas].sort((a, b) => {
+      let fA = a.fecha || '';
+      let fB = b.fecha || '';
+      if (fA !== fB) return fA.localeCompare(fB);
+      return (a.horaInicio || '').localeCompare(b.horaInicio || '');
+    });
+
+    const groups = { hoy: [], manana: [], pasado: [], proximas: [], anteriores: [] };
+    const now = new Date();
+    const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    argTime.setUTCHours(0,0,0,0);
+    
+    const dManana = new Date(argTime); dManana.setDate(dManana.getDate() + 1);
+    const dPasado = new Date(argTime); dPasado.setDate(dPasado.getDate() + 2);
+
+    const sHoy = argTime.toISOString().split('T')[0];
+    const sManana = dManana.toISOString().split('T')[0];
+    const sPasado = dPasado.toISOString().split('T')[0];
+
+    sorted.forEach(r => {
+      let resDateStr = r.fecha ? (r.fecha.includes('T') ? r.fecha.split('T')[0] : r.fecha) : '';
+      if (resDateStr === sHoy) groups.hoy.push(r);
+      else if (resDateStr === sManana) groups.manana.push(r);
+      else if (resDateStr === sPasado) groups.pasado.push(r);
+      else if (resDateStr < sHoy) groups.anteriores.push(r);
+      else groups.proximas.push(r);
+    });
+    return groups;
+  }, [reservas]);
 
   const loadData = async () => {
     try {
@@ -169,6 +244,26 @@ export default function ReservaScreen({ route, navigation }) {
     );
   }
 
+  const renderReservaList = (list) => {
+    return list.map(item => (
+      <ReservaCard 
+        key={item.id} 
+        item={item} 
+        canModify={puedeOperarTurno(item)}
+        onView={handleViewReserva}
+        onEdit={() => { setEditingReserva(item); setModalVisible(true); }} 
+        onDelete={async (res) => {
+          try {
+            await reservaService.cancelar(res.id);
+            setReservas(prev => prev.filter(r => r.id !== res.id));
+          } catch (error) {
+            Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
+          }
+        }} 
+      />
+    ));
+  };
+
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
 
@@ -180,33 +275,62 @@ export default function ReservaScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.dashboardContainer}>
+        <View style={styles.dashCard}>
+          <MaterialCommunityIcons name="whistle" size={28} color="#009b3a" />
+          <View style={styles.dashCardInfo}>
+            <Text style={styles.dashCardValue}>{activeCourtsCount}</Text>
+            <Text style={styles.dashCardLabel}>Canchas en Uso</Text>
+          </View>
+        </View>
+        <View style={styles.dashCard}>
+          <MaterialCommunityIcons name="calendar-today" size={28} color="#f59e0b" />
+          <View style={styles.dashCardInfo}>
+            <Text style={styles.dashCardValue}>{todayReservationsCount}</Text>
+            <Text style={styles.dashCardLabel}>Reservas Hoy</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {reservas.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={60} color="#94a3b8" />
             <Text style={styles.emptyText}>No hay reservas registradas.</Text>
           </View>
         ) : (
-          reservas.map(item => (
-            <ReservaCard 
-              key={item.id} 
-              item={item} 
-              canModify={puedeOperarTurno(item)}
-              onView={handleViewReserva}
-              onEdit={() => {
-                setEditingReserva(item);
-                setModalVisible(true);
-              }} 
-              onDelete={async (res) => {
-                try {
-                  await reservaService.cancelar(res.id);
-                  setReservas(prev => prev.filter(r => r.id !== res.id));
-                } catch (error) {
-                  Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
-                }
-              }} 
-            />
-          ))
+          <>
+            {groupedReservas.hoy.length > 0 && (
+              <View style={styles.groupSection}>
+                <Text style={styles.groupTitle}>Reservas para Hoy</Text>
+                {renderReservaList(groupedReservas.hoy)}
+              </View>
+            )}
+            {groupedReservas.manana.length > 0 && (
+              <View style={styles.groupSection}>
+                <Text style={styles.groupTitle}>Mañana</Text>
+                {renderReservaList(groupedReservas.manana)}
+              </View>
+            )}
+            {groupedReservas.pasado.length > 0 && (
+              <View style={styles.groupSection}>
+                <Text style={styles.groupTitle}>Pasado Mañana</Text>
+                {renderReservaList(groupedReservas.pasado)}
+              </View>
+            )}
+            {groupedReservas.proximas.length > 0 && (
+              <View style={styles.groupSection}>
+                <Text style={styles.groupTitle}>Próximas Reservas</Text>
+                {renderReservaList(groupedReservas.proximas)}
+              </View>
+            )}
+            {groupedReservas.anteriores.length > 0 && (
+              <View style={styles.groupSection}>
+                <Text style={styles.groupTitle}>Historial Anteriores</Text>
+                {renderReservaList(groupedReservas.anteriores)}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -288,6 +412,15 @@ const styles = StyleSheet.create({
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60 },
   emptyText: { color: '#94a3b8', fontSize: 15, fontWeight: '600', marginTop: 12 },
+
+  // Dashboard y Secciones
+  dashboardContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  dashCard: { flex: 1, backgroundColor: '#fff', padding: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 5 },
+  dashCardInfo: { marginLeft: 12 },
+  dashCardValue: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
+  dashCardLabel: { fontSize: 11, color: '#64748b', fontWeight: '800', textTransform: 'uppercase' },
+  groupSection: { marginBottom: 25 },
+  groupTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 12, marginLeft: 4, letterSpacing: 0.5 },
 
   // View modal
   viewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
