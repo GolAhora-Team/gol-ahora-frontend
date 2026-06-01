@@ -397,22 +397,7 @@ export default function UserScreen({ route, navigation }) {
           ))}
         </ScrollView>
 
-        {/* Barra de Navegación Lateral (No se solapa porque está en un flex-row) */}
-        <View style={styles.sideNav}>
-          {roleOrder.map(r => {
-            const hasData = sections.some(s => s.role === r);
-            return (
-              <TouchableOpacity 
-                key={r} 
-                onPress={() => hasData && scrollToRole(r)}
-                style={[styles.navItem, !hasData && { opacity: 0.4 }]}
-              >
-                <MaterialCommunityIcons name={rolesIcons[r]} size={24} color={hasData ? '#009b3a' : '#94a3b8'} />
-                <Text style={styles.navText} numberOfLines={1}>{r.substring(0, 3)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+
       </View>
 
       <UserFormModal 
