@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 
+const COLORES_DISPONIBLES = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', 
+  '#84cc16', '#22c55e', '#10b981', '#06b6d4', 
+  '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', 
+  '#d946ef', '#f43f5e', '#ffffff', '#1e293b'
+];
+
 export default function EquipoFormModal({ visible, onClose, onSave, editData }) {
   const initialState = {
     nombre: '',
-    descripcion: ''
+    descripcion: '',
+    colorPrimario: '#ffffff',
+    colorSecundario: '#ffffff'
   };
 
   const [formData, setFormData] = useState(initialState);
@@ -15,14 +24,16 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
       if (editData) {
         setFormData({
           nombre: editData.nombre || '',
-          descripcion: editData.descripcion || ''
+          descripcion: editData.descripcion || '',
+          colorPrimario: editData.colorPrimario || '#ffffff',
+          colorSecundario: editData.colorSecundario || '#ffffff'
         });
       } else {
         setFormData(initialState);
       }
       setErrors({});
     }
-  }, [visible]);
+  }, [visible, editData]);
 
   const validate = () => {
     let valid = true;
@@ -57,6 +68,16 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
 
   const isEditing = !!editData;
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -64,6 +85,17 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
           <Text style={styles.modalTitle}>{isEditing ? 'Editar Equipo' : 'Agregar Equipo'}</Text>
           
           <ScrollView showsVerticalScrollIndicator={false}>
+            {isEditing && (editData.fechaAlta || editData.createdAt) && (
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Fecha de Alta</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputDisabled]} 
+                  value={formatDate(editData.fechaAlta || editData.createdAt)} 
+                  editable={false}
+                />
+              </View>
+            )}
+
             <Text style={styles.label}>Nombre del Equipo *</Text>
             <TextInput 
               style={[styles.input, errors.nombre && styles.inputError]} 
@@ -81,6 +113,36 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
               placeholder="Ej: Equipo amateur de la zona sur"
               multiline
             />
+
+            <Text style={styles.label}>Color Primario</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorScroll}>
+              {COLORES_DISPONIBLES.map(color => (
+                <TouchableOpacity
+                  key={`prim-${color}`}
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: color },
+                    formData.colorPrimario === color && styles.colorCircleSelected
+                  ]}
+                  onPress={() => setFormData({...formData, colorPrimario: color})}
+                />
+              ))}
+            </ScrollView>
+
+            <Text style={styles.label}>Color Secundario</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorScroll}>
+              {COLORES_DISPONIBLES.map(color => (
+                <TouchableOpacity
+                  key={`sec-${color}`}
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: color },
+                    formData.colorSecundario === color && styles.colorCircleSelected
+                  ]}
+                  onPress={() => setFormData({...formData, colorSecundario: color})}
+                />
+              ))}
+            </ScrollView>
           </ScrollView>
 
           <View style={styles.btnRow}>
@@ -99,12 +161,17 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 25, padding: 25, width: '90%', maxWidth: 400, elevation: 10, maxHeight: '80%' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 25, padding: 25, width: '90%', maxWidth: 400, elevation: 10, maxHeight: '85%' },
   modalTitle: { color: '#1e293b', fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
+  fieldContainer: { marginBottom: 10 },
   label: { color: '#64748b', fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 12 },
   input: { backgroundColor: '#f1f5f9', color: '#1e293b', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 14 },
+  inputDisabled: { backgroundColor: '#e2e8f0', color: '#64748b' },
   inputError: { borderColor: '#ef4444', backgroundColor: '#fef2f2' },
   errorText: { color: '#ef4444', fontSize: 11, marginTop: 4, fontWeight: '600' },
+  colorScroll: { flexDirection: 'row', paddingVertical: 5 },
+  colorCircle: { width: 34, height: 34, borderRadius: 17, marginHorizontal: 5, borderWidth: 1, borderColor: '#cbd5e1' },
+  colorCircleSelected: { borderWidth: 3, borderColor: '#1e293b', transform: [{scale: 1.1}] },
   btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25 },
   cancelBtn: { padding: 15, borderRadius: 12, flex: 0.45, alignItems: 'center' },
   cancelText: { color: '#64748b', fontWeight: '800' },

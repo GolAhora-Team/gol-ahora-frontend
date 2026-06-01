@@ -36,6 +36,10 @@ export default function ReservaScreen({ route, navigation }) {
   const [activeCourtsCount, setActiveCourtsCount] = useState(0);
   const [todayReservationsCount, setTodayReservationsCount] = useState(0);
 
+  // --- Modales para Dashboard ---
+  const [canchasUsoModalVisible, setCanchasUsoModalVisible] = useState(false);
+  const [reservasHoyModalVisible, setReservasHoyModalVisible] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -108,6 +112,20 @@ export default function ReservaScreen({ route, navigation }) {
       else if (resDateStr < sHoy) groups.anteriores.push(r);
       else groups.proximas.push(r);
     });
+
+    // Ordenar 'hoy' para que 'En Juego' vaya primero y 'Finalizado' al final
+    groups.hoy.sort((a, b) => {
+      const getWeight = (estado) => {
+        if (estado === 'En Juego') return 0;
+        if (estado === 'Finalizado') return 2;
+        return 1; // Pendiente, Confirmada u otros
+      };
+      const wA = getWeight(a.estado);
+      const wB = getWeight(b.estado);
+      if (wA !== wB) return wA - wB;
+      return (a.horaInicio || '').localeCompare(b.horaInicio || '');
+    });
+
     return groups;
   }, [reservas]);
 
@@ -276,20 +294,20 @@ export default function ReservaScreen({ route, navigation }) {
       </View>
 
       <View style={styles.dashboardContainer}>
-        <View style={styles.dashCard}>
+        <TouchableOpacity style={styles.dashCard} onPress={() => setCanchasUsoModalVisible(true)}>
           <MaterialCommunityIcons name="whistle" size={28} color="#009b3a" />
           <View style={styles.dashCardInfo}>
             <Text style={styles.dashCardValue}>{activeCourtsCount}</Text>
             <Text style={styles.dashCardLabel}>Canchas en Uso</Text>
           </View>
-        </View>
-        <View style={styles.dashCard}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dashCard} onPress={() => setReservasHoyModalVisible(true)}>
           <MaterialCommunityIcons name="calendar-today" size={28} color="#f59e0b" />
           <View style={styles.dashCardInfo}>
             <Text style={styles.dashCardValue}>{todayReservationsCount}</Text>
             <Text style={styles.dashCardLabel}>Reservas Hoy</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -401,6 +419,53 @@ export default function ReservaScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Canchas en Uso */}
+      <Modal visible={canchasUsoModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.viewOverlay}>
+          <View style={styles.viewContainer}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>Canchas en Uso</Text>
+              <TouchableOpacity onPress={() => setCanchasUsoModalVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {reservas.filter(r => r.estado === 'En Juego').map((reserva) => (
+                <View key={reserva.id} style={[styles.viewRow, { justifyContent: 'flex-start', gap: 10 }]}>
+                   <MaterialCommunityIcons name="whistle" size={20} color="#009b3a" />
+                   <Text style={[styles.viewValue, { textAlign: 'left', marginLeft: 0 }]}>{reserva.canchaNombre}</Text>
+                </View>
+              ))}
+              {reservas.filter(r => r.estado === 'En Juego').length === 0 && (
+                <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>No hay canchas en uso en este momento.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Reservas de Hoy */}
+      <Modal visible={reservasHoyModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.viewOverlay}>
+          <View style={[styles.viewContainer, { maxHeight: '85%', padding: 15 }]}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>Reservas de Hoy</Text>
+              <TouchableOpacity onPress={() => setReservasHoyModalVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 10 }}>
+              {groupedReservas.hoy.length === 0 ? (
+                <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>No hay reservas para hoy.</Text>
+              ) : (
+                renderReservaList(groupedReservas.hoy)
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenTemplate>
   );
 }
