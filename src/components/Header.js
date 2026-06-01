@@ -7,7 +7,8 @@ import {
   Platform, 
   Alert,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  useWindowDimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
@@ -16,6 +17,8 @@ import ConfirmModal from './ConfirmModal';
 
 const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
   
   // Estados para efectos visuales y modales
   const [pressedSettings, setPressedSettings] = useState(false);
@@ -54,13 +57,13 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   };
 
   return (
-    <View style={[styles.header, isWeb && styles.headerWeb]}>
+    <View style={[styles.header, isWeb && styles.headerWeb, isMobile && styles.headerMobile]}>
       <View style={styles.headerInfo}>
-        <Text style={styles.headerBrand} numberOfLines={1} selectable={false}>
+        <Text style={[styles.headerBrand, isMobile && styles.headerBrandMobile]} numberOfLines={1} selectable={false}>
           {title || "GOL AHORA"}
         </Text>
         <View style={[styles.roleBadge, { backgroundColor: getBadgeColor() }]}>
-          <Text style={styles.roleText} selectable={false}>
+          <Text style={[styles.roleText, isMobile && { fontSize: 12 }]} selectable={false}>
             {userRole}
           </Text>
         </View>
@@ -69,7 +72,7 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
       <View style={styles.headerIcons}>
       
         <TouchableOpacity 
-          style={[styles.headerBtn, pressedSettings && styles.btnActive]} 
+          style={[styles.headerBtn, isMobile && styles.headerBtnMobile, pressedSettings && styles.btnActive]} 
           activeOpacity={1}
           onPressIn={() => setPressedSettings(true)}
           onPressOut={() => setPressedSettings(false)}
@@ -77,14 +80,14 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         >
           <MaterialCommunityIcons 
             name="cog-outline" 
-            size={28} 
+            size={isMobile ? 22 : 28} 
             color={pressedSettings ? "#000" : "#fff"} 
           />
         </TouchableOpacity>
         
         
         <TouchableOpacity 
-          style={[styles.headerBtn, pressedLogout && styles.btnActive]} 
+          style={[styles.headerBtn, isMobile && styles.headerBtnMobile, pressedLogout && styles.btnActive]} 
           activeOpacity={1}
           onPressIn={() => setPressedLogout(true)}
           onPressOut={() => setPressedLogout(false)}
@@ -92,7 +95,7 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         >
           <MaterialCommunityIcons 
             name="logout" 
-            size={28} 
+            size={isMobile ? 22 : 28} 
             color={pressedLogout ? "#000" : "#fff"} 
           />
         </TouchableOpacity>
@@ -143,6 +146,12 @@ const styles = StyleSheet.create({
     marginTop: Platform.OS === 'android' ? 5 : 0,
     elevation: 5,
   },
+  headerMobile: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginHorizontal: 10,
+    borderRadius: 20,
+  },
   headerWeb: { 
     maxWidth: 1200, 
     alignSelf: 'center', 
@@ -161,6 +170,10 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     textTransform: 'uppercase',
     ...Platform.select({ web: { userSelect: 'none' } })
+  },
+  headerBrandMobile: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   roleBadge: { 
     alignSelf: 'flex-start', 
@@ -188,6 +201,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerBtnMobile: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginLeft: 8,
   },
   btnActive: {
     backgroundColor: '#ffb300',
