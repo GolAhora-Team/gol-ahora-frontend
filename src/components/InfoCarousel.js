@@ -76,7 +76,7 @@ export default function InfoCarousel() {
         }
         return nextIndex;
       });
-    }, 4000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [containerWidth]);
 
@@ -103,8 +103,8 @@ export default function InfoCarousel() {
                   <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={[styles.title, { color: slide.color }]}>{slide.title}</Text>
-                  <Text style={styles.desc}>{slide.desc}</Text>
+                  <Text style={[styles.title, { color: slide.color }]} selectable={false}>{slide.title}</Text>
+                  <Text style={styles.desc} selectable={false}>{slide.desc}</Text>
                 </View>
                 </View>
               </View>
@@ -166,12 +166,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginBottom: 6,
     letterSpacing: -0.5,
+    ...Platform.select({ web: { userSelect: 'none' } })
   },
   desc: {
     fontSize: 14,
     color: '#475569',
     fontWeight: '600',
     lineHeight: 20,
+    ...Platform.select({ web: { userSelect: 'none' } })
   },
   dotsContainer: {
     flexDirection: 'row',

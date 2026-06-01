@@ -170,8 +170,6 @@ export default function Dashboard({ route, navigation }) {
               
               <Header title="GOL AHORA" userRole={role} isWeb={isWeb} idPersona={idPersona} idUsuario={idUsuario} />
 
-              <InfoCarousel />
-
               <View style={styles.pitchContainer}>
                 <BackgroundLogin /> 
                 <View style={styles.innerContent}>
@@ -200,6 +198,8 @@ export default function Dashboard({ route, navigation }) {
                   </View>
                 </View>
               </View>
+
+              <InfoCarousel />
 
               {(role === 'ADMIN' || role === 'PERSONAL') && (
                 <View style={styles.statsOuterContainer}>
