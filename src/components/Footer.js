@@ -1,18 +1,38 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Footer = () => {
+  const handleSocialPress = (network, url) => {
+    const mensaje = `¿Deseas ser redirigido a ${network}?`;
+    
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(mensaje);
+      if (confirm) {
+        window.open(url, '_blank');
+      }
+    } else {
+      Alert.alert(
+        'Redirección',
+        mensaje,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sí, continuar', onPress: () => Linking.openURL(url) },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={styles.externalFooter}>
       <View style={styles.socialIconsContainer}>
-        <TouchableOpacity onPress={() => console.log('Instagram')}>
+        <TouchableOpacity onPress={() => handleSocialPress('Instagram', 'https://www.instagram.com/')}>
           <MaterialCommunityIcons name="instagram" size={28} color="#fff" style={styles.socialIcon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => console.log('Facebook')}>
+        <TouchableOpacity onPress={() => handleSocialPress('Facebook', 'https://www.facebook.com/')}>
           <MaterialCommunityIcons name="facebook" size={28} color="#fff" style={styles.socialIcon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => console.log('WhatsApp')}>
+        <TouchableOpacity onPress={() => handleSocialPress('WhatsApp', 'https://api.whatsapp.com/')}>
           <MaterialCommunityIcons name="whatsapp" size={28} color="#fff" style={styles.socialIcon} />
         </TouchableOpacity>
       </View>
