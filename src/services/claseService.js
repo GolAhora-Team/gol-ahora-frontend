@@ -88,4 +88,17 @@ export const claseService = {
       throw error;
     }
   },
+
+  /**
+   * DELETE /api/Clase/{claseId}/cliente/{clienteId}
+   * Desinscribe un cliente de una clase.
+   */
+  removeCliente: async (claseId, clienteId) => {
+    try {
+      return await http.delete(`${URL}/${claseId}/cliente/${clienteId}`);
+    } catch (error) {
+      console.error(`Error desinscribiendo cliente ${clienteId} de clase ${claseId}:`, error);
+      throw error;
+    }
+  },
 };

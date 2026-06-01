@@ -75,4 +75,17 @@ export const entrenamientoService = {
       throw error;
     }
   },
+
+  /**
+   * DELETE /api/Entrenamientos/{entrenamientoId}/clientes/{clienteId}
+   * Remueve un cliente de un entrenamiento.
+   */
+  removeCliente: async (entrenamientoId, clienteId) => {
+    try {
+      return await http.delete(`${URL}/${entrenamientoId}/clientes/${clienteId}`);
+    } catch (error) {
+      console.error(`Error removiendo cliente ${clienteId} del entrenamiento ${entrenamientoId}:`, error);
+      throw error;
+    }
+  },
 };
