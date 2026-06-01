@@ -606,13 +606,21 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       else setStep(2);
     }
     else if (step === 2 && validateStep2()) setStep(3);
-    else if (step === 3 && validateStep3()) setStep(4);
+    else if (step === 3 && validateStep3()) {
+      if (currentUserRole === 'CLIENTE') {
+        setMetodoPago('MERCADOPAGO');
+        setStep(5);
+      } else {
+        setStep(4);
+      }
+    }
     else if (step === 4 && validateStep4()) setStep(5);
   };
 
   const handleBack = () => {
     setErrors({});
     if (step === 3 && currentUserRole === 'CLIENTE') setStep(1);
+    else if (step === 5 && currentUserRole === 'CLIENTE') setStep(3);
     else if (step > 1) setStep(step - 1);
   };
 
@@ -727,7 +735,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         return;
       }
 
-      // Crear o actualizar la reserva en el backend
+      // Payload de la reserva
       const [horaH] = selectedHora.split(':').map(Number);
       const reservaPayload = {
         Fecha: selectedDate.toISOString().split('T')[0],
@@ -737,49 +745,59 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         CanchaId: parseInt(selectedCancha.id)
       };
 
+      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario);
+      const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
+
+      const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+      
+      if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
+        const title = `Reserva Cancha ${selectedCancha.nombre}`;
+        
+        if (Platform.OS === 'web') {
+          const pendingReservation = {
+            reservaPayload,
+            html,
+            fileName,
+            persona,
+            cancha: selectedCancha,
+            fecha: selectedDate.toISOString(),
+            hora: selectedHora,
+            montoFinal,
+            metodoPago,
+            esSocio: esSocio(),
+            precioBase: getPrecioBase(),
+            isEdit: !!reservaToEdit
+          };
+          window.localStorage.setItem('pendingReservation', JSON.stringify(pendingReservation));
+          
+          const currentUrl = window.location.href.split('?')[0]; // Limpiamos parametros
+          const mpResponse = await mercadoPagoService.createPreference(title, montoFinal, currentUrl);
+          
+          setIsLoading(false);
+          window.location.href = mpResponse.initPoint;
+          return;
+        } else {
+          // Fallback para mobile (sin guardado temporal robusto)
+          const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
+          const { Linking } = require('react-native');
+          Linking.openURL(mpResponse.initPoint);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // FLUJO NORMAL (Efectivo o Admin/Personal manejando MercadoPago)
       if (reservaToEdit) {
         await reservaService.update(reservaToEdit.id, reservaPayload);
       } else {
         await reservaService.create(reservaPayload);
       }
-
-      // Generar y guardar comprobante
-      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario);
-      const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
       await reportHistoryService.saveReporte(html, fileName);
 
-      // Si es MercadoPago y es un cliente quien lo hace, iniciamos el flujo de la API y salimos
-      const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
-      
-      if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
-        const title = `Reserva Cancha ${selectedCancha.nombre}`;
-        const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
-        
-        onClose();
-        if (onReservaCreated) {
-          onReservaCreated({
-            html, fileName, persona, cancha: selectedCancha, fecha: selectedDate, 
-            hora: selectedHora, montoFinal, metodoPago, isEdit: !!reservaToEdit,
-            isMercadoPago: true
-          });
-        }
-        
-        // Redirigir a la URL de cobro
-        if (Platform.OS === 'web') {
-          window.location.href = mpResponse.initPoint;
-        } else {
-          const { Linking } = require('react-native');
-          Linking.openURL(mpResponse.initPoint);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      // Si es pago local (Efectivo o MercadoPago manejado por Admin), cerramos y notificamos
+      // Si es pago local, cerramos y notificamos
       onClose();
       if (onReservaCreated) {
         onReservaCreated({
-          html,
           fileName,
           persona,
           cancha: selectedCancha,
@@ -801,9 +819,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const getStepLabel = () => {
     if (currentUserRole === 'CLIENTE') {
       switch (step) {
-        case 1: return 'Paso 1 de 3';
-        case 3: return 'Paso 2 de 3';
-        case 4: return 'Paso 3 de 3';
+        case 1: return 'Cancha';
+        case 3: return 'Fecha y Hora';
         case 5: return 'Confirmación';
         default: return '';
       }
@@ -842,7 +859,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           {step <= 4 && (
             <View style={s.progressContainer}>
               {currentUserRole === 'CLIENTE' 
-                ? [1, 3, 4].map((sVal, idx) => (
+                ? [1, 3].map((sVal, idx) => (
                     <View key={sVal} style={[s.progressDot, step >= sVal && s.progressDotActive]} />
                   ))
                 : [1, 2, 3, 4].map(i => (

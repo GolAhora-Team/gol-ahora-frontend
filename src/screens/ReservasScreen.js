@@ -11,6 +11,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { reservaService } from '../services/reservaService';
 import { canchaService } from '../services/canchaService';
 import { clienteService } from '../services/clienteService';
+import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function ReservaScreen({ route, navigation }) {
   const { role: currentUserRole, nombreUsuario: currentUserName } = route.params || { 
@@ -47,6 +48,50 @@ export default function ReservaScreen({ route, navigation }) {
 
   useEffect(() => {
     loadData();
+
+    // Verificación de retorno exitoso de Mercado Pago
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('collection_status');
+      
+      if (status === 'approved') {
+        const pendingResStr = window.localStorage.getItem('pendingReservation');
+        if (pendingResStr) {
+          try {
+            const pending = JSON.parse(pendingResStr);
+            window.localStorage.removeItem('pendingReservation');
+            
+            const createReservaAfterPayment = async () => {
+              try {
+                if (pending.isEdit && pending.reservaPayload.id) {
+                   await reservaService.update(pending.reservaPayload.id, pending.reservaPayload);
+                } else {
+                   await reservaService.create(pending.reservaPayload);
+                }
+                await reportHistoryService.saveReporte(pending.html, pending.fileName);
+                
+                // Limpiamos la URL para no repetir el proceso si el usuario recarga
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Mostramos el modal de éxito llamando al manejador existente
+                handleReservaCreated({
+                  html: pending.html, fileName: pending.fileName, persona: pending.persona, 
+                  cancha: pending.cancha, fecha: new Date(pending.fecha), 
+                  hora: pending.hora, montoFinal: pending.montoFinal, 
+                  metodoPago: pending.metodoPago, isEdit: pending.isEdit
+                });
+              } catch (e) {
+                console.error("Error creating reservation after MP success", e);
+                Alert.alert('Error', 'El pago fue exitoso pero hubo un error al registrar la reserva en la base de datos.');
+              }
+            };
+            createReservaAfterPayment();
+          } catch(e) {
+            console.error("Error procesando reserva pendiente", e);
+          }
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {
