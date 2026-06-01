@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -14,6 +14,8 @@ export default function ReportesScreen({ route, navigation }) {
   const [historialCanchas, setHistorialCanchas] = useState([]);
   const [historialUsuarios, setHistorialUsuarios] = useState([]);
   const [ordenFecha, setOrdenFecha] = useState('desc');
+  const [modalVerVisible, setModalVerVisible] = useState(false);
+  const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
   const estadisticas = getEstadisticas();
   const dataActual = estadisticas[reporteActivo];
 
@@ -194,6 +196,13 @@ export default function ReportesScreen({ route, navigation }) {
                       <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
+                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
+                    >
+                      <MaterialCommunityIcons name="eye" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
                       style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
                       onPress={() => printHtml(rep.html)}
                     >
@@ -220,6 +229,13 @@ export default function ReportesScreen({ route, navigation }) {
                     >
                       <MaterialCommunityIcons name="download" size={18} color="#fff" />
                       <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
+                    >
+                      <MaterialCommunityIcons name="eye" size={18} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
@@ -278,6 +294,35 @@ export default function ReportesScreen({ route, navigation }) {
           </View>
         )}
       </View>
+
+      <Modal visible={modalVerVisible} animationType="fade" transparent={true}>
+        <View style={styles.viewOverlay}>
+          <View style={styles.viewContainer}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>Vista de Reporte</Text>
+              <TouchableOpacity onPress={() => setModalVerVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flex: 1, marginTop: 10, backgroundColor: '#f8fafc', borderRadius: 8, overflow: 'hidden' }}>
+              {Platform.OS === 'web' && reporteSeleccionado?.html ? (
+                <iframe 
+                  srcDoc={reporteSeleccionado.html} 
+                  style={{ width: '100%', height: '100%', border: 'none' }} 
+                  title="Reporte PDF"
+                />
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 15 }}>
+                  <Text style={{ textAlign: 'center', color: '#64748b', fontSize: 16, marginTop: 20 }}>
+                    La previsualización está optimizada para Web. Utilice "Imprimir" para visualizar el documento en el visor nativo del dispositivo.
+                  </Text>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenTemplate>
   );
 }
@@ -319,5 +364,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 4,
-  }
+  },
+  
+  // View Modal
+  viewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  viewContainer: { width: '100%', maxWidth: 800, height: '80%', backgroundColor: '#fff', borderRadius: 24, padding: 25 },
+  viewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  viewTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
 });
