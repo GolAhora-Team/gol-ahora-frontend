@@ -53,25 +53,18 @@ export default function ReservaScreen({ route, navigation }) {
       }
       
       const now = new Date();
-      // Asumiendo horario de Argentina (GMT-3) manual
-      const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000)); 
-      const argDateStr = argTime.toISOString().split('T')[0];
-      const currentHours = argTime.getUTCHours().toString().padStart(2, '0');
-      const currentMinutes = argTime.getUTCMinutes().toString().padStart(2, '0');
-      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      const localDateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
       
       let inUse = 0;
       let todayCount = 0;
       
       reservas.forEach(r => {
         let resDateStr = r.fecha ? (r.fecha.includes('T') ? r.fecha.split('T')[0] : r.fecha) : '';
-        if (resDateStr === argDateStr) {
+        if (resDateStr === localDateStr) {
           todayCount++;
-          if ((r.estado || 'Confirmada').toLowerCase() === 'confirmada') {
-            if (currentTimeStr >= r.horaInicio && currentTimeStr <= r.horaFin) {
-              inUse++;
-            }
-          }
+        }
+        if (r.estado === 'En Juego') {
+          inUse++;
         }
       });
       
