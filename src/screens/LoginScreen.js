@@ -144,8 +144,8 @@ const LoginScreen = ({ navigation, route }) => {
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={(text) => setEmail(text.replace(/[^0-9]/g, ''))}
-                        keyboardType="numeric"
+                        onChangeText={(text) => setEmail(text)}
+                        keyboardType="default"
                         value={email}
                         autoCapitalize="none"
                         underlineColorAndroid="transparent"

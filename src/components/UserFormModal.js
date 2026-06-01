@@ -127,7 +127,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <Text style={styles.sectionTitle}>3. CONTACTO Y LOCALIZACIÓN</Text>
               <CustomInput label="EMAIL" value={formData.email} onChangeText={v => setFormData({...formData, email: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
               <View style={styles.row}>
-                <View style={{flex: 1.2}}><CustomInput label="TELÉFONO" value={formData.telefono} onChangeText={v => setFormData({...formData, telefono: v})} keyboardType="phone-pad" containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
+                <View style={{flex: 1.2}}><CustomInput label="TELÉFONO" value={formData.telefono} onChangeText={v => setFormData({...formData, telefono: v.replace(/[^0-9]/g, '')})} keyboardType="phone-pad" containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
                 <View style={{flex: 1, marginLeft: 10}}><CustomInput label="C.P." value={formData.codigoPostal} onChangeText={v => setFormData({...formData, codigoPostal: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
               </View>
               <CustomInput label="DIRECCIÓN" value={formData.direccion} onChangeText={v => setFormData({...formData, direccion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>

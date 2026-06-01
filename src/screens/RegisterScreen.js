@@ -48,11 +48,20 @@ export default function RegisterScreen({ navigation }) {
 
     if (!dni) newErrors.dni = 'El DNI es obligatorio';
     if (!password) newErrors.password = 'La contraseña es obligatoria';
+    else if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
+      newErrors.password = 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 especial';
+    }
     if (!confirmPassword) newErrors.confirmPassword = 'Confirma tu contraseña';
     else if (password !== confirmPassword) newErrors.confirmPassword = 'Las contraseñas no coinciden';
     if (!nombre) newErrors.nombre = 'Obligatorio';
     if (!apellido) newErrors.apellido = 'Obligatorio';
     if (!genero) newErrors.genero = 'Debe seleccionar un género';
+    if (!fechaNacimiento) newErrors.fechaNacimiento = 'Debe seleccionar fecha';
+    if (!telefono) newErrors.telefono = 'Obligatorio';
+    if (!direccion) newErrors.direccion = 'Obligatorio';
+    if (!email) newErrors.email = 'Obligatorio';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Debe ser un email válido';
+    if (!contactoEmergencia) newErrors.contactoEmergencia = 'Obligatorio';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -143,23 +152,6 @@ export default function RegisterScreen({ navigation }) {
                       error={errors.dni}
                     />
 
-                    <CustomInput
-                      label="Contraseña"
-                      iconName="lock"
-                      isPassword={true}
-                      value={password}
-                      onChangeText={setPassword}
-                      error={errors.password}
-                    />
-
-                    <CustomInput
-                      label="Confirmar Contraseña"
-                      iconName="lock-check"
-                      isPassword={true}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      error={errors.confirmPassword}
-                    />
 
 
                     <CustomInput
@@ -210,7 +202,7 @@ export default function RegisterScreen({ navigation }) {
                     <View style={{marginBottom: 15, width: '100%'}}>
                       <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
                       <TouchableOpacity 
-                        style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45}}
+                        style={[{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45}, errors.fechaNacimiento && {borderColor: '#dc2626'}]}
                         onPress={() => setCalendarVisible(true)}
                         activeOpacity={0.7}
                       >
@@ -219,19 +211,22 @@ export default function RegisterScreen({ navigation }) {
                           {fechaNacimiento ? fechaNacimiento : "Seleccionar fecha"}
                         </Text>
                       </TouchableOpacity>
+                      {errors.fechaNacimiento ? <Text style={[styles.inlineError, {marginTop: 4}]}>{errors.fechaNacimiento}</Text> : null}
                     </View>
                     <CustomInput 
                       label="Teléfono" 
                       iconName="phone" 
                       keyboardType="phone-pad" 
                       value={telefono} 
-                      onChangeText={setTelefono} 
+                      onChangeText={(text) => setTelefono(text.replace(/[^0-9]/g, ''))}
+                      error={errors.telefono}
                     />
                     <CustomInput
                       label="Dirección"
                       iconName="map-marker"
                       value={direccion}
                       onChangeText={setDireccion}
+                      error={errors.direccion}
                     />
                     <CustomInput
                       label="Email"
@@ -239,12 +234,33 @@ export default function RegisterScreen({ navigation }) {
                       keyboardType="email-address"
                       value={email}
                       onChangeText={setEmail}
+                      error={errors.email}
+                      autoCapitalize="none"
                     />
                     <CustomInput
                       label="Contacto Emergencia"
                       iconName="alert-circle"
                       value={contactoEmergencia}
                       onChangeText={setContactoEmergencia}
+                      error={errors.contactoEmergencia}
+                    />
+
+                    <CustomInput
+                      label="Contraseña"
+                      iconName="lock"
+                      isPassword={true}
+                      value={password}
+                      onChangeText={setPassword}
+                      error={errors.password}
+                    />
+
+                    <CustomInput
+                      label="Confirmar Contraseña"
+                      iconName="lock-check"
+                      isPassword={true}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      error={errors.confirmPassword}
                     />
 
                     <View style={styles.warningContainer}>
