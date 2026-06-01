@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   Dimensions, 
   Platform, 
-  StatusBar 
+  StatusBar,
+  useWindowDimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Background from '../components/Background';
@@ -33,7 +34,7 @@ const ALL_MODULES = [
   { id: "clases-profe", title: "Clases a Cargo", screen: "ClasesProfeScreen", icon: "whistle", desc: "Ver alumnos inscriptos", color: "#6366f1" },
 ];
 
-const ModuleCard = ({ module, currentRole, idPersona, userName, navigation }) => {
+const ModuleCard = ({ module, currentRole, idPersona, userName, navigation, isMobile }) => {
   const [isPressed, setIsPressed] = useState(false);
 
   return (
@@ -41,6 +42,7 @@ const ModuleCard = ({ module, currentRole, idPersona, userName, navigation }) =>
       style={[
         styles.card, 
         isWeb && styles.cardWeb,
+        isMobile && styles.cardMobile,
         isPressed && styles.cardPressed
       ]} 
       activeOpacity={1} 
@@ -54,26 +56,27 @@ const ModuleCard = ({ module, currentRole, idPersona, userName, navigation }) =>
     >
       <View style={[
         styles.iconContainer, 
+        isMobile && styles.iconContainerMobile,
         { backgroundColor: isPressed ? 'rgba(0,0,0,0.1)' : module.color + '20' }
       ]}>
         <MaterialCommunityIcons 
           name={module.icon} 
-          size={32} 
+          size={isMobile ? 26 : 32} 
           color={isPressed ? '#000' : module.color} 
         />
       </View>
       <View style={styles.cardTextContent}>
-        <Text style={[styles.cardTitle, isPressed && styles.textPressed]} selectable={false}>
+        <Text style={[styles.cardTitle, isMobile && styles.cardTitleMobile, isPressed && styles.textPressed]} selectable={false}>
           {module.title}
         </Text>
-        <Text style={[styles.cardDesc, isPressed && styles.textPressed]} numberOfLines={1} selectable={false}>
+        <Text style={[styles.cardDesc, isMobile && styles.cardDescMobile, isPressed && styles.textPressed]} numberOfLines={1} selectable={false}>
           {module.desc}
         </Text>
       </View>
-      <View style={[styles.arrowContainer, isPressed && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
+      <View style={[styles.arrowContainer, isMobile && styles.arrowContainerMobile, isPressed && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
         <MaterialCommunityIcons 
           name="chevron-right" 
-          size={28} 
+          size={isMobile ? 22 : 28} 
           color={isPressed ? '#000' : '#cbd5e1'} 
         />
       </View>
@@ -82,6 +85,9 @@ const ModuleCard = ({ module, currentRole, idPersona, userName, navigation }) =>
 };
 
 export default function Dashboard({ route, navigation }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
+
   const { role, idPersona, idUsuario, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, idUsuario: null, nombreUsuario: "NOMBRE" };
   
   // VARIABLE DE NOMBRE VINCULAR A FUTURO CON EL USERNAME
@@ -155,7 +161,8 @@ export default function Dashboard({ route, navigation }) {
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
-          bounces={true}
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={styles.topContent}>
             <View style={styles.centralContainer}>
@@ -166,13 +173,13 @@ export default function Dashboard({ route, navigation }) {
                 <BackgroundLogin /> 
                 <View style={styles.innerContent}>
                   
-                  <View style={styles.welcomeBanner}>
+                  <View style={[styles.welcomeBanner, isMobile && styles.welcomeBannerMobile]}>
                     <View style={styles.yellowStripe} />
                     <View style={styles.bannerInfo}>
-                      <Text style={styles.welcomeTitle} selectable={false}>{banner.title}</Text>
-                      <Text style={styles.welcomeSub} selectable={false}>{banner.sub}</Text>
+                      <Text style={[styles.welcomeTitle, isMobile && styles.welcomeTitleMobile]} selectable={false}>{banner.title}</Text>
+                      <Text style={[styles.welcomeSub, isMobile && styles.welcomeSubMobile]} selectable={false}>{banner.sub}</Text>
                     </View>
-                    <MaterialCommunityIcons name="shield-check-outline" size={40} color="#f1f5f9" style={styles.bannerDecoration} />
+                    <MaterialCommunityIcons name="shield-check-outline" size={isMobile ? 32 : 40} color="#f1f5f9" style={styles.bannerDecoration} />
                   </View>
 
                   <View style={styles.grid}>
@@ -184,6 +191,7 @@ export default function Dashboard({ route, navigation }) {
                         idPersona={idPersona}
                         userName={userName}
                         navigation={navigation} 
+                        isMobile={isMobile}
                       />
                     ))}
                   </View>
@@ -206,7 +214,7 @@ export default function Dashboard({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1 },
+  mainContainer: { flex: 1, backgroundColor: '#004d1a' },
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 0 },
   scrollContent: { flexGrow: 1, justifyContent: 'space-between', paddingBottom: 30 },
   topContent: { width: '100%' },
@@ -215,18 +223,26 @@ const styles = StyleSheet.create({
   innerContent: { padding: 16 },
   statsOuterContainer: { marginTop: 20, width: '100%' },
   welcomeBanner: { backgroundColor: '#fff', padding: 24, borderRadius: 24, marginBottom: 20, flexDirection: 'row', alignItems: 'center', position: 'relative', overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15 },
+  welcomeBannerMobile: { padding: 16, borderRadius: 18, marginBottom: 15 },
   yellowStripe: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, backgroundColor: '#ffb300' },
   bannerDecoration: { position: 'absolute', right: -10, top: -5, opacity: 0.4 },
   welcomeTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 },
+  welcomeTitleMobile: { fontSize: 15 },
   welcomeSub: { fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 },
+  welcomeSubMobile: { fontSize: 11 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { backgroundColor: 'rgba(255, 255, 255, 0.92)', width: '100%', flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
   cardWeb: { width: '48.5%' },
+  cardMobile: { padding: 14, borderRadius: 20, marginBottom: 12 },
   cardPressed: { backgroundColor: '#ffb300', borderColor: '#e6a100', transform: [{ scale: 0.98 }] },
   textPressed: { color: '#000' },
   iconContainer: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  iconContainerMobile: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
   cardTextContent: { flex: 1, justifyContent: 'center' },
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', ...Platform.select({ web: { userSelect: 'none' } }) },
+  cardTitleMobile: { fontSize: 16 },
   cardDesc: { fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, ...Platform.select({ web: { userSelect: 'none' } }) },
+  cardDescMobile: { fontSize: 10, marginTop: 0 },
   arrowContainer: { padding: 4, backgroundColor: '#f8fafc', borderRadius: 12 },
+  arrowContainerMobile: { padding: 2, borderRadius: 8 },
 });

@@ -4,11 +4,14 @@ import {
   Text, 
   View, 
   TouchableOpacity, 
-  Platform 
+  Platform,
+  useWindowDimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const HeaderSecondary = ({ title, userRole, isWeb, onBack }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
   const [isPressed, setIsPressed] = useState(false);
 
   const getBadgeColor = () => {
@@ -22,17 +25,17 @@ const HeaderSecondary = ({ title, userRole, isWeb, onBack }) => {
   };
 
   return (
-    <View style={[styles.header, isWeb && styles.headerWeb]}>
+    <View style={[styles.header, isWeb && styles.headerWeb, isMobile && styles.headerMobile]}>
       <View style={styles.headerInfo}>
         <Text 
-          style={styles.headerBrand} 
+          style={[styles.headerBrand, isMobile && styles.headerBrandMobile]} 
           numberOfLines={1}
           selectable={false}
         >
           {title || "GOL AHORA"}
         </Text>
         <View style={[styles.roleBadge, { backgroundColor: getBadgeColor() }]}>
-          <Text style={styles.roleText} selectable={false}>
+          <Text style={[styles.roleText, isMobile && { fontSize: 12 }]} selectable={false}>
             {userRole}
           </Text>
         </View>
@@ -42,6 +45,7 @@ const HeaderSecondary = ({ title, userRole, isWeb, onBack }) => {
         <TouchableOpacity 
           style={[
             styles.headerBtn, 
+            isMobile && styles.headerBtnMobile,
             isPressed && styles.btnActive
           ]} 
           activeOpacity={1}
@@ -51,7 +55,7 @@ const HeaderSecondary = ({ title, userRole, isWeb, onBack }) => {
         >
           <MaterialCommunityIcons 
             name="arrow-left" 
-            size={28} 
+            size={isMobile ? 22 : 28} 
             color={isPressed ? "#000" : "#fff"} 
           />
         </TouchableOpacity>
@@ -74,6 +78,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.18)',
     marginTop: Platform.OS === 'android' ? 5 : 0,
   },
+  headerMobile: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginHorizontal: 10,
+    borderRadius: 20,
+  },
   headerWeb: { 
     maxWidth: 1200, 
     alignSelf: 'center', 
@@ -93,6 +103,10 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: { userSelect: 'none' }
     })
+  },
+  headerBrandMobile: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   roleBadge: { 
     alignSelf: 'flex-start', 
@@ -122,6 +136,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerBtnMobile: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginLeft: 8,
   },
   btnActive: {
     backgroundColor: '#ffb300',

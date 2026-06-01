@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
-import { 
-  StyleSheet, Text, View, TextInput, TouchableOpacity, 
-  SafeAreaView, ScrollView, Dimensions, Platform, 
-  KeyboardAvoidingView, StatusBar 
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  SafeAreaView, ScrollView, Dimensions, Platform,
+  KeyboardAvoidingView, StatusBar, Modal, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,21 +11,48 @@ import * as NavigationBar from 'expo-navigation-bar';
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSecure, setIsSecure] = useState(true);
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
+  const [showInactivityModal, setShowInactivityModal] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    if (route?.params?.sessionClosedByInactivity) {
+      setShowInactivityModal(true);
+      const timer = setTimeout(() => {
+        setShowInactivityModal(false);
+      }, 60000); // 1 minuto
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.sessionClosedByInactivity]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('#004d1a');
     }
+
+    const loadRememberedUser = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem('GOL_AHORA_REMEMBER_USER');
+        if (savedUser) {
+          setEmail(savedUser);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.log('Error loading remembered user', error);
+      }
+    };
+    loadRememberedUser();
+
     // Auto-login if session exists
     if (Platform.OS === 'web') {
       try {
@@ -34,7 +61,7 @@ const LoginScreen = ({ navigation }) => {
           const parsed = JSON.parse(savedSession);
           navigation.replace('Dashboard', parsed);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -71,8 +98,8 @@ const LoginScreen = ({ navigation }) => {
         ? `${response.nombre} ${response.apellido || ''}`
         : email;
 
-      const sessionData = { 
-        role: role.toUpperCase(), 
+      const sessionData = {
+        role: role.toUpperCase(),
         nombreUsuario,
         idPersona: response.idPersona,
         idUsuario: response.idUsuario
@@ -80,6 +107,12 @@ const LoginScreen = ({ navigation }) => {
 
       if (Platform.OS === 'web') {
         localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
+      }
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('GOL_AHORA_REMEMBER_USER', email.trim());
+      } else {
+        await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
       }
 
       navigation.replace('Dashboard', sessionData);
@@ -95,22 +128,24 @@ const LoginScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="#06230e" />
       <Background />
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer} 
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
+            overScrollMode="never"
           >
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />
 
               <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
-                
-                <View style={styles.headerClean}>   
+
+                <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
                   <View style={styles.badgeLine}>
@@ -122,18 +157,19 @@ const LoginScreen = ({ navigation }) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Usuario / DNI</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="account" 
-                        size={22} 
-                        color={focusedInput === 'user' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={22}
+                        color={focusedInput === 'user' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu usuario o DNI" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu usuario o DNI"
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={setEmail}
+                        onChangeText={(text) => setEmail(text)}
+                        keyboardType="default"
                         value={email}
                         autoCapitalize="none"
                         underlineColorAndroid="transparent"
@@ -145,14 +181,14 @@ const LoginScreen = ({ navigation }) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Contraseña</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'pass' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="lock" 
-                        size={22} 
-                        color={focusedInput === 'pass' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="lock"
+                        size={22}
+                        color={focusedInput === 'pass' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu contraseña" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu contraseña"
                         placeholderTextColor="#999"
                         secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
@@ -170,6 +206,21 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                   </View>
 
+                  {/* CHECKBOX RECORDAR USUARIO */}
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }}
+                    onPress={() => setRememberMe(!rememberMe)}
+                  >
+                    <MaterialCommunityIcons
+                      name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"}
+                      size={24}
+                      color={rememberMe ? "#009b3a" : "#666"}
+                    />
+                    <Text style={{ marginLeft: 8, color: '#1e293b', fontSize: 14, fontWeight: '600' }}>
+                      Mantener la sesión iniciada
+                    </Text>
+                  </TouchableOpacity>
+
                   {/* MENSAJE DE ERROR DINÁMICO */}
                   {errorMessage !== '' && (
                     <View style={styles.errorContainer}>
@@ -178,8 +229,8 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  <TouchableOpacity 
-                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
+                  <TouchableOpacity
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
                     disabled={isLoading}
@@ -201,9 +252,39 @@ const LoginScreen = ({ navigation }) => {
               </View>
             </View>
             <Footer />
+            <View style={styles.dataFiscalContainer}>
+              <View style={styles.dataFiscalTextContainer}>
+                <Text style={styles.dataFiscalText}>Complejo Gol Ahora</Text>
+                <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
+              </View>
+              <Image
+                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }}
+                style={styles.dataFiscalImage}
+              />
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal visible={showInactivityModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', padding: 25, borderRadius: 20, alignItems: 'center', width: '80%', maxWidth: 400 }}>
+            <MaterialCommunityIcons name="timer-sand" size={50} color="#ffb300" />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 15, textAlign: 'center' }}>
+              Sesión cerrada
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748b', marginTop: 10, textAlign: 'center' }}>
+              Tu sesión se ha cerrado por inactividad.
+            </Text>
+            <TouchableOpacity
+              style={{ marginTop: 20, backgroundColor: '#009b3a', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }}
+              onPress={() => setShowInactivityModal(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -216,12 +297,12 @@ const styles = StyleSheet.create({
   badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
   subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   pitchContainer: {
-    width: isWeb ? 450 : '92%', 
-    height: isWeb ? 850 : windowHeight * 0.85, 
-    borderRadius: 30, 
-    borderWidth: 1.5, 
+    width: isWeb ? 450 : '92%',
+    height: isWeb ? 850 : windowHeight * 0.85,
+    borderRadius: 30,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
-    overflow: 'hidden', 
+    overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
     position: 'relative'
   },
@@ -230,7 +311,7 @@ const styles = StyleSheet.create({
   label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 58, borderRadius: 12, paddingHorizontal: 15, backgroundColor: '#f5f5f5', borderWidth: 1.5, borderColor: '#eee' },
   inputFocused: { borderColor: '#009b3a', backgroundColor: '#fff' },
-  input: { 
+  input: {
     flex: 1, color: '#000', marginLeft: 10, fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } })
   },
@@ -255,6 +336,10 @@ const styles = StyleSheet.create({
   buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
   linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
+  dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4 }
 });
 
 export default LoginScreen;

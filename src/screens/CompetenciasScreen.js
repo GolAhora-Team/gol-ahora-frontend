@@ -11,6 +11,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AddJugadoresModal from '../components/AddJugadoresModal';
 import RemoveJugadoresModal from '../components/RemoveJugadoresModal';
 import VerJugadoresModal from '../components/VerJugadoresModal';
+import FormacionModal from '../components/FormacionModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
@@ -46,6 +47,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [removeJugadoresVisible, setRemoveJugadoresVisible] = useState(false);
   const [verJugadoresVisible, setVerJugadoresVisible] = useState(false);
   const [selectedEquipo, setSelectedEquipo] = useState(null);
+
+  // Formación modal
+  const [formacionVisible, setFormacionVisible] = useState(false);
+  const [equipoFormacion, setEquipoFormacion] = useState(null);
 
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const canCreateEquipo = currentUserRole !== 'PROFE';
@@ -170,6 +175,20 @@ export default function CompetenciasScreen({ route, navigation }) {
     setVerJugadoresVisible(true);
   };
 
+  const openFormacion = (equipo) => {
+    setEquipoFormacion(equipo);
+    setFormacionVisible(true);
+  };
+
+  const handleFormacionSaved = (payload) => {
+    // Actualizar el equipo en el estado local con tipoCancha, formacion y capitan
+    setEquipos(prev => prev.map(e =>
+      e.id === equipoFormacion?.id
+        ? { ...e, tipoCancha: payload.tipoCancha, formacion: payload.formacion, capitan: payload.capitan }
+        : e
+    ));
+  };
+
   const handleAddJugadores = async (jugadoresSeleccionados) => {
     try {
       for (const jugador of jugadoresSeleccionados) {
@@ -282,6 +301,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                 onAddJugadores={() => openAddJugadores(item)}
                 onRemoveJugadores={() => openRemoveJugadores(item)}
                 onVerJugadores={() => openVerJugadores(item)}
+                onFormacion={() => openFormacion(item)}
               />
             ))}
             {equipos.length === 0 && (
@@ -338,6 +358,13 @@ export default function CompetenciasScreen({ route, navigation }) {
         onClose={() => setVerJugadoresVisible(false)}
         equipoId={selectedEquipo?.id}
         equipoNombre={selectedEquipo?.nombre}
+      />
+
+      <FormacionModal
+        visible={formacionVisible}
+        onClose={() => { setFormacionVisible(false); setEquipoFormacion(null); }}
+        equipo={equipoFormacion}
+        onSaved={handleFormacionSaved}
       />
 
       <SuccessModal

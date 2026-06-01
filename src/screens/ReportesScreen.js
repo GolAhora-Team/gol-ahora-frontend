@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -9,6 +9,9 @@ import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function ReportesScreen({ route, navigation }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
+
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
   const [historialCanchas, setHistorialCanchas] = useState([]);
@@ -58,6 +61,17 @@ export default function ReportesScreen({ route, navigation }) {
         printWindow.print();
         printWindow.close();
       }, 250);
+    } else {
+      await Print.printAsync({ html: htmlContent });
+    }
+  };
+
+  const viewHtml = async (htmlContent) => {
+    if (Platform.OS === 'web') {
+      const viewWindow = window.open('', '_blank');
+      viewWindow.document.write(htmlContent);
+      viewWindow.document.close();
+      viewWindow.focus();
     } else {
       await Print.printAsync({ html: htmlContent });
     }
@@ -138,11 +152,11 @@ export default function ReportesScreen({ route, navigation }) {
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       <Text style={styles.title}>Panel de Reportes</Text>
 
-      <View style={styles.selectorGrid}>
+      <View style={[styles.selectorGrid, isMobile && styles.selectorGridMobile]}>
         {Object.keys(estadisticas).map((key) => (
           <TouchableOpacity 
             key={key}
-            style={[styles.selBtn, reporteActivo === key && { backgroundColor: estadisticas[key].color }]} 
+            style={[styles.selBtn, isMobile && styles.selBtnMobile, reporteActivo === key && { backgroundColor: estadisticas[key].color }]} 
             onPress={() => setReporteActivo(key)}
           >
             <MaterialCommunityIcons 
@@ -179,70 +193,70 @@ export default function ReportesScreen({ route, navigation }) {
 
             {reporteActivo === 'Canchas' ? (
               sortedHistorialCanchas.map(rep => (
-                <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
+                <View key={rep.id} style={[styles.historyCard, isMobile && styles.historyCardMobile]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginBottom: isMobile ? 12 : 0 }}>
+                    <MaterialCommunityIcons name="file-pdf-box" size={isMobile ? 24 : 30} color="#ef4444" />
                     <View style={{ marginLeft: 10 }}>
-                      <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Estado'}</Text>
+                      <Text style={{ fontWeight: '800', color: '#1e293b', fontSize: isMobile ? 13 : 15 }}>{rep.fileName || 'Reporte de Estado'}</Text>
                       <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha.endsWith('Z') ? rep.fecha : rep.fecha + 'Z').toLocaleString()}</Text>
                     </View>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={[styles.historyActionRow, isMobile && { width: '100%', justifyContent: 'flex-end' }]}>
                     <TouchableOpacity 
-                      style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                      onPress={() => downloadPdf(rep)}
-                    >
-                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
-                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      style={[styles.actionButton, { backgroundColor: '#3b82f6' }, isMobile && { flex: 1 }]}
                       onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
                     >
                       <MaterialCommunityIcons name="eye" size={18} color="#fff" />
-                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
+                      {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      style={[styles.actionButton, { backgroundColor: '#009b3a' }, isMobile && { flex: 1 }]}
+                      onPress={() => downloadPdf(rep)}
+                    >
+                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                      {!isMobile && <Text style={styles.actionButtonText}>Descargar</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.actionButton, { backgroundColor: '#ffb300' }, isMobile && { flex: 1 }]}
                       onPress={() => printHtml(rep.html)}
                     >
                       <MaterialCommunityIcons name="printer" size={18} color="#000" />
-                      <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
+                      {!isMobile && <Text style={[styles.actionButtonText, { color: '#000' }]}>Imprimir</Text>}
                     </TouchableOpacity>
                   </View>
                 </View>
               ))
             ) : (
               sortedHistorialUsuarios.map(rep => (
-                <View key={rep.id} style={{ backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={30} color="#ef4444" />
+                <View key={rep.id} style={[styles.historyCard, isMobile && styles.historyCardMobile]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginBottom: isMobile ? 12 : 0 }}>
+                    <MaterialCommunityIcons name="file-pdf-box" size={isMobile ? 24 : 30} color="#ef4444" />
                     <View style={{ marginLeft: 10 }}>
-                      <Text style={{ fontWeight: '800', color: '#1e293b' }}>{rep.fileName || 'Reporte de Usuario'}</Text>
+                      <Text style={{ fontWeight: '800', color: '#1e293b', fontSize: isMobile ? 13 : 15 }}>{rep.fileName || 'Reporte de Usuario'}</Text>
                       <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(rep.fecha.endsWith('Z') ? rep.fecha : rep.fecha + 'Z').toLocaleString()}</Text>
                     </View>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={[styles.historyActionRow, isMobile && { width: '100%', justifyContent: 'flex-end' }]}>
                     <TouchableOpacity 
-                      style={{ backgroundColor: '#009b3a', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                      onPress={() => downloadPdf(rep)}
-                    >
-                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
-                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Descargar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={{ backgroundColor: '#3b82f6', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      style={[styles.actionButton, { backgroundColor: '#3b82f6' }, isMobile && { flex: 1 }]}
                       onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
                     >
                       <MaterialCommunityIcons name="eye" size={18} color="#fff" />
-                      <Text style={{ color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Ver</Text>
+                      {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={{ backgroundColor: '#ffb300', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                      style={[styles.actionButton, { backgroundColor: '#009b3a' }, isMobile && { flex: 1 }]}
+                      onPress={() => downloadPdf(rep)}
+                    >
+                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
+                      {!isMobile && <Text style={styles.actionButtonText}>Descargar</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.actionButton, { backgroundColor: '#ffb300' }, isMobile && { flex: 1 }]}
                       onPress={() => printHtml(rep.html)}
                     >
                       <MaterialCommunityIcons name="printer" size={18} color="#000" />
-                      <Text style={{ color: '#000', fontWeight: '800', marginLeft: 5, fontSize: 12 }}>Imprimir</Text>
+                      {!isMobile && <Text style={[styles.actionButtonText, { color: '#000' }]}>Imprimir</Text>}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -329,8 +343,10 @@ export default function ReportesScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20 },
-  selectorGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  selBtn: { backgroundColor: '#fff', flex: 1, marginHorizontal: 4, padding: 12, borderRadius: 15, alignItems: 'center', elevation: 3 },
+  selectorGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, gap: 8 },
+  selectorGridMobile: { flexWrap: 'wrap', justifyContent: 'center' },
+  selBtn: { backgroundColor: '#fff', flex: 1, padding: 12, borderRadius: 15, alignItems: 'center', elevation: 3 },
+  selBtnMobile: { flexBasis: '47%', marginBottom: 8, flex: 0 },
   selText: { fontSize: 10, fontWeight: '800', color: '#1e293b', marginTop: 5 },
   mainVisualArea: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 25, padding: 20, position: 'relative', overflow: 'hidden' },
   kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 15, borderRadius: 18, alignItems: 'center', marginBottom: 20 },
@@ -365,10 +381,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  
   // View Modal
   viewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   viewContainer: { width: '100%', maxWidth: 800, height: '80%', backgroundColor: '#fff', borderRadius: 24, padding: 25 },
   viewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   viewTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+  historyCard: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  historyCardMobile: { flexDirection: 'column', alignItems: 'flex-start' },
+  historyActionRow: { flexDirection: 'row', gap: 10 },
+  actionButton: { padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  actionButtonText: { color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }
 });

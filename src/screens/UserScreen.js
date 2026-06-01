@@ -148,10 +148,18 @@ export default function UserScreen({ route, navigation }) {
   };
 
   const handleSave = async () => {
-    if (!formData.dni || !formData.nombre || !formData.apellido) {
-      setFormError("DNI, Nombre y Apellido son obligatorios.");
+    const requiredFields = ['dni', 'nombre', 'apellido', 'telefono', 'direccion', 'localidad', 'provincia', 'pais', 'contactoEmergencia', 'email'];
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        setFormError(`El campo ${field.toUpperCase()} es obligatorio.`);
+        return;
+      }
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setFormError("Debe ser un email válido.");
       return;
     }
+    setFormError('');
     setFormError('');
     try {
       const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";

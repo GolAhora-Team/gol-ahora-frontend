@@ -8,7 +8,9 @@ import {
   Platform, 
   TouchableOpacity,
   StatusBar,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Background from '../components/Background';
@@ -48,53 +50,63 @@ export default function ForgotPasswordScreen({ navigation }) {
       <Background />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={styles.centerContainer}>
-          
-          {/* Burbuja de Cancha */}
-          <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
-            <BackgroundLogin />
-
-            <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+            overScrollMode="never"
+          >
+            <View style={styles.centerContainer}>
               
-              <View style={styles.headerClean}>   
-                <Text style={styles.preTitle}>Recuperación</Text>
-                <Text style={styles.mainTitle}>GOL AHORA</Text>
-              </View>
+              {/* Burbuja de Cancha */}
+              <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
+                <BackgroundLogin />
 
-              <View style={styles.solidGlassCard}>
-                <Text style={styles.infoText}>
-                  Ingresá tu email para recibir el link de recuperación de contraseña.
-                </Text>
+                <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
+                  
+                  <View style={styles.headerClean}>   
+                    <Text style={styles.preTitle}>Recuperación</Text>
+                    <Text style={styles.mainTitle}>GOL AHORA</Text>
+                  </View>
 
-                <CustomInput 
-                  label="Email" 
-                  iconName="email" 
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+                  <View style={styles.solidGlassCard}>
+                    <Text style={styles.infoText}>
+                      Ingresá tu email para recibir el link de recuperación de contraseña.
+                    </Text>
 
-                <TouchableOpacity 
-                  style={styles.mainButton} 
-                  activeOpacity={0.8}
-                  onPress={handleReset}
-                >
-                  <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
-                    <Text style={styles.buttonText}>ENVIAR LINK</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <CustomInput 
+                      label="Email" 
+                      iconName="email" 
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
 
-                <TouchableOpacity 
-                  onPress={() => navigation.goBack()}
-                  style={styles.backLink}
-                >
-                  <Text style={styles.backLinkText}>Volver atrás</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.mainButton} 
+                      activeOpacity={0.8}
+                      onPress={handleReset}
+                    >
+                      <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
+                        <Text style={styles.buttonText}>ENVIAR LINK</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      onPress={() => navigation.goBack()}
+                      style={styles.backLink}
+                    >
+                      <Text style={styles.backLinkText}>Volver atrás</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
         <Footer />
       </SafeAreaView>
     </View>
