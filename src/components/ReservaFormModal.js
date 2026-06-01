@@ -360,7 +360,7 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
           <Image 
             source={require('../../assets/mercadopagoLogo.png')} 
             style={[
-              { width: 110, height: 32, resizeMode: 'contain', marginBottom: 4 },
+              { width: 150, height: 45, resizeMode: 'contain', marginBottom: 4 },
               metodoPago === 'MERCADOPAGO' ? { tintColor: '#fff' } : null
             ]} 
           />
