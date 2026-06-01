@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
+import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Alert, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { clienteService } from '../services/clienteService';
 import { reservaService } from '../services/reservaService';
 import { userService } from '../services/userService';
+import { mercadoPagoService } from '../services/mercadoPagoService';
 import ErrorModal from './ErrorModal';
 
 // ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
@@ -356,8 +357,10 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
           style={[s.pagoBtn, metodoPago === 'MERCADOPAGO' && s.pagoBtnActiveMP]}
           onPress={() => setMetodoPago('MERCADOPAGO')}
         >
-          <MaterialCommunityIcons name="cellphone-nfc" size={28} color={metodoPago === 'MERCADOPAGO' ? '#fff' : '#3b82f6'} />
-          <Text style={[s.pagoBtnText, metodoPago === 'MERCADOPAGO' && { color: '#fff' }]}>Mercado Pago</Text>
+          <Image 
+            source={{ uri: 'https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.1/mercadopago/logo__small@2x.png' }} 
+            style={{ width: 100, height: 28, resizeMode: 'contain', tintColor: metodoPago === 'MERCADOPAGO' ? '#fff' : '#009ee3', marginBottom: 6 }} 
+          />
           <Text style={[s.pagoBtnSub, metodoPago === 'MERCADOPAGO' && { color: '#bfdbfe' }]}>Sin desc.</Text>
         </TouchableOpacity>
       </View>
@@ -722,7 +725,32 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
       await reportHistoryService.saveReporte(html, fileName);
 
-      // Cerrar modal y notificar éxito al padre
+      // Si es MercadoPago, iniciamos el flujo y salimos
+      if (metodoPago === 'MERCADOPAGO') {
+        const title = `Reserva Cancha ${selectedCancha.nombre}`;
+        const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
+        
+        onClose();
+        if (onReservaCreated) {
+          onReservaCreated({
+            html, fileName, persona, cancha: selectedCancha, fecha: selectedDate, 
+            hora: selectedHora, montoFinal, metodoPago, isEdit: !!reservaToEdit,
+            isMercadoPago: true
+          });
+        }
+        
+        // Redirigir a la URL de cobro
+        if (Platform.OS === 'web') {
+          window.location.href = mpResponse.initPoint;
+        } else {
+          const { Linking } = require('react-native');
+          Linking.openURL(mpResponse.initPoint);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Cerrar modal y notificar éxito al padre (Efectivo)
       onClose();
       if (onReservaCreated) {
         onReservaCreated({
