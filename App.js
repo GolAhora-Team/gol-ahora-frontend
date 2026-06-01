@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // IMPORTACIÓN DE PANTALLAS
@@ -28,9 +28,18 @@ export default function App() {
   const navigationRef = useNavigationContainerRef();
   const [currentRouteName, setCurrentRouteName] = useState('Login');
 
+  const appTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#06230e', // Color verde oscuro para el fondo base
+    },
+  };
+
   return (
     <NavigationContainer
       ref={navigationRef}
+      theme={appTheme}
       onReady={() => {
         setCurrentRouteName(navigationRef.getCurrentRoute()?.name);
       }}

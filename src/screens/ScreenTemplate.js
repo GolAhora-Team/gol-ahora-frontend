@@ -56,7 +56,7 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1 },
+  mainContainer: { flex: 1, backgroundColor: '#004d1a' },
   safeArea: { 
     flex: 1, 
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 0 
