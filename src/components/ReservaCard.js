@@ -27,17 +27,14 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
         const diffMs = now.getTime() - startTime.getTime();
         
         if (diffMs < 0) {
-           setRunningTime('00:00');
+           setRunningTime('0 min');
         } else {
-           const totalSecs = Math.floor(diffMs / 1000);
-           const cappedSecs = Math.min(totalSecs, 3600); // Cap at 60:00
-           const mins = Math.floor(cappedSecs / 60);
-           const secs = cappedSecs % 60;
-           setRunningTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+           const diffMins = Math.floor(diffMs / 60000);
+           setRunningTime(`${diffMins} min`);
         }
       };
       updateTimer();
-      interval = setInterval(updateTimer, 1000); // update every second for mm:ss
+      interval = setInterval(updateTimer, 60000); // update every minute
     }
     return () => {
       if (interval) clearInterval(interval);
