@@ -75,7 +75,8 @@ export default function InfoCarousel() {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ x: nextIndex * containerWidth, animated: true });
       }
-    }, 4500);
+      setActiveIndex(nextIndex);
+    }, 4000);
     return () => clearInterval(interval);
   }, [activeIndex, containerWidth]);
 
