@@ -40,6 +40,34 @@ export default function ReservaScreen({ route, navigation }) {
     try {
       setLoading(true);
 
+      const getEstadoDerivado = (r) => {
+        if (r.estado && (r.estado.toLowerCase() === 'cancelada' || r.estado.toLowerCase() === 'cancelado')) {
+          return r.estado;
+        }
+        const now = new Date();
+        try {
+          const fechaStr = r.fecha?.split('T')[0];
+          if (!fechaStr) return r.estado || 'Pendiente';
+          
+          const [year, month, day] = fechaStr.split('-').map(Number);
+          const [hInicio, mInicio] = (r.horaInicio || '00:00').split(':').map(Number);
+          const [hFin, mFin] = (r.horaFin || '00:00').split(':').map(Number);
+          
+          const inicio = new Date(year, month - 1, day, hInicio, mInicio, 0);
+          const fin = new Date(year, month - 1, day, hFin, mFin, 0);
+          
+          if (now >= fin) {
+            return 'Finalizado';
+          } else if (now >= inicio && now < fin) {
+            return 'En Juego';
+          } else {
+            return 'Pendiente';
+          }
+        } catch {
+          return r.estado || 'Pendiente';
+        }
+      };
+
       const reservasData = await reservaService.getAll();
       const mappedReservas = (reservasData || []).map(r => ({
         ...r,
@@ -51,7 +79,7 @@ export default function ReservaScreen({ route, navigation }) {
         clienteDni: r.cliente?.dni || r.clienteDni || '',
         horaInicio: r.horaInicio?.substring(0, 5) || r.horaInicio,
         horaFin: r.horaFin?.substring(0, 5) || r.horaFin,
-        estado: r.estado || 'Confirmada',
+        estado: getEstadoDerivado(r),
         fecha: r.fecha,
       }));
       setReservas(mappedReservas);

@@ -202,10 +202,22 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const days = getNext7Days();
 
-  const horarios = [];
-  for (let h = 10; h <= 23; h++) {
-    horarios.push(`${h.toString().padStart(2, '0')}:00`);
-  }
+  const horarios = (() => {
+    const todos = [];
+    for (let h = 10; h <= 23; h++) {
+      todos.push(`${h.toString().padStart(2, '0')}:00`);
+    }
+    if (!selectedDate) return todos;
+    
+    const now = new Date();
+    if (selectedDate.toDateString() === now.toDateString()) {
+      return todos.filter(hStr => {
+        const hInt = parseInt(hStr.split(':')[0], 10);
+        return hInt > now.getHours();
+      });
+    }
+    return todos;
+  })();
 
   const scrollDays = (direction) => {
     if (scrollRef.current) {
@@ -263,23 +275,27 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
           <Text style={s.fieldLabel}>Seleccionar horario</Text>
           {errors?.hora && <Text style={s.errorText}>{errors.hora}</Text>}
           <View style={s.horariosGrid}>
-            {horarios.map(h => {
-              const ocupada = isHoraOcupada(h);
-              const isSelected = selectedHora === h;
-              return (
-                <TouchableOpacity
-                  key={h}
-                  style={[s.horaBtn, ocupada && s.horaBtnOcupada, isSelected && !ocupada && s.horaBtnSelected]}
-                  disabled={ocupada}
-                  onPress={() => setSelectedHora(h)}
-                >
-                  <Text style={[s.horaBtnText, ocupada && { color: '#cbd5e1' }, isSelected && !ocupada && { color: '#fff' }]}>
-                    {h}
-                  </Text>
-                  {ocupada && <Text style={s.horaBtnOcupadaLabel}>Ocupado</Text>}
-                </TouchableOpacity>
-              );
-            })}
+            {horarios.length === 0 ? (
+              <Text style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: 10 }}>Ya no hay horarios disponibles para el día de hoy.</Text>
+            ) : (
+              horarios.map(h => {
+                const ocupada = isHoraOcupada(h);
+                const isSelected = selectedHora === h;
+                return (
+                  <TouchableOpacity
+                    key={h}
+                    style={[s.horaBtn, ocupada && s.horaBtnOcupada, isSelected && !ocupada && s.horaBtnSelected]}
+                    disabled={ocupada}
+                    onPress={() => setSelectedHora(h)}
+                  >
+                    <Text style={[s.horaBtnText, ocupada && { color: '#cbd5e1' }, isSelected && !ocupada && { color: '#fff' }]}>
+                      {h}
+                    </Text>
+                    {ocupada && <Text style={s.horaBtnOcupadaLabel}>Ocupado</Text>}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </>
       )}
@@ -499,6 +515,18 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     const errs = {};
     if (!selectedDate) errs.fecha = 'Seleccioná un día para la reserva.';
     if (!selectedHora) errs.hora = 'Seleccioná un horario para la reserva.';
+
+    if (selectedDate && selectedHora) {
+      const now = new Date();
+      const [horas, minutos] = selectedHora.split(':').map(Number);
+      const reservaDateTime = new Date(selectedDate);
+      reservaDateTime.setHours(horas, minutos, 0, 0);
+
+      if (reservaDateTime < now) {
+        errs.hora = 'No podés reservar en un horario que ya pasó.';
+      }
+    }
+
     if (Object.keys(errs).length > 0) { setErrors(errs); return false; }
     setErrors({});
     return true;
