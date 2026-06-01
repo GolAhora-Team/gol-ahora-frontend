@@ -373,8 +373,8 @@ export default function UserScreen({ route, navigation }) {
 
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          style={{ flex: 1, paddingRight: 25 }}
+          showsVerticalScrollIndicator={true} 
+          style={{ flex: 1 }}
           ref={scrollViewRef}
         >
           {sections.map(section => (
@@ -396,23 +396,6 @@ export default function UserScreen({ route, navigation }) {
             </View>
           ))}
         </ScrollView>
-        
-        {/* Barra Lateral (Roles) */}
-        <View style={styles.alphabetBar}>
-          {roleOrder.map(r => {
-            const hasData = sections.some(s => s.role === r);
-            return (
-              <TouchableOpacity 
-                key={r} 
-                onPress={() => hasData && scrollToRole(r)}
-                style={{ paddingVertical: 12, paddingHorizontal: 5, alignItems: 'center' }}
-              >
-                <MaterialCommunityIcons name={rolesIcons[r]} size={18} color={hasData ? '#009b3a' : '#cbd5e1'} />
-                <Text style={[styles.roleNavText, !hasData && { color: '#cbd5e1' }]}>{r.substring(0, 3)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
       </View>
 
       <UserFormModal 
@@ -463,7 +446,5 @@ const styles = StyleSheet.create({
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
   roleSection: { marginBottom: 25 },
   roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, backgroundColor: '#ffb300', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, alignSelf: 'flex-start' },
-  roleHeaderText: { color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8 },
-  alphabetBar: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', width: 45, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, shadowColor: '#000', shadowOffset: { width: -2, height: 0 }, shadowOpacity: 0.1, shadowRadius: 5 },
-  roleNavText: { fontSize: 9, fontWeight: '900', color: '#009b3a', marginTop: 2 }
+  roleHeaderText: { color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8 }
 });

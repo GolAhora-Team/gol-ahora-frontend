@@ -57,9 +57,16 @@ export default function InfoCarousel() {
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < 600;
   
+  const MULTIPLIER = 50;
+  const extendedSlides = Array.from({ length: MULTIPLIER }).flatMap((_, i) => 
+    slides.map(s => ({ ...s, uniqueId: `${i}-${s.id}` }))
+  );
+  const START_INDEX = slides.length * Math.floor(MULTIPLIER / 2);
+
   const scrollViewRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(START_INDEX);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [isReady, setIsReady] = useState(false);
 
   // El slide toma un 85% en móvil y un 60% en web (max 550px) para dejar ver los costados
   const slideWidth = isMobile ? containerWidth * 0.85 : Math.min(550, containerWidth * 0.6);
@@ -73,11 +80,26 @@ export default function InfoCarousel() {
   };
 
   useEffect(() => {
-    if (containerWidth === 0 || slideWidth === 0) return;
+    if (slideWidth > 0 && scrollViewRef.current && !isReady) {
+      scrollViewRef.current.scrollTo({ x: START_INDEX * slideWidth, animated: false });
+      setIsReady(true);
+    }
+  }, [slideWidth, isReady]);
+
+  useEffect(() => {
+    if (containerWidth === 0 || slideWidth === 0 || !isReady) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => {
         let nextIndex = prev + 1;
-        if (nextIndex >= slides.length) nextIndex = 0;
+        // Si el usuario llega muy cerca del final, lo reiniciamos silenciosamente al centro
+        if (nextIndex >= extendedSlides.length - slides.length) {
+          nextIndex = START_INDEX;
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: false });
+          }
+          return nextIndex;
+        }
+
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ x: nextIndex * slideWidth, y: 0, animated: true });
         }
@@ -85,7 +107,9 @@ export default function InfoCarousel() {
       });
     }, 2000);
     return () => clearInterval(interval);
-  }, [containerWidth, slideWidth]);
+  }, [containerWidth, slideWidth, isReady]);
+
+  const realIndex = activeIndex % slides.length;
 
   return (
     <View
@@ -101,14 +125,14 @@ export default function InfoCarousel() {
             snapToInterval={slideWidth}
             decelerationRate="fast"
             snapToAlignment="center"
-            contentContainerStyle={{ paddingHorizontal: Math.max(0, padding) }}
+            contentContainerStyle={{ paddingHorizontal: Math.max(0, padding), alignItems: 'stretch' }}
             onMomentumScrollEnd={handleScroll}
             scrollEventThrottle={16}
             style={{ width: containerWidth }}
           >
-            {slides.map((slide) => (
-              <View key={slide.id} style={{ width: slideWidth, paddingHorizontal: 10, justifyContent: 'center' }}>
-                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40' }]}>
+            {extendedSlides.map((slide, i) => (
+              <View key={slide.uniqueId} style={{ width: slideWidth, paddingHorizontal: 10, justifyContent: 'center' }}>
+                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40', height: '100%' }]}>
                   <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
                     <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
                   </View>
@@ -130,7 +154,7 @@ export default function InfoCarousel() {
             key={index}
             style={[
               styles.dot,
-              activeIndex === index ? styles.activeDot : styles.inactiveDot
+              realIndex === index ? styles.activeDot : styles.inactiveDot
             ]}
           />
         ))}

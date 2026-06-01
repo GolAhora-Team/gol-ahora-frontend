@@ -6,6 +6,21 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
   // Manejo de errores de datos: si no hay item, no renderizamos nada
   if (!item) return null;
 
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return null;
+    const nacimiento = new Date(fechaNacimiento);
+    if (isNaN(nacimiento)) return null;
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+
+  const edad = calcularEdad(item.fechaNacimiento);
+
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -16,7 +31,7 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
         
         <View style={styles.specRow}>
           <Text style={styles.specText}>
-            DNI: {item.dni || 'N/A'} • Tel: {item.telefono || 'N/A'}
+            DNI: {item.dni || 'N/A'} • Tel: {item.telefono || 'N/A'}{edad !== null ? ` • Edad: ${edad} años` : ''}
           </Text>
         </View>
         
