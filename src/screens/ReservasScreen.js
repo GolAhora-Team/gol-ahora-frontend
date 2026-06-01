@@ -448,12 +448,9 @@ export default function ReservaScreen({ route, navigation }) {
             <ScrollView showsVerticalScrollIndicator={false}>
               {reservas.filter(r => r.estado === 'En Juego').map((reserva) => {
                 const now = new Date();
-                const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
                 const [h, m] = (reserva.horaFin || '00:00').split(':').map(Number);
-                const dateStr = argTime.toISOString().split('T')[0];
-                const [year, month, day] = dateStr.split('-').map(Number);
-                const endTime = new Date(year, month - 1, day, h, m, 0);
-                const diff = endTime.getTime() - argTime.getTime();
+                const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+                const diff = endTime.getTime() - now.getTime();
                 const mins = diff > 0 ? Math.floor(diff / 60000) : 0;
 
                 return (
