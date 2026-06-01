@@ -405,11 +405,13 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
 }
 
 // ─── PASO 5: CONFIRMACIÓN ──────────────────────────────────────────────────────
-function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase, esSocio }) {
+function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase, esSocio, currentUserRole }) {
   const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
   const descSocio = esSocio ? precioBase * 0.10 : 0;
   const montoFinal = precioBase - descEfectivo - descSocio;
   const fechaStr = fecha ? fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  
+  const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
 
   return (
     <View>
@@ -444,6 +446,17 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
           <Text style={s.confirmTotalValue}>${montoFinal.toLocaleString('es-AR')}</Text>
         </View>
       </View>
+
+      {metodoPago === 'MERCADOPAGO' && isAdminOrPersonal && (
+        <View style={{ marginTop: 15, padding: 15, backgroundColor: '#f0fdf4', borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0' }}>
+          <Text style={{ fontSize: 13, color: '#15803d', fontWeight: 'bold' }}>
+            El cliente debe transferir el monto exacto al Alias: GOL.AHORA.MP
+          </Text>
+          <Text style={{ fontSize: 12, color: '#166534', marginTop: 5 }}>
+            Una vez que recibas y valides la transferencia en la cuenta, hacé click en Confirmar Reserva.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -725,8 +738,10 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
       await reportHistoryService.saveReporte(html, fileName);
 
-      // Si es MercadoPago, iniciamos el flujo y salimos
-      if (metodoPago === 'MERCADOPAGO') {
+      // Si es MercadoPago y es un cliente quien lo hace, iniciamos el flujo de la API y salimos
+      const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+      
+      if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
         const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
         
@@ -750,7 +765,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         return;
       }
 
-      // Cerrar modal y notificar éxito al padre
+      // Si es pago local (Efectivo o MercadoPago manejado por Admin), cerramos y notificamos
       onClose();
       if (onReservaCreated) {
         onReservaCreated({
@@ -843,6 +858,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
                 cancha={selectedCancha} persona={getPersona()}
                 fecha={selectedDate} hora={selectedHora}
                 metodoPago={metodoPago} precioBase={getPrecioBase()} esSocio={esSocio()}
+                currentUserRole={currentUserRole}
               />
             )}
           </ScrollView>
