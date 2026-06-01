@@ -7,7 +7,8 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
 
   const isFinalizado = item.estado === 'Finalizado';
   const isEnJuego = item.estado === 'En Juego';
-  const isCancelada = item.estado?.toLowerCase() === 'cancelada';
+  const isCancelada = item.estado?.toLowerCase() === 'cancelada' || item.estado?.toLowerCase() === 'cancelado';
+  const isPendiente = item.estado === 'Pendiente';
 
   // Solo se pueden modificar si no están finalizadas, en juego o canceladas
   const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada;
@@ -76,12 +77,16 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
           <View style={[
             styles.statusBadge, 
             isEnJuego && { backgroundColor: '#10b981' },
-            isFinalizado && { backgroundColor: '#cbd5e1' }
+            isPendiente && { backgroundColor: '#fef08a' },
+            isFinalizado && { backgroundColor: '#bae6fd' },
+            isCancelada && { backgroundColor: '#fca5a5' }
           ]}>
             <Text style={[
               styles.statusText, 
               isEnJuego && { color: '#fff' },
-              isFinalizado && { color: '#475569' }
+              isPendiente && { color: '#854d0e' },
+              isFinalizado && { color: '#0369a1' },
+              isCancelada && { color: '#7f1d1d' }
             ]}>
               {(item.estado || '').toUpperCase()}
             </Text>
