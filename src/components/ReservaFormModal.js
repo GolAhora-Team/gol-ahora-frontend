@@ -359,12 +359,9 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
         >
           <Image 
             source={require('../../assets/mercadopagoLogo.png')} 
-            style={[
-              { width: 150, height: 45, resizeMode: 'contain', marginBottom: 4 },
-              metodoPago === 'MERCADOPAGO' ? { tintColor: '#fff' } : null
-            ]} 
+            style={{ width: 180, height: 60, resizeMode: 'contain', marginBottom: 4 }} 
           />
-          <Text style={[s.pagoBtnSub, metodoPago === 'MERCADOPAGO' && { color: '#bfdbfe' }]}>Sin desc.</Text>
+          <Text style={[s.pagoBtnSub, metodoPago === 'MERCADOPAGO' && { color: '#009ee3' }]}>Sin desc.</Text>
         </TouchableOpacity>
       </View>
 
@@ -965,7 +962,7 @@ const s = StyleSheet.create({
 
   pagoBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, borderWidth: 2, borderColor: '#009b3a', gap: 4 },
   pagoBtnActive: { backgroundColor: '#009b3a' },
-  pagoBtnActiveMP: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+  pagoBtnActiveMP: { backgroundColor: '#f0f9ff', borderColor: '#009ee3' },
   pagoBtnText: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
   pagoBtnSub: { fontSize: 10, fontWeight: '700', color: '#94a3b8' },
 
