@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
+import { clienteService } from '../services/clienteService';
+
+export default function ManageInscripcionesModal({ visible, onClose, actividad, onUpdate }) {
+  const [inscriptos, setInscriptos] = useState([]);
+  const [allClientes, setAllClientes] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    if (visible && actividad) {
+      loadData();
+    }
+  }, [visible, actividad]);
+
+  const loadData = async () => {
+    setLoading(true);
+    setSearch('');
+    try {
+      // Cargar los inscriptos de la actividad actual
+      let currentInscriptos = [];
+      if (actividad.tipo === 'CLASE') {
+        const data = await claseService.getById(actividad.id);
+        currentInscriptos = data.clientes || data.alumnos || [];
+      } else if (actividad.tipo === 'ENTRENAMIENTO') {
+        const data = await entrenamientoService.getById(actividad.id);
+        currentInscriptos = data.clientes || data.alumnos || [];
+      } else {
+        // En caso de ligas no lo soportamos en este modal, pero para evitar errores:
+        currentInscriptos = [];
+      }
+      setInscriptos(currentInscriptos);
+
+      // Cargar todos los clientes para buscar
+      const clientesData = await clienteService.getAll();
+      setAllClientes(clientesData || []);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudieron cargar los datos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = (clienteId) => {
+    Alert.alert('Desinscribir', '¿Seguro que desea quitar a este usuario de la actividad?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Quitar', style: 'destructive', onPress: () => executeRemove(clienteId) }
+    ]);
+  };
+
+  const executeRemove = async (clienteId) => {
+    setActionLoading(true);
+    try {
+      if (actividad.tipo === 'CLASE') {
+        await claseService.removeCliente(actividad.id, clienteId);
+      } else if (actividad.tipo === 'ENTRENAMIENTO') {
+        await entrenamientoService.removeCliente(actividad.id, clienteId);
+      }
+      await loadData();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo quitar al usuario.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAdd = async (clienteId) => {
+    setActionLoading(true);
+    try {
+      if (actividad.tipo === 'CLASE') {
+        await claseService.addCliente(actividad.id, clienteId);
+      } else if (actividad.tipo === 'ENTRENAMIENTO') {
+        await entrenamientoService.addCliente(actividad.id, clienteId);
+      }
+      setSearch('');
+      await loadData();
+      if (onUpdate) onUpdate();
+      Alert.alert('Éxito', 'Usuario inscrito correctamente.');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo inscribir al usuario. Puede que ya esté inscripto o el cupo esté lleno.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Clientes que no están inscriptos aún
+  const inscriptosIds = inscriptos.map(i => i.id?.toString() || i.id);
+  const availableClientes = allClientes.filter(c => !inscriptosIds.includes(c.id?.toString()));
+  
+  const filteredClientes = availableClientes.filter(c => {
+    const s = search.toLowerCase();
+    const fullname = `${c.nombre} ${c.apellido}`.toLowerCase();
+    const dni = c.dni ? c.dni.toString() : '';
+    return fullname.includes(s) || dni.includes(s);
+  });
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={true}>
+      <View style={styles.overlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Gestionar Inscriptos</Text>
+              <Text style={styles.subtitle}>{actividad?.nombre} ({actividad?.tipo})</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} disabled={actionLoading}>
+              <MaterialCommunityIcons name="close" size={28} color="#94a3b8" />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              
+              <Text style={styles.sectionLabel}>Usuarios Inscriptos ({inscriptos.length})</Text>
+              {inscriptos.length === 0 ? (
+                <Text style={styles.emptyText}>No hay nadie inscripto aún.</Text>
+              ) : (
+                inscriptos.map((user, idx) => (
+                  <View key={user.id || idx} style={styles.userCard}>
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{user.nombre} {user.apellido}</Text>
+                      <Text style={styles.userDni}>DNI: {user.dni}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.removeBtn} 
+                      onPress={() => handleRemove(user.id)}
+                      disabled={actionLoading}
+                    >
+                      <MaterialCommunityIcons name="account-remove" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionLabel}>Inscribir Nuevo Usuario</Text>
+              <View style={styles.searchBox}>
+                <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+                <TextInput 
+                  style={styles.searchInput}
+                  placeholder="Buscar por nombre o DNI..."
+                  value={search}
+                  onChangeText={setSearch}
+                />
+              </View>
+
+              {search.length > 0 && (
+                filteredClientes.length === 0 ? (
+                  <Text style={styles.emptyText}>No se encontraron usuarios.</Text>
+                ) : (
+                  filteredClientes.map(user => (
+                    <View key={user.id} style={styles.userCard}>
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>{user.nombre} {user.apellido}</Text>
+                        <Text style={styles.userDni}>DNI: {user.dni}</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.addBtn} 
+                        onPress={() => handleAdd(user.id)}
+                        disabled={actionLoading}
+                      >
+                        <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
+                        <Text style={styles.addBtnText}>Inscribir</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )).slice(0, 5) // mostrar solo los primeros 5 en la búsqueda
+                )
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, maxHeight: '90%' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+  subtitle: { fontSize: 13, fontWeight: '700', color: '#009b3a', marginTop: 2 },
+  sectionLabel: { fontSize: 15, fontWeight: '800', color: '#64748b', marginTop: 10, marginBottom: 10 },
+  emptyText: { fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 15 },
+  userCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
+  userInfo: { flex: 1 },
+  userName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  userDni: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
+  addBtnText: { color: '#fff', fontWeight: '800', fontSize: 12, marginLeft: 4 },
+  divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 20 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 15, borderRadius: 12, marginBottom: 15 },
+  searchInput: { flex: 1, height: 45, marginLeft: 10, color: '#1e293b', fontSize: 14 }
+});
