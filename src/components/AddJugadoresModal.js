@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { clienteService } from '../services/clienteService';
+import { jugadorService } from '../services/jugadorService';
 
 const POSICIONES = [
   { label: 'ARQ', value: 1, color: '#f59e0b', icon: 'account-outline' },
@@ -14,6 +15,7 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
   const [clientes, setClientes] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [selectedJugadores, setSelectedJugadores] = useState([]);
 
   // Sub-modal state: when a client is clicked, show position/number picker
@@ -33,8 +35,15 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
   const loadClientes = async () => {
     try {
       setLoading(true);
-      const data = await clienteService.getAll();
-      setClientes(data || []);
+      const [data, allJugadores] = await Promise.all([
+        clienteService.getAll(),
+        jugadorService.getAll()
+      ]);
+      const equipoJugadores = (allJugadores || []).filter(j => j.equipoId?.toString() === equipoId?.toString());
+      const equipoClientesIds = new Set(equipoJugadores.map(j => j.clienteId?.toString()));
+      const clientesDisponibles = (data || []).filter(c => !equipoClientesIds.has(c.id?.toString()));
+      
+      setClientes(clientesDisponibles);
     } catch (error) {
       console.error('Error loading clientes:', error);
     } finally {
@@ -159,15 +168,21 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
               <Text style={styles.cancelText}>CANCELAR</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.confirmBtn, selectedJugadores.length === 0 && styles.confirmBtnDisabled]}
-              onPress={() => {
-                if (selectedJugadores.length > 0) {
-                  onConfirm(selectedJugadores);
+              style={[styles.confirmBtn, (selectedJugadores.length === 0 || isConfirming) && styles.confirmBtnDisabled]}
+              onPress={async () => {
+                if (selectedJugadores.length > 0 && !isConfirming) {
+                  setIsConfirming(true);
+                  await onConfirm(selectedJugadores);
+                  setIsConfirming(false);
                 }
               }}
-              disabled={selectedJugadores.length === 0}
+              disabled={selectedJugadores.length === 0 || isConfirming}
             >
-              <Text style={styles.confirmText}>CONFIRMAR ({selectedJugadores.length})</Text>
+              {isConfirming ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.confirmText}>CONFIRMAR ({selectedJugadores.length})</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
