@@ -117,8 +117,24 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
                         {c.nombre} {c.apellido}
                       </Text>
                       <Text style={[s.clienteResultDni, isSelected && { color: '#d1fae5' }]}>
-                        DNI: {c.dni} {c.esSocioActivo ? '• ⭐ SOCIO' : ''}
+                        DNI: {c.dni}
                       </Text>
+                      {(c.aptoFisico || c.esSocioActivo) && (
+                        <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                          {c.aptoFisico && (
+                            <View style={[s.badge, s.badgeApto]}>
+                              <MaterialCommunityIcons name="heart-pulse" size={12} color="#059669" />
+                              <Text style={s.badgeTextApto}>Apto Físico</Text>
+                            </View>
+                          )}
+                          {c.esSocioActivo && (
+                            <View style={[s.badge, s.badgeSocio]}>
+                              <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
+                              <Text style={s.badgeTextSocio}>Socio Activo</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
                     </View>
                     {isSelected && <MaterialCommunityIcons name="check-circle" size={22} color="#fff" />}
                   </TouchableOpacity>
@@ -137,9 +153,20 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
               <View style={{ marginLeft: 10 }}>
                 <Text style={s.selectedClienteName}>{selectedCliente.nombre} {selectedCliente.apellido}</Text>
                 <Text style={s.selectedClienteInfo}>DNI: {selectedCliente.dni} • Tel: {selectedCliente.telefono || 'N/A'}</Text>
-                {selectedCliente.esSocioActivo && (
-                  <Text style={s.socioBadge}>⭐ SOCIO ACTIVO - 10% DESC.</Text>
-                )}
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                  {selectedCliente.aptoFisico && (
+                    <View style={[s.badge, s.badgeApto]}>
+                      <MaterialCommunityIcons name="heart-pulse" size={12} color="#059669" />
+                      <Text style={s.badgeTextApto}>Apto Físico</Text>
+                    </View>
+                  )}
+                  {selectedCliente.esSocioActivo && (
+                    <View style={[s.badge, s.badgeSocio]}>
+                      <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
+                      <Text style={s.badgeTextSocio}>Socio Activo - 10% DESC.</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
           )}
@@ -937,4 +964,10 @@ const s = StyleSheet.create({
   nextBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
   confirmBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, gap: 4, alignSelf: 'flex-start' },
+  badgeApto: { backgroundColor: '#d1fae5' },
+  badgeTextApto: { color: '#059669', fontSize: 10, fontWeight: '800' },
+  badgeSocio: { backgroundColor: '#fef3c7' },
+  badgeTextSocio: { color: '#d97706', fontSize: 10, fontWeight: '800' }
 });

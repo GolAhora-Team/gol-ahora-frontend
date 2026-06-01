@@ -67,7 +67,9 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
 
       <View style={styles.infoSide}>
         <Text style={[styles.canchaName, isFinalizado && { color: '#64748b' }]}>{item.canchaNombre}</Text>
-        <Text style={styles.clienteName}>{item.clienteNombre}</Text>
+        <Text style={styles.clienteName}>
+          {item.clienteNombre} {item.clienteEdad ? `(${item.clienteEdad} años)` : ''}
+        </Text>
         
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 5 }}>
           <View style={[

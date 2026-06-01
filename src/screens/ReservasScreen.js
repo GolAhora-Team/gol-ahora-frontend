@@ -161,6 +161,20 @@ export default function ReservaScreen({ route, navigation }) {
         }
       };
 
+      const calculateAge = (dobString) => {
+        if (!dobString) return null;
+        try {
+          const dob = new Date(dobString);
+          const today = new Date();
+          let age = today.getFullYear() - dob.getFullYear();
+          const m = today.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+          }
+          return age;
+        } catch(e) { return null; }
+      };
+
       const reservasData = await reservaService.getAll();
       const mappedReservas = (reservasData || []).map(r => ({
         ...r,
@@ -170,6 +184,7 @@ export default function ReservaScreen({ route, navigation }) {
         canchaType: r.cancha?.tipo || '',
         clienteNombre: r.cliente ? `${r.cliente.nombre} ${r.cliente.apellido || ''}`.trim() : (r.clienteNombre || ''),
         clienteDni: r.cliente?.dni || r.clienteDni || '',
+        clienteEdad: r.cliente?.fechaNacimiento ? calculateAge(r.cliente.fechaNacimiento) : null,
         horaInicio: r.horaInicio?.substring(0, 5) || r.horaInicio,
         horaFin: r.horaFin?.substring(0, 5) || r.horaFin,
         estado: getEstadoDerivado(r),
@@ -394,7 +409,7 @@ export default function ReservaScreen({ route, navigation }) {
 
                 <View style={styles.viewRow}>
                   <Text style={styles.viewLabel}>CLIENTE</Text>
-                  <Text style={styles.viewValue}>{viewingReserva.clienteNombre || 'N/A'}</Text>
+                  <Text style={styles.viewValue}>{viewingReserva.clienteNombre || 'N/A'} {viewingReserva.clienteEdad ? `(${viewingReserva.clienteEdad} años)` : ''}</Text>
                 </View>
                 <View style={styles.viewRow}>
                   <Text style={styles.viewLabel}>CANCHA</Text>
