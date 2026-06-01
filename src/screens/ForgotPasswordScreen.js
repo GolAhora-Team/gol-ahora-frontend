@@ -8,7 +8,9 @@ import {
   Platform, 
   TouchableOpacity,
   StatusBar,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Background from '../components/Background';

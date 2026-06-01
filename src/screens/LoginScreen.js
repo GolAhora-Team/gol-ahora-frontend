@@ -254,19 +254,8 @@ const LoginScreen = ({ navigation, route }) => {
             <Footer />
             <View style={styles.dataFiscalContainer}>
               <View style={styles.dataFiscalTextContainer}>
-                
-                <View style={styles.fiscalRow}>
-                  <Text style={styles.dataFiscalText}>Gol</Text>
-                  <Text style={styles.dataFiscalText}>Ahora</Text>
-                  <Text style={styles.dataFiscalText}>Argentina</Text>
-                </View>
-
-                <View style={styles.fiscalRow}>
-                  <Text style={styles.dataFiscalText}>S.A.</Text>
-                  <Text style={styles.dataFiscalText}>CUIT:</Text>
-                  <Text style={styles.dataFiscalText}>30-12345678-3</Text>
-                </View>
-
+                <Text style={styles.dataFiscalText}>Complejo Gol Ahora Argentina</Text>
+                <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
               </View>
               <Image 
                 source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }} 
@@ -348,9 +337,8 @@ const styles = StyleSheet.create({
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
   linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
   dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
-  dataFiscalTextContainer: { marginRight: 15, width: 170 },
-  fiscalRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 12 },
+  dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
   dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4 }
 });
 
