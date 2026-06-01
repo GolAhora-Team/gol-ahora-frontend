@@ -105,7 +105,7 @@ export default function InfoCarousel() {
         }
         return nextIndex;
       });
-    }, 2000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [containerWidth, slideWidth, isReady]);
 
@@ -132,13 +132,13 @@ export default function InfoCarousel() {
           >
             {extendedSlides.map((slide, i) => (
               <View key={slide.uniqueId} style={{ width: slideWidth, paddingHorizontal: 10, justifyContent: 'center' }}>
-                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40', height: '100%' }]}>
-                  <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
-                    <MaterialCommunityIcons name={slide.icon} size={42} color={slide.color} />
+                <View style={[styles.slideInner, { backgroundColor: slide.bg, borderColor: slide.color + '40', height: '100%' }, isMobile && styles.slideInnerMobile]}>
+                  <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }, isMobile && styles.iconContainerMobile]}>
+                    <MaterialCommunityIcons name={slide.icon} size={isMobile ? 36 : 42} color={slide.color} />
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={[styles.title, { color: slide.color }]} selectable={false}>{slide.title}</Text>
-                    <Text style={styles.desc} selectable={false}>{slide.desc}</Text>
+                  <View style={[styles.textContainer, isMobile && styles.textContainerMobile]}>
+                    <Text style={[styles.title, { color: slide.color }, isMobile && styles.titleMobile]} selectable={false}>{slide.title}</Text>
+                    <Text style={[styles.desc, isMobile && styles.descMobile]} selectable={false}>{slide.desc}</Text>
                   </View>
                 </View>
               </View>
@@ -207,6 +207,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
     ...Platform.select({ web: { userSelect: 'none' } })
+  },
+  slideInnerMobile: {
+    flexDirection: 'column',
+    padding: 20,
+    justifyContent: 'center',
+  },
+  iconContainerMobile: {
+    marginRight: 0,
+    marginBottom: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  textContainerMobile: {
+    alignItems: 'center',
+    flex: 0,
+  },
+  titleMobile: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  descMobile: {
+    fontSize: 12,
+    textAlign: 'center',
   },
   dotsContainer: {
     flexDirection: 'row',
