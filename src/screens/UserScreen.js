@@ -373,7 +373,7 @@ export default function UserScreen({ route, navigation }) {
 
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <ScrollView 
-          showsVerticalScrollIndicator={true} 
+          showsVerticalScrollIndicator={false} 
           style={{ flex: 1 }}
           ref={scrollViewRef}
         >
@@ -396,6 +396,23 @@ export default function UserScreen({ route, navigation }) {
             </View>
           ))}
         </ScrollView>
+
+        {/* Barra de Navegación Lateral (No se solapa porque está en un flex-row) */}
+        <View style={styles.sideNav}>
+          {roleOrder.map(r => {
+            const hasData = sections.some(s => s.role === r);
+            return (
+              <TouchableOpacity 
+                key={r} 
+                onPress={() => hasData && scrollToRole(r)}
+                style={[styles.navItem, !hasData && { opacity: 0.4 }]}
+              >
+                <MaterialCommunityIcons name={rolesIcons[r]} size={24} color={hasData ? '#009b3a' : '#94a3b8'} />
+                <Text style={styles.navText} numberOfLines={1}>{r.substring(0, 3)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <UserFormModal 
@@ -446,5 +463,8 @@ const styles = StyleSheet.create({
   addButtonText: { fontWeight: '900', marginLeft: 5, color: '#fff' },
   roleSection: { marginBottom: 25 },
   roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, backgroundColor: '#ffb300', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, alignSelf: 'flex-start' },
-  roleHeaderText: { color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8 }
+  roleHeaderText: { color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8 },
+  sideNav: { width: 55, backgroundColor: '#fff', borderRadius: 16, marginLeft: 15, paddingVertical: 10, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, alignItems: 'center', justifyContent: 'space-evenly', borderWidth: 1, borderColor: '#f1f5f9' },
+  navItem: { alignItems: 'center', justifyContent: 'center', width: '100%', paddingVertical: 10 },
+  navText: { fontSize: 10, fontWeight: '900', color: '#1e293b', marginTop: 4 }
 });
