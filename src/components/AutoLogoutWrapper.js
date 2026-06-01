@@ -1,22 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, PanResponder, Platform } from 'react-native';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
 
-export default function AutoLogoutWrapper({ children }) {
-  const navigation = useNavigation();
-  const currentRouteName = useNavigationState(state => {
-    if (!state) return 'Login';
-    const route = state.routes[state.index];
-    return route.name;
-  });
-
+export default function AutoLogoutWrapper({ children, navigationRef, currentRouteName }) {
   const idleTimer = useRef(null);
 
   const resetTimer = () => {
-    // Si estamos en pantallas públicas, no aplicamos el timeout
-    if (['Login', 'Register', 'ForgotPassword'].includes(currentRouteName)) {
+    // Si no hay ruta o estamos en pantallas públicas, no aplicamos el timeout
+    if (!currentRouteName || ['Login', 'Register', 'ForgotPassword'].includes(currentRouteName)) {
       clearTimers();
       return;
     }
@@ -28,17 +20,20 @@ export default function AutoLogoutWrapper({ children }) {
   };
 
   const handleIdle = () => {
-    // Cerrar sesión
+    // Cerrar sesión local (web)
     if (Platform.OS === 'web') {
       try {
         localStorage.removeItem('GOL_AHORA_SESSION');
       } catch(e) {}
     }
+    
     // Redirigir a Login con el parámetro de inactividad
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login', params: { sessionClosedByInactivity: true } }],
-    });
+    if (navigationRef && navigationRef.isReady()) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: 'Login', params: { sessionClosedByInactivity: true } }],
+      });
+    }
   };
 
   const clearTimers = () => {
