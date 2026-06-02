@@ -11,7 +11,8 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   Alert,
-  Modal
+  Modal,
+  TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -287,7 +288,7 @@ export default function RegisterScreen({ navigation }) {
                           <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45 }}>
                             <MaterialCommunityIcons name="hospital-box" size={20} color="#666" style={{marginRight: 10}} />
                             <TextInput
-                              style={{ flex: 1, fontSize: 14, color: '#333', outlineStyle: 'none' }}
+                              style={{ flex: 1, fontSize: 14, color: '#333', ...Platform.select({ web: { outlineStyle: 'none' } }) }}
                               value={obraSocial}
                               onChangeText={v => {
                                 setObraSocial(v);
