@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, Platform, Modal, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -7,6 +7,8 @@ import * as FileSystem from 'expo-file-system';
 import ScreenTemplate from './ScreenTemplate';
 import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { claseService } from '../services/claseService';
+import { asistenciaStorage } from '../components/AsistenciaModal';
 
 export default function ReportesScreen({ route, navigation }) {
   const { width } = useWindowDimensions();
@@ -19,6 +21,9 @@ export default function ReportesScreen({ route, navigation }) {
   const [ordenFecha, setOrdenFecha] = useState('desc');
   const [modalVerVisible, setModalVerVisible] = useState(false);
   const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
+  const [asistenciaData, setAsistenciaData] = useState([]);
+  const [asistenciaLoading, setAsistenciaLoading] = useState(false);
+  const [expandedClase, setExpandedClase] = useState(null);
   const estadisticas = getEstadisticas();
   const dataActual = estadisticas[reporteActivo];
 
@@ -31,7 +36,54 @@ export default function ReportesScreen({ route, navigation }) {
         setHistorialUsuarios(usuariosFiltered);
       });
     }
+    if (reporteActivo === 'Asistencia') {
+      loadAsistenciaData();
+    }
   }, [reporteActivo]);
+
+  const loadAsistenciaData = async () => {
+    setAsistenciaLoading(true);
+    try {
+      const clases = await claseService.getAll();
+      const result = (clases || []).map(clase => {
+        const allRecords = asistenciaStorage.getAll(clase.id?.toString());
+        const dates = Object.keys(allRecords);
+        const alumnos = clase.clientes || [];
+
+        const alumnosStats = alumnos.map(alumno => {
+          let presentes = 0;
+          let totalClases = dates.length;
+          dates.forEach(fecha => {
+            const reg = allRecords[fecha];
+            const found = reg?.find(r => r.id === alumno.id);
+            if (found && found.estado === true) presentes++;
+          });
+          const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : 0;
+          return {
+            id: alumno.id,
+            nombre: `${alumno.nombre} ${alumno.apellido || ''}`.trim(),
+            presentes,
+            totalClases,
+            porcentaje
+          };
+        });
+
+        return {
+          id: clase.id?.toString(),
+          nombre: clase.nombre,
+          horario: clase.horario,
+          totalAlumnos: alumnos.length,
+          totalClasesRegistradas: dates.length,
+          alumnosStats
+        };
+      });
+      setAsistenciaData(result);
+    } catch (error) {
+      console.error('Error loading asistencia:', error);
+    } finally {
+      setAsistenciaLoading(false);
+    }
+  };
 
   const downloadPdf = async (pdfData) => {
     if (Platform.OS === 'web') {
@@ -264,6 +316,67 @@ export default function ReportesScreen({ route, navigation }) {
             )}
             <View style={{ height: 100 }} />
           </ScrollView>
+        ) : reporteActivo === 'Asistencia' ? (
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            <View style={styles.kpiCard}>
+              <MaterialCommunityIcons name="account-check" size={32} color="#ffb300" />
+              <View style={{ marginLeft: 15 }}>
+                <Text style={styles.kpiLabel}>ASISTENCIA POR CLASE</Text>
+                <Text style={styles.kpiValue}>{asistenciaData.length} Clases</Text>
+                <Text style={styles.kpiSub}>Detalle de presentismo por alumno</Text>
+              </View>
+            </View>
+
+            {asistenciaLoading ? (
+              <ActivityIndicator size="large" color="#ffb300" style={{ marginTop: 30 }} />
+            ) : asistenciaData.length === 0 ? (
+              <Text style={{ color: '#94a3b8', textAlign: 'center', marginTop: 30, fontStyle: 'italic' }}>No hay clases con registros de asistencia.</Text>
+            ) : (
+              asistenciaData.map(clase => (
+                <View key={clase.id} style={{ marginBottom: 12 }}>
+                  <TouchableOpacity
+                    style={[styles.claseHeader, expandedClase === clase.id && styles.claseHeaderExpanded]}
+                    onPress={() => setExpandedClase(expandedClase === clase.id ? null : clase.id)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.claseHeaderTitle}>{clase.nombre}</Text>
+                      <Text style={styles.claseHeaderSub}>{clase.horario} • {clase.totalAlumnos} alumnos • {clase.totalClasesRegistradas} clases registradas</Text>
+                    </View>
+                    <MaterialCommunityIcons name={expandedClase === clase.id ? 'chevron-up' : 'chevron-down'} size={24} color="#64748b" />
+                  </TouchableOpacity>
+
+                  {expandedClase === clase.id && (
+                    <View style={styles.alumnosTable}>
+                      {/* Header de tabla */}
+                      <View style={styles.tableHeaderRow}>
+                        <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Alumno</Text>
+                        <Text style={styles.tableHeaderCell}>Presentes</Text>
+                        <Text style={styles.tableHeaderCell}>Total</Text>
+                        <Text style={styles.tableHeaderCell}>%</Text>
+                      </View>
+                      {clase.alumnosStats.length === 0 ? (
+                        <Text style={{ color: '#94a3b8', padding: 15, textAlign: 'center', fontStyle: 'italic' }}>Sin alumnos inscriptos</Text>
+                      ) : (
+                        clase.alumnosStats.map(alumno => (
+                          <View key={alumno.id} style={styles.tableRow}>
+                            <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }]}>{alumno.nombre}</Text>
+                            <Text style={styles.tableCell}>{alumno.presentes}</Text>
+                            <Text style={styles.tableCell}>{alumno.totalClases}</Text>
+                            <View style={[styles.pctBadge, { backgroundColor: alumno.porcentaje >= 75 ? '#f0fdf4' : alumno.porcentaje >= 50 ? '#fffbeb' : '#fef2f2' }]}>
+                              <Text style={[styles.pctText, { color: alumno.porcentaje >= 75 ? '#16a34a' : alumno.porcentaje >= 50 ? '#d97706' : '#ef4444' }]}>
+                                {alumno.porcentaje}%
+                              </Text>
+                            </View>
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+            <View style={{ height: 100 }} />
+          </ScrollView>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
             <View style={styles.kpiCard}>
@@ -390,5 +503,18 @@ const styles = StyleSheet.create({
   historyCardMobile: { flexDirection: 'column', alignItems: 'flex-start' },
   historyActionRow: { flexDirection: 'row', gap: 10 },
   actionButton: { padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  actionButtonText: { color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 }
+  actionButton: { padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  actionButtonText: { color: '#fff', fontWeight: '800', marginLeft: 5, fontSize: 12 },
+  // Asistencia styles
+  claseHeader: { backgroundColor: '#fff', padding: 15, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  claseHeaderExpanded: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  claseHeaderTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+  claseHeaderSub: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+  alumnosTable: { backgroundColor: '#fff', borderBottomLeftRadius: 14, borderBottomRightRadius: 14, paddingBottom: 5 },
+  tableHeaderRow: { flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, backgroundColor: '#f8fafc' },
+  tableHeaderCell: { flex: 1, fontSize: 11, fontWeight: '900', color: '#64748b', textAlign: 'center' },
+  tableRow: { flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc', alignItems: 'center' },
+  tableCell: { flex: 1, fontSize: 13, color: '#1e293b', textAlign: 'center' },
+  pctBadge: { flex: 1, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, alignItems: 'center' },
+  pctText: { fontSize: 13, fontWeight: '900' }
 });

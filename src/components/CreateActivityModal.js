@@ -3,12 +3,25 @@ import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { profesorService } from '../services/profesorService';
 
+const DIAS = [
+  { key: 'Lun', label: 'Lun' },
+  { key: 'Mar', label: 'Mar' },
+  { key: 'Mié', label: 'Mié' },
+  { key: 'Jue', label: 'Jue' },
+  { key: 'Vie', label: 'Vie' },
+  { key: 'Sáb', label: 'Sáb' },
+  { key: 'Dom', label: 'Dom' },
+];
+
 export default function CreateActivityModal({ visible, onClose, onSave, title, type }) {
   const [formData, setFormData] = useState({
     nombre: '',
-    horario: '',
+    diasSeleccionados: [],
+    horaInicio: '',
+    horaFin: '',
     maxAlumnos: '20',
-    profesorId: null
+    profesorId: null,
+    precio: '5000'
   });
   
   const [profesores, setProfesores] = useState([]);
@@ -18,7 +31,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
   useEffect(() => {
     if (visible) {
       loadProfesores();
-      setFormData({ nombre: '', horario: '', maxAlumnos: '20', profesorId: null });
+      setFormData({ nombre: '', diasSeleccionados: [], horaInicio: '', horaFin: '', maxAlumnos: '20', profesorId: null, precio: '5000' });
     }
   }, [visible]);
 
@@ -34,21 +47,46 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     }
   };
 
+  const toggleDia = (diaKey) => {
+    setFormData(prev => {
+      const dias = prev.diasSeleccionados.includes(diaKey)
+        ? prev.diasSeleccionados.filter(d => d !== diaKey)
+        : [...prev.diasSeleccionados, diaKey];
+      return { ...prev, diasSeleccionados: dias };
+    });
+  };
+
+  const buildHorarioString = () => {
+    const diasStr = formData.diasSeleccionados.join(', ');
+    if (!diasStr) return '';
+    return `${diasStr} ${formData.horaInicio}-${formData.horaFin}`;
+  };
+
   const handleSave = async () => {
-    if (!formData.nombre || !formData.horario || !formData.maxAlumnos) {
-      Alert.alert('Atención', 'Nombre, horario y capacidad son obligatorios.');
+    if (!formData.nombre) {
+      Alert.alert('Atención', 'El nombre es obligatorio.');
+      return;
+    }
+    if (formData.diasSeleccionados.length === 0) {
+      Alert.alert('Atención', 'Seleccioná al menos un día.');
+      return;
+    }
+    if (!formData.horaInicio || !formData.horaFin) {
+      Alert.alert('Atención', 'Ingresá la hora de inicio y fin.');
       return;
     }
     
     setSaving(true);
     try {
+      const horario = buildHorarioString();
       const payload = {
         nombre: formData.nombre,
-        horario: formData.horario,
+        horario: horario,
         maxAlumnos: parseInt(formData.maxAlumnos) || 20,
-        capacidad: parseInt(formData.maxAlumnos) || 20, // por si el back usa otro nombre
+        capacidad: parseInt(formData.maxAlumnos) || 20,
         profesorId: formData.profesorId,
-        clientes: [] // Lista vacía por defecto
+        precio: parseFloat(formData.precio) || 5000,
+        clientes: []
       };
       
       await onSave(payload, type);
@@ -76,25 +114,84 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
             <TextInput 
               style={styles.input} 
               placeholder="Ej: Fútbol 5 Inicial"
+              placeholderTextColor="#94a3b8"
               value={formData.nombre}
               onChangeText={text => setFormData({...formData, nombre: text})}
             />
 
+            {/* SELECTOR DE DÍAS */}
+            <Text style={styles.label}>Días de la semana</Text>
+            <View style={styles.diasGrid}>
+              {DIAS.map(dia => {
+                const isSelected = formData.diasSeleccionados.includes(dia.key);
+                return (
+                  <TouchableOpacity
+                    key={dia.key}
+                    style={[styles.diaBtn, isSelected && styles.diaBtnSelected]}
+                    onPress={() => toggleDia(dia.key)}
+                  >
+                    <Text style={[styles.diaBtnText, isSelected && styles.diaBtnTextSelected]}>
+                      {dia.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* HORARIO: INICIO Y FIN */}
             <Text style={styles.label}>Horario</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Ej: Lunes y Miércoles 18:00"
-              value={formData.horario}
-              onChangeText={text => setFormData({...formData, horario: text})}
-            />
+            <View style={styles.horarioRow}>
+              <View style={styles.horarioField}>
+                <Text style={styles.horarioLabel}>Inicio</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  placeholder="18:00"
+                  placeholderTextColor="#94a3b8"
+                  value={formData.horaInicio}
+                  onChangeText={text => setFormData({...formData, horaInicio: text})}
+                />
+              </View>
+              <View style={styles.horarioSeparator}>
+                <MaterialCommunityIcons name="arrow-right" size={20} color="#64748b" />
+              </View>
+              <View style={styles.horarioField}>
+                <Text style={styles.horarioLabel}>Fin</Text>
+                <TextInput
+                  style={styles.horarioInput}
+                  placeholder="19:30"
+                  placeholderTextColor="#94a3b8"
+                  value={formData.horaFin}
+                  onChangeText={text => setFormData({...formData, horaFin: text})}
+                />
+              </View>
+            </View>
+
+            {/* PREVIEW */}
+            {formData.diasSeleccionados.length > 0 && formData.horaInicio && formData.horaFin && (
+              <View style={styles.previewBox}>
+                <MaterialCommunityIcons name="calendar-clock" size={16} color="#009b3a" />
+                <Text style={styles.previewText}>{buildHorarioString()}</Text>
+              </View>
+            )}
 
             <Text style={styles.label}>Capacidad Máxima</Text>
             <TextInput 
               style={styles.input} 
               placeholder="20"
+              placeholderTextColor="#94a3b8"
               keyboardType="numeric"
               value={formData.maxAlumnos}
               onChangeText={text => setFormData({...formData, maxAlumnos: text.replace(/[^0-9]/g, '')})}
+            />
+
+            <Text style={styles.label}>Precio de inscripción ($)</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="5000"
+              placeholderTextColor="#94a3b8"
+              keyboardType="numeric"
+              value={formData.precio}
+              onChangeText={text => setFormData({...formData, precio: text.replace(/[^0-9]/g, '')})}
             />
 
             <Text style={styles.label}>Profesor (Opcional)</Text>
@@ -135,15 +232,40 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 24, padding: 25, width: '100%', maxWidth: 500, maxHeight: '85%' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 24, padding: 25, width: '100%', maxWidth: 500, maxHeight: '90%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
   label: { fontSize: 13, fontWeight: '800', color: '#64748b', marginBottom: 5, marginTop: 15 },
   input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, fontSize: 15, color: '#1e293b' },
+  
+  // Días
+  diasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  diaBtn: { 
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, 
+    borderWidth: 2, borderColor: '#e2e8f0', backgroundColor: '#f8fafc',
+    minWidth: 55, alignItems: 'center'
+  },
+  diaBtnSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  diaBtnText: { fontSize: 13, fontWeight: '800', color: '#64748b' },
+  diaBtnTextSelected: { color: '#fff' },
+  
+  // Horario
+  horarioRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  horarioField: { flex: 1 },
+  horarioLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', marginBottom: 4 },
+  horarioInput: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, fontSize: 15, color: '#1e293b', textAlign: 'center' },
+  horarioSeparator: { paddingTop: 18 },
+  
+  // Preview
+  previewBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 10, padding: 10, marginTop: 10 },
+  previewText: { marginLeft: 8, fontSize: 13, fontWeight: '700', color: '#15803d' },
+  
+  // Profesores
   hScroll: { flexDirection: 'row', paddingBottom: 10, marginTop: 5 },
   profCard: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, marginRight: 10, alignItems: 'center', width: 110 },
   profCardSelected: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
   profName: { fontSize: 12, fontWeight: '700', color: '#1e293b', marginTop: 5, textAlign: 'center' },
+  
   saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 20 },
   saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 }
 });

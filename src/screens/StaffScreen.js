@@ -8,7 +8,9 @@ import AsistenciaModal from '../components/AsistenciaModal';
 import StaffFormModal from '../components/StaffFormModal';
 import AssignClassModal from '../components/AssignClassModal';
 import VerAlumnosModal from '../components/VerAlumnosModal';
+import CreateActivityModal from '../components/CreateActivityModal';
 import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
 import { userService } from '../services/userService';
 
 export default function StaffScreen({ route, navigation }) {
@@ -24,6 +26,8 @@ export default function StaffScreen({ route, navigation }) {
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [alumnosModalVisible, setAlumnosModalVisible] = useState(false);
   const [claseParaAlumnos, setClaseParaAlumnos] = useState(null);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createType, setCreateType] = useState('CLASE');
 
   useEffect(() => {
     loadClases();
@@ -51,9 +55,24 @@ export default function StaffScreen({ route, navigation }) {
     ? todasLasClases 
     : todasLasClases.filter(clase => clase.profe === userName);
 
-  const abrirAsistencia = (nombre) => {
-    setClaseSeleccionada(nombre);
+  const abrirAsistencia = (clase) => {
+    setClaseSeleccionada(clase);
     setAsistenciaModalVisible(true);
+  };
+
+  const handleOpenCreate = (type) => {
+    setCreateType(type);
+    setCreateModalVisible(true);
+  };
+
+  const handleCreateSave = async (payload, type) => {
+    if (type === 'CLASE') {
+      await claseService.create(payload);
+    } else {
+      await entrenamientoService.create(payload);
+    }
+    Alert.alert('Éxito', `${type === 'CLASE' ? 'Clase' : 'Entrenamiento'} creado correctamente.`);
+    loadClases();
   };
 
   const abrirVerAlumnos = (clase) => {
@@ -123,16 +142,28 @@ export default function StaffScreen({ route, navigation }) {
       </View>
 
       {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
-        <View style={styles.adminActions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setStaffModalVisible(true)}>
-            <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Nuevo Profesor</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
-            <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Asignar Clase</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View style={styles.adminActions}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setStaffModalVisible(true)}>
+              <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Nuevo Profesor</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
+              <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Asignar Clase</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.adminActions}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#6366f1' }]} onPress={() => handleOpenCreate('CLASE')}>
+              <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Crear Clase</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#f97316' }]} onPress={() => handleOpenCreate('ENTRENAMIENTO')}>
+              <MaterialCommunityIcons name="whistle" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Crear Entrenamiento</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -163,7 +194,7 @@ export default function StaffScreen({ route, navigation }) {
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.asistenciaBtn} 
-                  onPress={() => abrirAsistencia(clase.nombre)}
+                  onPress={() => abrirAsistencia(clase)}
                 >
                   <Text style={styles.btnText}>ASISTENCIA</Text>
                 </TouchableOpacity>
@@ -182,7 +213,8 @@ export default function StaffScreen({ route, navigation }) {
       <AsistenciaModal 
         visible={asistenciaModalVisible} 
         onClose={() => setAsistenciaModalVisible(false)} 
-        claseNombre={claseSeleccionada} 
+        claseId={claseSeleccionada?.id}
+        claseNombre={claseSeleccionada?.nombre || claseSeleccionada} 
       />
       
       <StaffFormModal
@@ -202,6 +234,14 @@ export default function StaffScreen({ route, navigation }) {
         onClose={() => setAlumnosModalVisible(false)}
         claseId={claseParaAlumnos?.id}
         claseNombre={claseParaAlumnos?.nombre}
+      />
+
+      <CreateActivityModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onSave={handleCreateSave}
+        title={createType === 'CLASE' ? 'Crear Nueva Clase' : 'Crear Nuevo Entrenamiento'}
+        type={createType}
       />
     </ScreenTemplate>
   );
