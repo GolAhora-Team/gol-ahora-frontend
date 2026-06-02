@@ -66,6 +66,23 @@ const LoginScreen = ({ navigation, route }) => {
         }
       } catch (e) { }
     }
+
+    const checkLockout = async () => {
+      try {
+        const lockoutEnd = await AsyncStorage.getItem('GOL_AHORA_LOCKOUT_END');
+        if (lockoutEnd) {
+          const end = parseInt(lockoutEnd, 10);
+          if (end > Date.now()) {
+            setLockoutEndTime(end);
+            setFailedAttempts(3);
+          } else {
+            await AsyncStorage.removeItem('GOL_AHORA_LOCKOUT_END');
+          }
+        }
+      } catch (e) { }
+    };
+    checkLockout();
+
   }, []);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -86,6 +103,7 @@ const LoginScreen = ({ navigation, route }) => {
       } else {
         setLockoutEndTime(null);
         setFailedAttempts(0);
+        AsyncStorage.removeItem('GOL_AHORA_LOCKOUT_END');
       }
     }
 
@@ -138,7 +156,9 @@ const LoginScreen = ({ navigation, route }) => {
       setFailedAttempts(newFailedAttempts);
       
       if (newFailedAttempts >= 3) {
-        setLockoutEndTime(Date.now() + 30000);
+        const end = Date.now() + 30000;
+        setLockoutEndTime(end);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUT_END', end.toString());
         setErrorMessage('Demasiados intentos fallidos. Intenta de nuevo en 30 segundos.');
       } else {
         setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
