@@ -25,8 +25,8 @@ const LoginScreen = ({ navigation, route }) => {
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutEndTime, setLockoutEndTime] = useState(null);
+  const [failedAttempts, setFailedAttempts] = useState({});
+  const [lockouts, setLockouts] = useState({});
 
   useEffect(() => {
     if (route?.params?.sessionClosedByInactivity) {
@@ -69,14 +69,23 @@ const LoginScreen = ({ navigation, route }) => {
 
     const checkLockout = async () => {
       try {
-        const lockoutEnd = await AsyncStorage.getItem('GOL_AHORA_LOCKOUT_END');
-        if (lockoutEnd) {
-          const end = parseInt(lockoutEnd, 10);
-          if (end > Date.now()) {
-            setLockoutEndTime(end);
-            setFailedAttempts(3);
-          } else {
-            await AsyncStorage.removeItem('GOL_AHORA_LOCKOUT_END');
+        const lockoutsData = await AsyncStorage.getItem('GOL_AHORA_LOCKOUTS');
+        if (lockoutsData) {
+          const parsedLockouts = JSON.parse(lockoutsData);
+          const now = Date.now();
+          let hasChanges = false;
+          
+          for (const key in parsedLockouts) {
+            if (parsedLockouts[key] <= now) {
+              delete parsedLockouts[key];
+              hasChanges = true;
+            }
+          }
+          
+          setLockouts(parsedLockouts);
+          
+          if (hasChanges) {
+            await AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(parsedLockouts));
           }
         }
       } catch (e) { }
@@ -94,16 +103,26 @@ const LoginScreen = ({ navigation, route }) => {
       setErrorMessage("Por favor, completa todos los campos.");
       return;
     }
+    
+    const userKey = email.trim().toLowerCase();
+    const userLockoutTime = lockouts[userKey];
 
-    if (lockoutEndTime) {
-      const remainingTime = Math.ceil((lockoutEndTime - Date.now()) / 1000);
+    if (userLockoutTime) {
+      const remainingTime = Math.ceil((userLockoutTime - Date.now()) / 1000);
       if (remainingTime > 0) {
-        setErrorMessage(`Demasiados intentos. Espera ${remainingTime} segundos.`);
+        setErrorMessage(`Demasiados intentos para este usuario. Espera ${remainingTime} segundos.`);
         return;
       } else {
-        setLockoutEndTime(null);
-        setFailedAttempts(0);
-        AsyncStorage.removeItem('GOL_AHORA_LOCKOUT_END');
+        const newLockouts = { ...lockouts };
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        
+        setFailedAttempts(prev => {
+          const newAttempts = { ...prev };
+          delete newAttempts[userKey];
+          return newAttempts;
+        });
       }
     }
 
@@ -147,19 +166,30 @@ const LoginScreen = ({ navigation, route }) => {
         await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
       }
       
-      setFailedAttempts(0);
-      setLockoutEndTime(null);
+      setFailedAttempts(prev => {
+        const newAttempts = { ...prev };
+        delete newAttempts[userKey];
+        return newAttempts;
+      });
+      
+      const newLockouts = { ...lockouts };
+      if (newLockouts[userKey]) {
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+      }
 
       navigation.replace('Dashboard', sessionData);
     } catch (error) {
-      const newFailedAttempts = failedAttempts + 1;
-      setFailedAttempts(newFailedAttempts);
+      const currentAttempts = (failedAttempts[userKey] || 0) + 1;
+      setFailedAttempts(prev => ({ ...prev, [userKey]: currentAttempts }));
       
-      if (newFailedAttempts >= 3) {
+      if (currentAttempts >= 3) {
         const end = Date.now() + 30000;
-        setLockoutEndTime(end);
-        AsyncStorage.setItem('GOL_AHORA_LOCKOUT_END', end.toString());
-        setErrorMessage('Demasiados intentos fallidos. Intenta de nuevo en 30 segundos.');
+        const newLockouts = { ...lockouts, [userKey]: end };
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        setErrorMessage(`Demasiados intentos fallidos. Usuario bloqueado por 30 segundos.`);
       } else {
         setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
       }
@@ -275,10 +305,10 @@ const LoginScreen = ({ navigation, route }) => {
                   )}
 
                   <TouchableOpacity
-                    style={[styles.mainButton, (isLoading || lockoutEndTime) && { opacity: 0.7 }]}
+                    style={[styles.mainButton, (isLoading || (email && lockouts[email.trim().toLowerCase()] && lockouts[email.trim().toLowerCase()] > Date.now())) && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
-                    disabled={isLoading || (lockoutEndTime && Date.now() < lockoutEndTime)}
+                    disabled={isLoading || (email && lockouts[email.trim().toLowerCase()] && lockouts[email.trim().toLowerCase()] > Date.now())}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
                       <Text style={styles.buttonText}>{isLoading ? 'INICIANDO SESIÓN...' : 'INGRESAR AL CAMPO'}</Text>
