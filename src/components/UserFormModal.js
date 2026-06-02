@@ -139,9 +139,9 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {formData.role === 'PROFE' && (
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS PROFESOR</Text>
-                <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Fútbol, Padel" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+                <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 
-                <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO / PROFESIONAL (PDF, MÁX 4MB)</Text>
+                <Text style={styles.greenLabelBold}>CERTIFICADO PROFESIONAL (PDF, MÁX 4MB)</Text>
                 <TouchableOpacity style={styles.fileBtn} onPress={handlePickDocument}>
                   <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
                   <Text style={styles.fileBtnText}>
