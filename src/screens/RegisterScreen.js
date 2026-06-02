@@ -11,7 +11,8 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   Alert,
-  Modal
+  Modal,
+  TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -73,6 +74,21 @@ export default function RegisterScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, [dni, email, username]);
 
+  const [tieneObraSocial, setTieneObraSocial] = useState(false);
+  const [obraSocial, setObraSocial] = useState('');
+  const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
+
+  const topObrasSociales = [
+    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
+    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
+    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud", 
+    "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
+  ];
+
+  const filteredObrasSociales = obraSocial 
+    ? topObrasSociales.filter(os => os.toLowerCase().includes(obraSocial.toLowerCase()))
+    : topObrasSociales;
+
   const handleRegister = async () => {
     let newErrors = {};
 
@@ -126,7 +142,7 @@ export default function RegisterScreen({ navigation }) {
           Pais: "",
           ContactoEmergencia: contactoEmergencia || "",
           Email: email || "",
-          ObraSocial: "",
+          ObraSocial: tieneObraSocial ? obraSocial : "",
           AptoFisico: true
         }
       };
@@ -290,6 +306,64 @@ export default function RegisterScreen({ navigation }) {
                       error={errors.email || availabilityErrors.email}
                       autoCapitalize="none"
                     />
+                    
+                    <View style={{ marginBottom: 15, width: '100%' }}>
+                      <TouchableOpacity 
+                        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }} 
+                        onPress={() => {
+                          setTieneObraSocial(!tieneObraSocial);
+                          if (tieneObraSocial) setObraSocial('');
+                        }}
+                      >
+                        <MaterialCommunityIcons 
+                          name={tieneObraSocial ? "checkbox-marked" : "checkbox-blank-outline"} 
+                          size={22} 
+                          color="#009b3a" 
+                        />
+                        <Text style={{ marginLeft: 8, color: '#333', fontSize: 13, fontWeight: '700' }}>
+                          ¿Tiene Obra Social / Prepaga?
+                        </Text>
+                      </TouchableOpacity>
+
+                      {tieneObraSocial && (
+                        <View style={{ zIndex: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45 }}>
+                            <MaterialCommunityIcons name="hospital-box" size={20} color="#666" style={{marginRight: 10}} />
+                            <TextInput
+                              style={{ flex: 1, fontSize: 14, color: '#333', ...Platform.select({ web: { outlineStyle: 'none' } }) }}
+                              value={obraSocial}
+                              onChangeText={v => {
+                                setObraSocial(v);
+                                setShowObraSocialSuggestions(true);
+                              }}
+                              onFocus={() => setShowObraSocialSuggestions(true)}
+                              placeholder="Ej: OSDE, Swiss Medical..."
+                              placeholderTextColor="#999"
+                            />
+                          </View>
+                          
+                          {showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
+                            <View style={styles.suggestionsContainer}>
+                              <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                                {filteredObrasSociales.map((os, index) => (
+                                  <TouchableOpacity 
+                                    key={index} 
+                                    style={styles.suggestionItem}
+                                    onPress={() => {
+                                      setObraSocial(os);
+                                      setShowObraSocialSuggestions(false);
+                                    }}
+                                  >
+                                    <Text style={styles.suggestionText}>{os}</Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </ScrollView>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+
                     <CustomInput
                       label="Contacto Emergencia"
                       iconName="alert-circle"
@@ -525,5 +599,8 @@ const styles = StyleSheet.create({
   modalBody: { padding: 20 },
   modalText: { fontSize: 14, color: '#475569', lineHeight: 22, textAlign: 'justify' },
   modalButton: { backgroundColor: '#009b3a', padding: 15, alignItems: 'center' },
-  modalButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  modalButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginTop: 5, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
+  suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  suggestionText: { color: '#333', fontSize: 13, fontWeight: '600' }
 });

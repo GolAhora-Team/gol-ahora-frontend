@@ -24,6 +24,9 @@ const LoginScreen = ({ navigation, route }) => {
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
+  const [failedAttempts, setFailedAttempts] = useState({});
+  const [lockouts, setLockouts] = useState({});
 
   useEffect(() => {
     if (route?.params?.sessionClosedByInactivity) {
@@ -63,6 +66,32 @@ const LoginScreen = ({ navigation, route }) => {
         }
       } catch (e) { }
     }
+
+    const checkLockout = async () => {
+      try {
+        const lockoutsData = await AsyncStorage.getItem('GOL_AHORA_LOCKOUTS');
+        if (lockoutsData) {
+          const parsedLockouts = JSON.parse(lockoutsData);
+          const now = Date.now();
+          let hasChanges = false;
+          
+          for (const key in parsedLockouts) {
+            if (parsedLockouts[key] <= now) {
+              delete parsedLockouts[key];
+              hasChanges = true;
+            }
+          }
+          
+          setLockouts(parsedLockouts);
+          
+          if (hasChanges) {
+            await AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(parsedLockouts));
+          }
+        }
+      } catch (e) { }
+    };
+    checkLockout();
+
   }, []);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +102,28 @@ const LoginScreen = ({ navigation, route }) => {
     if (!email || !password) {
       setErrorMessage("Por favor, completa todos los campos.");
       return;
+    }
+    
+    const userKey = email.trim().toLowerCase();
+    const userLockoutTime = lockouts[userKey];
+
+    if (userLockoutTime) {
+      const remainingTime = Math.ceil((userLockoutTime - Date.now()) / 1000);
+      if (remainingTime > 0) {
+        setErrorMessage(`Demasiados intentos para este usuario. Espera ${remainingTime} segundos.`);
+        return;
+      } else {
+        const newLockouts = { ...lockouts };
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        
+        setFailedAttempts(prev => {
+          const newAttempts = { ...prev };
+          delete newAttempts[userKey];
+          return newAttempts;
+        });
+      }
     }
 
     setIsLoading(true);
@@ -114,10 +165,34 @@ const LoginScreen = ({ navigation, route }) => {
       } else {
         await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
       }
+      
+      setFailedAttempts(prev => {
+        const newAttempts = { ...prev };
+        delete newAttempts[userKey];
+        return newAttempts;
+      });
+      
+      const newLockouts = { ...lockouts };
+      if (newLockouts[userKey]) {
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+      }
 
       navigation.replace('Dashboard', sessionData);
     } catch (error) {
-      setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      const currentAttempts = (failedAttempts[userKey] || 0) + 1;
+      setFailedAttempts(prev => ({ ...prev, [userKey]: currentAttempts }));
+      
+      if (currentAttempts >= 3) {
+        const end = Date.now() + 30000;
+        const newLockouts = { ...lockouts, [userKey]: end };
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        setErrorMessage(`Demasiados intentos fallidos. Usuario bloqueado por 30 segundos.`);
+      } else {
+        setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -230,10 +305,10 @@ const LoginScreen = ({ navigation, route }) => {
                   )}
 
                   <TouchableOpacity
-                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
+                    style={[styles.mainButton, (isLoading || (email && lockouts[email.trim().toLowerCase()] && lockouts[email.trim().toLowerCase()] > Date.now())) && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
-                    disabled={isLoading}
+                    disabled={isLoading || (email && lockouts[email.trim().toLowerCase()] && lockouts[email.trim().toLowerCase()] > Date.now())}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
                       <Text style={styles.buttonText}>{isLoading ? 'INICIANDO SESIÓN...' : 'INGRESAR AL CAMPO'}</Text>
@@ -292,10 +367,10 @@ const LoginScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 20 : 10 },
   headerClean: { alignItems: 'center', marginBottom: isWeb ? 25 : 15, marginTop: isWeb ? 0 : 15 },
-  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3 },
-  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center' },
+  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3, ...Platform.select({ web: { userSelect: 'none' } }) },
+  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
   badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
-  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1, ...Platform.select({ web: { userSelect: 'none' } }) },
   pitchContainer: {
     width: isWeb ? 450 : '92%', 
     height: isWeb ? 850 : windowHeight * 0.85, 
@@ -314,7 +389,7 @@ const styles = StyleSheet.create({
   },
   contentOverlay: { justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 0 : 20 },
   solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
-  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
+  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4, ...Platform.select({ web: { userSelect: 'none' } }) },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 58, borderRadius: 12, paddingHorizontal: 15, backgroundColor: '#f5f5f5', borderWidth: 1.5, borderColor: '#eee' },
   inputFocused: { borderColor: '#009b3a', backgroundColor: '#fff' },
   input: {
@@ -339,13 +414,13 @@ const styles = StyleSheet.create({
   },
   mainButton: { marginTop: 10, borderRadius: 15, overflow: 'hidden', elevation: 5 },
   gradientButton: { height: 60, justifyContent: 'center', alignItems: 'center' },
-  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
+  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5, ...Platform.select({ web: { userSelect: 'none' } }) },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
-  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700', ...Platform.select({ web: { userSelect: 'none' } }) },
   dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
   dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
-  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
-  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4 }
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4, ...Platform.select({ web: { userSelect: 'none' } }) }
 });
 
 export default LoginScreen;
