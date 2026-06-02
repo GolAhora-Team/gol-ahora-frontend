@@ -42,7 +42,7 @@ export default function UserScreen({ route, navigation }) {
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
     fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
-    certificadoFile: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false,
+    certificadoFile: null, certificadoBase64: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false,
     aptoMedicoFileName: null, aptoMedicoBase64: null, aptoFechaInicio: '', aptoFechaFin: ''
   };
 
@@ -108,7 +108,24 @@ export default function UserScreen({ route, navigation }) {
         fecha = user.fechaNacimiento.split('T')[0];
       }
       const hasObraSocial = user.obraSocial && user.obraSocial !== 'Ninguna' && user.obraSocial !== '';
-      setFormData({ ...initialFormState, ...user, fechaNacimiento: fecha, tieneObraSocial: hasObraSocial });
+      
+      let certInicio = '';
+      let certFin = '';
+      if (user.role === 'PROFE') {
+        if (user.certificadoFechaInicio) certInicio = user.certificadoFechaInicio.split('T')[0];
+        if (user.certificadoFechaFin) certFin = user.certificadoFechaFin.split('T')[0];
+      }
+
+      setFormData({ 
+        ...initialFormState, 
+        ...user, 
+        fechaNacimiento: fecha, 
+        tieneObraSocial: hasObraSocial,
+        certFechaInicio: certInicio,
+        certFechaFin: certFin,
+        sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaFin && user.tieneCertificado,
+        certificadoFile: user.tieneCertificado ? 'Certificado Guardado' : null
+      });
       setOriginalRole(user.role);
       setIsEditing(true);
     } else {
@@ -181,7 +198,13 @@ export default function UserScreen({ route, navigation }) {
             });
           }
         } else if (formData.role === 'PROFE') {
-          await profesorService.updateSimple(formData.id, payloadToSave);
+          const payloadProfe = {
+            ...payloadToSave,
+            CertificadoBase64: formData.certificadoBase64,
+            CertificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
+            CertificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null)
+          };
+          await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           await administradorService.updateSimple(formData.id, payloadToSave);
         }
@@ -199,12 +222,16 @@ export default function UserScreen({ route, navigation }) {
           dni: Number(formData.dni),
           especialidad: formData.especializacion || 'General',
           certificacion: formData.certificadoFile || 'Ninguna',
+          certificadoBase64: formData.certificadoBase64,
+          certificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
+          certificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),
           obraSocial: formData.obraSocial || 'Ninguna'
         };
         
         const payload = {
           email: formData.dni.toString(),
-          password: "1234"
+          password: "1234",
+          username: formData.dni.toString()
         };
 
         if (formData.role === 'CLIENTE') {

@@ -35,7 +35,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           alert('El archivo excede el límite de 4MB.');
           return;
         }
-        setFormData(prev => ({ ...prev, certificadoFile: file.name }));
+        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+        setFormData(prev => ({ ...prev, certificadoFile: file.name, certificadoBase64: base64 }));
       }
     } catch (err) {
       console.error("Error picking document: ", err);

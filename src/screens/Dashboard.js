@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { clienteService } from '../services/clienteService';
+import { profesorService } from '../services/profesorService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { userService } from '../services/userService';
 import Background from '../components/Background';
@@ -102,6 +103,7 @@ export default function Dashboard({ route, navigation }) {
   
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
   const [currentCliente, setCurrentCliente] = useState(null);
+  const [currentProfesor, setCurrentProfesor] = useState(null);
   const [successModalMessage, setSuccessModalMessage] = useState(null);
   const [errorModalMessage, setErrorModalMessage] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -110,6 +112,8 @@ export default function Dashboard({ route, navigation }) {
   React.useEffect(() => {
     if (role === 'CLIENTE' && idPersona) {
       loadCliente();
+    } else if (role === 'PROFE' && idPersona) {
+      loadProfesor();
     }
   }, [role, idPersona]);
 
@@ -119,6 +123,15 @@ export default function Dashboard({ route, navigation }) {
       setCurrentCliente(cliente);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const loadProfesor = async () => {
+    try {
+      const profe = await profesorService.getById(idPersona);
+      setCurrentProfesor(profe);
+    } catch (e) {
+      console.error("Error al cargar profesor:", e);
     }
   };
 
@@ -230,6 +243,51 @@ export default function Dashboard({ route, navigation }) {
     } catch (e) {
       console.error(e);
       alert("Error al subir el apto médico.");
+    }
+  };
+
+  const handleUploadCertificado = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.size > 4 * 1024 * 1024) {
+          alert('El archivo excede el límite de 4MB.');
+          return;
+        }
+        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+        
+        // Asignar fechas por defecto: hoy y en 1 año
+        const hoy = new Date();
+        const unAnio = new Date();
+        unAnio.setFullYear(hoy.getFullYear() + 1);
+
+        // Llamar a profesorService.updateSimple para actualizar el certificado
+        const currentData = currentProfesor || {};
+        await profesorService.updateSimple(idPersona, {
+          telefono: currentData.telefono || "",
+          direccion: currentData.direccion || "",
+          localidad: currentData.localidad || "",
+          codigoPostal: currentData.codigoPostal || "",
+          provincia: currentData.provincia || "",
+          pais: currentData.pais || "",
+          contactoEmergencia: currentData.contactoEmergencia || "",
+          email: currentData.email || "",
+          certificadoBase64: base64,
+          certificadoFechaInicio: hoy.toISOString(),
+          certificadoFechaFin: unAnio.toISOString()
+        });
+
+        alert("Certificado profesional subido correctamente.");
+        loadProfesor();
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error al subir el certificado profesional.");
     }
   };
 
@@ -361,6 +419,30 @@ export default function Dashboard({ route, navigation }) {
                               <Text style={styles.actionBtnText}>SUBIR APTO MÉDICO</Text>
                             </TouchableOpacity>
                           )}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {role === 'PROFE' && currentProfesor && (
+                    <View style={styles.statusPanel}>
+                      <Text style={styles.statusPanelTitle}>MI ESTADO</Text>
+                      <View style={styles.statusCardsRow}>
+                        {/* Tarjeta Certificado Profesional */}
+                        <View style={styles.statusCard}>
+                          <MaterialCommunityIcons 
+                            name={currentProfesor.tieneCertificado ? "check-decagram" : "alert-decagram"} 
+                            size={28} 
+                            color={currentProfesor.tieneCertificado ? "#009b3a" : "#ef4444"} 
+                          />
+                          <Text style={styles.statusCardTitle}>
+                            {currentProfesor.tieneCertificado ? "CERTIFICADO VIGENTE" : "SIN CERTIFICADO VÁLIDO"}
+                          </Text>
+                          <TouchableOpacity style={styles.actionBtn} onPress={handleUploadCertificado}>
+                            <Text style={styles.actionBtnText}>
+                              {currentProfesor.tieneCertificado ? "ACTUALIZAR CERTIFICADO" : "SUBIR CERTIFICADO"}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       </View>
                     </View>
