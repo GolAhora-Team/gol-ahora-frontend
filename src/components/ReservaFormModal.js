@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { clienteService } from '../services/clienteService';
 import { userService } from '../services/userService';
+import { reservaService } from '../services/reservaService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { descuentoService } from '../services/descuentoService';
 import ErrorModal from './ErrorModal';
@@ -511,6 +512,31 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
   const [pendingAdminReservaPayload, setPendingAdminReservaPayload] = useState(null);
+  const [externalReference, setExternalReference] = useState('');
+
+  // Polling loop for automatic QR detection
+  useEffect(() => {
+    let interval;
+    if (qrModalVisible && externalReference) {
+      interval = setInterval(async () => {
+        try {
+          const isApproved = await mercadoPagoService.checkPaymentStatus(externalReference);
+          if (isApproved) {
+            clearInterval(interval);
+            setQrModalVisible(false);
+            if (pendingAdminReservaPayload) {
+              processAdminReservation(pendingAdminReservaPayload);
+            }
+          }
+        } catch (e) {
+          console.log("Error checking payment status:", e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [qrModalVisible, externalReference, pendingAdminReservaPayload]);
 
   useEffect(() => {
     if (visible) {
@@ -877,6 +903,9 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
         const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
         setQrUrl(mpResponse.initPoint);
+        if (mpResponse.externalReference) {
+          setExternalReference(mpResponse.externalReference);
+        }
         setPendingAdminReservaPayload({
           reservaPayload,
           html,
