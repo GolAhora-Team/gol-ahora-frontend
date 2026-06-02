@@ -67,4 +67,23 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/User/check-availability
+   * Verifica unicidad de DNI, Email y Username.
+   */
+  checkAvailability: async (dni, email, username) => {
+    try {
+      const params = new URLSearchParams();
+      if (dni) params.append('dni', dni);
+      if (email) params.append('email', email);
+      if (username) params.append('username', username);
+      
+      const response = await http.get(`${URL}/check-availability?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      throw error;
+    }
+  },
 };

@@ -37,14 +37,41 @@ export default function RegisterScreen({ navigation }) {
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [contactoEmergencia, setContactoEmergencia] = useState('');
   const [errors, setErrors] = useState({});
+  const [availabilityErrors, setAvailabilityErrors] = useState({});
   const [successVisible, setSuccessVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!dni && !email && !username) {
+        setAvailabilityErrors({});
+        return;
+      }
+      try {
+        const response = await userService.checkAvailability(
+          dni ? parseInt(dni) : 0, 
+          email || '', 
+          username || ''
+        );
+        const takenFields = response.data || [];
+        const newAvErrors = {};
+        if (takenFields.includes('DNI')) newAvErrors.dni = 'Este DNI ya está registrado';
+        if (takenFields.includes('Email')) newAvErrors.email = 'Este Email ya está en uso';
+        if (takenFields.includes('Username')) newAvErrors.username = 'Este Nombre de usuario ya está en uso';
+        setAvailabilityErrors(newAvErrors);
+      } catch (error) {
+        console.error('Error verificando disponibilidad', error);
+      }
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [dni, email, username]);
 
   const handleRegister = async () => {
     let newErrors = {};
@@ -67,6 +94,11 @@ export default function RegisterScreen({ navigation }) {
     if (!contactoEmergencia) newErrors.contactoEmergencia = 'Obligatorio';
     if (!termsAccepted) newErrors.terms = 'Debes aceptar los Términos y Condiciones';
 
+    // Mezclar errores de disponibilidad (DNI, Email, Username duplicados)
+    if (Object.keys(availabilityErrors).length > 0) {
+      newErrors = { ...newErrors, ...availabilityErrors };
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -77,7 +109,8 @@ export default function RegisterScreen({ navigation }) {
     setIsLoading(true);
     try {
       const payload = {
-        Email: dni, // El DNI se usa como Email (usuario) para el login
+        Email: email, // Ahora el email va correctamente
+        Username: username, // El nuevo username
         Password: password,
         Cliente: {
           Dni: parseInt(dni) || 0,
@@ -160,7 +193,16 @@ export default function RegisterScreen({ navigation }) {
                       keyboardType="numeric"
                       value={dni}
                       onChangeText={(text) => setDni(text.replace(/[^0-9]/g, ''))}
-                      error={errors.dni}
+                      error={errors.dni || availabilityErrors.dni}
+                    />
+
+                    <CustomInput
+                      label="Nombre de usuario"
+                      iconName="at"
+                      value={username}
+                      onChangeText={setUsername}
+                      error={errors.username || availabilityErrors.username}
+                      autoCapitalize="none"
                     />
 
 
@@ -245,7 +287,7 @@ export default function RegisterScreen({ navigation }) {
                       keyboardType="email-address"
                       value={email}
                       onChangeText={setEmail}
-                      error={errors.email}
+                      error={errors.email || availabilityErrors.email}
                       autoCapitalize="none"
                     />
                     <CustomInput

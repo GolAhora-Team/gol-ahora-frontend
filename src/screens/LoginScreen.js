@@ -155,7 +155,7 @@ const LoginScreen = ({ navigation, route }) => {
 
                 <View style={styles.solidGlassCard}>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Usuario / DNI</Text>
+                    <Text style={styles.label}>DNI, Usuario o Email</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
                       <MaterialCommunityIcons
                         name="account"
@@ -164,7 +164,7 @@ const LoginScreen = ({ navigation, route }) => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder="Ingresa tu usuario o DNI"
+                        placeholder="Ingresa tu DNI, Usuario o Email"
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
