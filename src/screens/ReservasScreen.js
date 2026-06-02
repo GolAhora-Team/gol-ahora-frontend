@@ -475,7 +475,11 @@ export default function ReservaScreen({ route, navigation }) {
           }
         }}
         title="Cancelar Reserva"
-        message={reservaToCancel ? `¿Estás seguro que querés cancelar la reserva de ${reservaToCancel.clienteNombre} en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?` : ""}
+        message={reservaToCancel 
+          ? currentUserRole === 'CLIENTE'
+            ? `¿Estás seguro que querés cancelar tu reserva en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?`
+            : `¿Estás seguro que querés cancelar la reserva de ${reservaToCancel.clienteNombre} en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?`
+          : ""}
         confirmText="Sí, cancelar"
         cancelText="No, volver"
         icon="cancel"
