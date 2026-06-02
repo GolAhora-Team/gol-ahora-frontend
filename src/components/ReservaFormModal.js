@@ -471,7 +471,23 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
           <Text style={s.confirmLabel}>Hora</Text>
           <Text style={s.confirmValue}>{hora}</Text>
         </View>
-        <View style={[s.confirmRow, { borderBottomWidth: 0 }]}>
+        <View style={s.confirmRow}>
+          <Text style={s.confirmLabel}>Monto original</Text>
+          <Text style={s.confirmValue}>${precioBase?.toLocaleString('es-AR')}</Text>
+        </View>
+        {descEfectivo > 0 && (
+          <View style={s.confirmRow}>
+            <Text style={{ ...s.confirmLabel, color: '#ef4444' }}>Desc. {pctEfectivo}% efectivo</Text>
+            <Text style={{ ...s.confirmValue, color: '#ef4444' }}>-${descEfectivo.toLocaleString('es-AR')}</Text>
+          </View>
+        )}
+        {descSocio > 0 && (
+          <View style={s.confirmRow}>
+            <Text style={{ ...s.confirmLabel, color: '#ef4444' }}>Desc. {pctSocio}% socio activo</Text>
+            <Text style={{ ...s.confirmValue, color: '#ef4444' }}>-${descSocio.toLocaleString('es-AR')}</Text>
+          </View>
+        )}
+        <View style={[s.confirmRow, { borderBottomWidth: 0, paddingTop: 10 }]}>
           <Text style={s.confirmLabel}>Monto final</Text>
           <Text style={s.confirmTotalValue}>${montoFinal.toLocaleString('es-AR')}</Text>
         </View>
