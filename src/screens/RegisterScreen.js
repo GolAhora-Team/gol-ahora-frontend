@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -49,6 +49,13 @@ export default function RegisterScreen({ navigation }) {
   const [globalError, setGlobalError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  const innerScrollViewRef = useRef(null);
+  const fieldPositions = useRef({});
+
+  const handleLayout = (field) => (event) => {
+    fieldPositions.current[field] = event.nativeEvent.layout.y;
+  };
 
   React.useEffect(() => {
     const timer = setTimeout(async () => {
@@ -151,6 +158,19 @@ export default function RegisterScreen({ navigation }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+
+      let minY = Infinity;
+      Object.keys(newErrors).forEach(field => {
+        const yPos = fieldPositions.current[field];
+        if (yPos !== undefined && yPos < minY) {
+          minY = yPos;
+        }
+      });
+
+      if (minY !== Infinity && innerScrollViewRef.current) {
+        innerScrollViewRef.current.scrollTo({ y: Math.max(0, minY - 20), animated: true });
+      }
+
       return;
     }
     setErrors({});
@@ -228,6 +248,7 @@ export default function RegisterScreen({ navigation }) {
 
                 <View style={styles.solidGlassCard}>
                   <ScrollView
+                    ref={innerScrollViewRef}
                     showsVerticalScrollIndicator={false}
                     style={{ maxHeight: windowHeight * 0.45 }}
                     nestedScrollEnabled={true}
@@ -238,6 +259,7 @@ export default function RegisterScreen({ navigation }) {
                     </View>
 
                     <CustomInput
+                      onLayout={handleLayout('dni')}
                       label="DNI"
                       iconName="card-account-details"
                       keyboardType="numeric"
@@ -254,6 +276,7 @@ export default function RegisterScreen({ navigation }) {
                     />
 
                     <CustomInput
+                      onLayout={handleLayout('username')}
                       label="Nombre de usuario"
                       iconName="at"
                       value={username}
@@ -269,9 +292,8 @@ export default function RegisterScreen({ navigation }) {
                       autoCapitalize="none"
                     />
 
-
-
                     <CustomInput
+                      onLayout={handleLayout('nombre')}
                       label="Nombre"
                       iconName="account"
                       value={nombre}
@@ -280,16 +302,16 @@ export default function RegisterScreen({ navigation }) {
                     />
 
                     <CustomInput
+                      onLayout={handleLayout('apellido')}
                       label="Apellido"
-                      iconName="account"
+                      iconName="account-outline"
                       value={apellido}
                       onChangeText={setApellido}
                       error={errors.apellido}
                     />
 
-
                     <Text style={styles.labelInterno}>Género</Text>
-                    <View style={[styles.genderContainer, errors.genero && { marginBottom: 5, borderColor: '#dc2626', borderWidth: 1, borderRadius: 12, padding: 2 }]}>
+                    <View onLayout={handleLayout('genero')} style={[styles.genderContainer, errors.genero && { marginBottom: 5, borderColor: '#dc2626', borderWidth: 1, borderRadius: 12, padding: 2 }]}>
                       <TouchableOpacity 
                         style={[styles.genderBtn, genero === 'MASCULINO' && styles.genderBtnActive]}
                         onPress={() => { setGenero('MASCULINO'); setErrors({...errors, genero: null}); }}
@@ -316,7 +338,7 @@ export default function RegisterScreen({ navigation }) {
                     </View>
                     {errors.genero ? <Text style={styles.inlineError}>{errors.genero}</Text> : null}
 
-                    <View style={{marginBottom: 15, width: '100%'}}>
+                    <View onLayout={handleLayout('fechaNacimiento')} style={{marginBottom: 15, width: '100%'}}>
                       <Text style={styles.labelInterno}>Fecha de Nacimiento</Text>
                       <TouchableOpacity 
                         style={[{flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#fff', height: 45}, errors.fechaNacimiento && {borderColor: '#dc2626'}]}
@@ -331,6 +353,7 @@ export default function RegisterScreen({ navigation }) {
                       {errors.fechaNacimiento ? <Text style={[styles.inlineError, {marginTop: 4}]}>{errors.fechaNacimiento}</Text> : null}
                     </View>
                     <CustomInput 
+                      onLayout={handleLayout('telefono')}
                       label="Teléfono" 
                       iconName="phone" 
                       keyboardType="phone-pad" 
@@ -339,6 +362,7 @@ export default function RegisterScreen({ navigation }) {
                       error={errors.telefono}
                     />
                     <CustomInput
+                      onLayout={handleLayout('direccion')}
                       label="Dirección"
                       iconName="map-marker"
                       value={direccion}
@@ -346,6 +370,7 @@ export default function RegisterScreen({ navigation }) {
                       error={errors.direccion}
                     />
                     <CustomInput
+                      onLayout={handleLayout('email')}
                       label="Email"
                       iconName="email"
                       keyboardType="email-address"
@@ -420,8 +445,9 @@ export default function RegisterScreen({ navigation }) {
                     </View>
 
                     <CustomInput
-                      label="Contacto Emergencia"
-                      iconName="alert-circle"
+                      onLayout={handleLayout('contactoEmergencia')}
+                      label="Contacto de Emergencia"
+                      iconName="phone-alert"
                       value={contactoEmergencia}
                       onChangeText={setContactoEmergencia}
                       error={errors.contactoEmergencia}
@@ -429,6 +455,7 @@ export default function RegisterScreen({ navigation }) {
 
                     <View style={{ width: '100%' }}>
                       <CustomInput
+                        onLayout={handleLayout('password')}
                         label="Contraseña"
                         iconName="lock"
                         isPassword={true}
@@ -442,6 +469,7 @@ export default function RegisterScreen({ navigation }) {
                     </View>
 
                     <CustomInput
+                      onLayout={handleLayout('confirmPassword')}
                       label="Confirmar Contraseña"
                       iconName="lock-check"
                       isPassword={true}
