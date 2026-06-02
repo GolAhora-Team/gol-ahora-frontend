@@ -3,6 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, Sty
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { facturaService } from '../services/facturaService';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 
@@ -68,6 +69,29 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
       return r === 'ADMIN' || r === 'PERSONAL';
     }
     return false;
+  };
+
+  const handleCobrarMembresia = async () => {
+    if (!formData.id) {
+      alert("Debes crear el usuario primero antes de cobrar la membresía.");
+      return;
+    }
+    try {
+      const payload = {
+        fechaEmision: new Date().toISOString(),
+        total: 2000,
+        estado: 1, // Pagado
+        tipo: 1,   // Ingreso
+        descripcion: "Suscripción Socio Activo - Presencial",
+        clienteId: formData.id
+      };
+      await facturaService.create(payload);
+      setFormData({ ...formData, esSocioActivo: true });
+      alert("Factura generada correctamente. El cliente ahora es Socio Activo.");
+    } catch (e) {
+      console.error(e);
+      alert("Hubo un error al generar la factura.");
+    }
   };
 
   return (
@@ -217,6 +241,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   </TouchableOpacity>
                 </View>
 
+                {(!formData.esSocioActivo && isEditing) && (
+                  <TouchableOpacity style={styles.payBtn} onPress={handleCobrarMembresia}>
+                    <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
+                    <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
+                  </TouchableOpacity>
+                )}
+
                 {formData.aptoFisico && (
                   <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
                     <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO (PDF/IMG, MÁX 2MB)</Text>
@@ -341,6 +372,8 @@ const styles = StyleSheet.create({
   statusText: { marginLeft: 10, fontWeight: '900', fontSize: 11, letterSpacing: 0.5 },
   textWhite: { color: '#fff' },
   textGreen: { color: '#94a3b8' },
+  payBtn: { backgroundColor: '#ffb300', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 15, borderRadius: 16, marginTop: 15 },
+  payBtnText: { color: '#000', fontWeight: '900', fontSize: 13, marginLeft: 8 },
   saveBtn: { backgroundColor: '#009b3a', padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 15 },
   saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 17 },
   fileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', padding: 15, borderRadius: 14, marginBottom: 15 },

@@ -9,9 +9,15 @@ import {
   Dimensions, 
   Platform, 
   StatusBar,
-  useWindowDimensions
+  useWindowDimensions,
+  Alert
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import { clienteService } from '../services/clienteService';
+import { mercadoPagoService } from '../services/mercadoPagoService';
+import { userService } from '../services/userService';
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
@@ -92,16 +98,97 @@ export default function Dashboard({ route, navigation }) {
   const { role, idPersona, idUsuario, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, idUsuario: null, nombreUsuario: "NOMBRE" };
   
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
+  const [currentCliente, setCurrentCliente] = useState(null);
+
+  React.useEffect(() => {
+    if (role === 'CLIENTE' && idPersona) {
+      loadCliente();
+    }
+  }, [role, idPersona]);
+
+  const loadCliente = async () => {
+    try {
+      const cliente = await clienteService.getById(idPersona);
+      setCurrentCliente(cliente);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('collection_status') || urlParams.has('preference_id') || urlParams.has('mp_return')) {
-        // Si venimos de MercadoPago, redirigir automáticamente al módulo de Reservas
+      if (urlParams.has('collection_status') && urlParams.get('collection_status') === 'approved') {
+        if (urlParams.has('pagoSocio')) {
+          // El cliente pagó la membresía
+          if (role === 'CLIENTE' && idPersona) {
+            clienteService.getById(idPersona).then(c => {
+              if (c) {
+                clienteService.update(idPersona, { ...c, esSocioActivo: true }).then(() => {
+                  loadCliente();
+                  alert("¡Pago exitoso! Ahora eres Socio Activo.");
+                  // Limpiar URL
+                  window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/pagoSocio=[^&]+&?/, ''));
+                });
+              }
+            });
+          }
+        } else {
+          navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
+        }
+      } else if (urlParams.has('preference_id') || urlParams.has('mp_return')) {
         navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
       }
     }
   }, []);
+
+  const handlePaySocio = async () => {
+    try {
+      let returnUrl = window.location.origin + `/dashboard?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
+      const response = await mercadoPagoService.createPreference("Suscripción Socio Activo", 2000, returnUrl);
+      if (response && response.initPoint) {
+        window.location.href = response.initPoint;
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo generar el pago.');
+    }
+  };
+
+  const handleUploadAptoMedico = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.size > 2 * 1024 * 1024) {
+          alert('El archivo excede el límite de 2MB.');
+          return;
+        }
+        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+        
+        // Asignar fechas por defecto: hoy y en 1 año
+        const hoy = new Date();
+        const unAnio = new Date();
+        unAnio.setFullYear(hoy.getFullYear() + 1);
+
+        await userService.uploadAptoMedico({
+          clienteId: idPersona,
+          archivoBase64: base64,
+          fechaInicio: hoy.toISOString(),
+          fechaFin: unAnio.toISOString()
+        });
+
+        alert("Apto médico subido correctamente.");
+        loadCliente();
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error al subir el apto médico.");
+    }
+  };
 
   const getVisibleModules = () => {
     switch (role) {
@@ -191,6 +278,47 @@ export default function Dashboard({ route, navigation }) {
                     <MaterialCommunityIcons name="shield-check-outline" size={isMobile ? 32 : 40} color="#f1f5f9" style={styles.bannerDecoration} />
                   </View>
 
+                  {role === 'CLIENTE' && currentCliente && (
+                    <View style={styles.statusPanel}>
+                      <Text style={styles.statusPanelTitle}>MI ESTADO</Text>
+                      <View style={styles.statusCardsRow}>
+                        {/* Tarjeta Socio */}
+                        <View style={styles.statusCard}>
+                          <MaterialCommunityIcons 
+                            name={currentCliente.esSocioActivo ? "check-decagram" : "close-octagon"} 
+                            size={28} 
+                            color={currentCliente.esSocioActivo ? "#009b3a" : "#ef4444"} 
+                          />
+                          <Text style={styles.statusCardTitle}>
+                            {currentCliente.esSocioActivo ? "SOCIO ACTIVO" : "NO SOCIO"}
+                          </Text>
+                          {!currentCliente.esSocioActivo && (
+                            <TouchableOpacity style={styles.actionBtn} onPress={handlePaySocio}>
+                              <Text style={styles.actionBtnText}>HACERME SOCIO ($2000)</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* Tarjeta Apto Médico */}
+                        <View style={styles.statusCard}>
+                          <MaterialCommunityIcons 
+                            name={currentCliente.aptoFisico ? "heart-pulse" : "heart-off"} 
+                            size={28} 
+                            color={currentCliente.aptoFisico ? "#009b3a" : "#ef4444"} 
+                          />
+                          <Text style={styles.statusCardTitle}>
+                            {currentCliente.aptoFisico ? "APTO MÉDICO VIGENTE" : "SIN APTO MÉDICO"}
+                          </Text>
+                          {!currentCliente.aptoFisico && (
+                            <TouchableOpacity style={styles.actionBtn} onPress={handleUploadAptoMedico}>
+                              <Text style={styles.actionBtnText}>SUBIR APTO MÉDICO</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
                   <View style={styles.grid}>
                     {visibleModules.map((item) => (
                       <ModuleCard 
@@ -256,4 +384,11 @@ const styles = StyleSheet.create({
   cardDescMobile: { fontSize: 10, marginTop: 0 },
   arrowContainer: { padding: 4, backgroundColor: '#f8fafc', borderRadius: 12 },
   arrowContainerMobile: { padding: 2, borderRadius: 8 },
+  statusPanel: { marginBottom: 20, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+  statusPanelTitle: { fontSize: 13, fontWeight: '900', color: '#475569', marginBottom: 12, letterSpacing: 1 },
+  statusCardsRow: { flexDirection: 'row', gap: 12 },
+  statusCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16, alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity: 0.05, shadowRadius: 5 },
+  statusCardTitle: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginTop: 8, textAlign: 'center', minHeight: 32 },
+  actionBtn: { marginTop: 10, backgroundColor: '#ffb300', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, width: '100%', alignItems: 'center' },
+  actionBtnText: { fontSize: 11, fontWeight: '800', color: '#000' }
 });
