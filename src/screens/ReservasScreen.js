@@ -26,10 +26,11 @@ export default function ReservaScreen({ route, navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReserva, setEditingReserva] = useState(null);
   
-  // Success modal
+  // Success/Error modal
   const [successVisible, setSuccessVisible] = useState(false);
   const [successPdfData, setSuccessPdfData] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMode, setErrorMode] = useState(false);
 
   // Cancel detail modal
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -99,7 +100,9 @@ export default function ReservaScreen({ route, navigation }) {
           window.localStorage.removeItem('pendingReservation');
           window.history.replaceState({}, document.title, window.location.pathname);
           setTimeout(() => {
-            Alert.alert('Pago Fallido', 'Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
+            setSuccessMessage('Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
+            setErrorMode(true);
+            setSuccessVisible(true);
           }, 500);
         }
       }
@@ -440,11 +443,12 @@ export default function ReservaScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successVisible}
-        onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); setSuccessMessage(''); }}
-        title={successMessage ? "¡Operación exitosa!" : (successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!")}
+        onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); setSuccessMessage(''); setErrorMode(false); }}
+        title={errorMode ? "Pago Cancelado" : (successMessage ? "¡Operación exitosa!" : (successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!"))}
         message={successMessage || (successPdfData?.isEdit ? "La reserva se modificó con éxito." : "La reserva se registró con éxito.")}
         actionButtonText={successPdfData ? "DESCARGAR PDF" : null}
         onAction={successPdfData ? downloadPdf : null}
+        isError={errorMode}
       />
 
       {/* Modal Confirmar Cancelación */}

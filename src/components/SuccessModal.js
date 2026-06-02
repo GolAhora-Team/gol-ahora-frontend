@@ -2,13 +2,13 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function SuccessModal({ visible, onClose, title = "¡Éxito!", message, actionButtonText, onAction }) {
+export default function SuccessModal({ visible, onClose, title = "¡Éxito!", message, actionButtonText, onAction, isError = false }) {
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons name="check-circle" size={60} color="#009b3a" />
+          <View style={[styles.iconContainer, isError && { backgroundColor: '#fee2e2' }]}>
+            <MaterialCommunityIcons name={isError ? "close-circle" : "check-circle"} size={60} color={isError ? "#ef4444" : "#009b3a"} />
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
