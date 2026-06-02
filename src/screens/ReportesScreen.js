@@ -8,6 +8,8 @@ import ScreenTemplate from './ScreenTemplate';
 import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { claseService } from '../services/claseService';
+import { facturaService } from '../services/facturaService';
+import { reservaService } from '../services/reservaService';
 import { asistenciaStorage } from '../components/AsistenciaModal';
 
 export default function ReportesScreen({ route, navigation }) {
@@ -24,7 +26,30 @@ export default function ReportesScreen({ route, navigation }) {
   const [asistenciaData, setAsistenciaData] = useState([]);
   const [asistenciaLoading, setAsistenciaLoading] = useState(false);
   const [expandedClase, setExpandedClase] = useState(null);
+  
+  const [realIngresos, setRealIngresos] = useState(null);
+  const [realReservas, setRealReservas] = useState(null);
+
   const estadisticas = getEstadisticas();
+  
+  // Sobrescribir estadisticas si hay datos reales cargados
+  if (realIngresos) {
+    estadisticas.Ingresos = {
+      ...estadisticas.Ingresos,
+      total: `$${realIngresos.total.toLocaleString()}`,
+      datosSemanales: realIngresos.datosSemanales,
+      detalle: `Recaudación Total Activa`
+    };
+  }
+  if (realReservas) {
+    estadisticas.Reservas = {
+      ...estadisticas.Reservas,
+      total: `${realReservas.total}`,
+      datosSemanales: realReservas.datosSemanales,
+      detalle: `Total de reservas registradas`
+    };
+  }
+
   const dataActual = estadisticas[reporteActivo];
 
   React.useEffect(() => {
@@ -39,7 +64,67 @@ export default function ReportesScreen({ route, navigation }) {
     if (reporteActivo === 'Asistencia') {
       loadAsistenciaData();
     }
+    if (reporteActivo === 'Ingresos') {
+      loadRealIngresos();
+    }
+    if (reporteActivo === 'Reservas') {
+      loadRealReservas();
+    }
   }, [reporteActivo]);
+
+  const loadRealIngresos = async () => {
+    try {
+      const facturas = await facturaService.getAll();
+      const list = facturas || [];
+      const total = list.reduce((sum, f) => sum + (f.monto || 0), 0);
+      
+      // Calcular desglose semanal real por día de la semana de la fecha de emisión
+      const datosSemanales = [0, 0, 0, 0, 0, 0, 0]; // Lunes=0, ..., Domingo=6
+      list.forEach(f => {
+        if (f.fechaEmision) {
+          const date = new Date(f.fechaEmision);
+          let day = date.getDay(); // 0 = Domingo, 1 = Lunes, ...
+          let index = day === 0 ? 6 : day - 1; // Mapear a L=0, M=1, M=2, J=3, V=4, S=5, D=6
+          datosSemanales[index] += f.monto || 0;
+        }
+      });
+
+      // Escalar datos para la gráfica (altura máx 100px para representarlos visualmente de manera equilibrada)
+      const maxVal = Math.max(...datosSemanales) || 1;
+      const scaledSemanales = datosSemanales.map(v => Math.round((v / maxVal) * 90) + 10);
+
+      setRealIngresos({ total, datosSemanales: scaledSemanales });
+    } catch (e) {
+      console.error("Error loading real ingresos:", e);
+    }
+  };
+
+  const loadRealReservas = async () => {
+    try {
+      const reservas = await reservaService.getAll();
+      const list = reservas || [];
+      const total = list.length;
+
+      // Calcular desglose semanal real por día de la fecha del turno o creación
+      const datosSemanales = [0, 0, 0, 0, 0, 0, 0];
+      list.forEach(r => {
+        const dateStr = r.fechaTurno || r.fechaReserva;
+        if (dateStr) {
+          const date = new Date(dateStr);
+          let day = date.getDay();
+          let index = day === 0 ? 6 : day - 1;
+          datosSemanales[index] += 1;
+        }
+      });
+
+      const maxVal = Math.max(...datosSemanales) || 1;
+      const scaledSemanales = datosSemanales.map(v => Math.round((v / maxVal) * 90) + 10);
+
+      setRealReservas({ total, datosSemanales: scaledSemanales });
+    } catch (e) {
+      console.error("Error loading real reservas:", e);
+    }
+  };
 
   const loadAsistenciaData = async () => {
     setAsistenciaLoading(true);
