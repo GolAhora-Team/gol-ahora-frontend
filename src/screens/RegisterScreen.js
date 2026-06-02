@@ -42,6 +42,7 @@ export default function RegisterScreen({ navigation }) {
   const [contactoEmergencia, setContactoEmergencia] = useState('');
   const [errors, setErrors] = useState({});
   const [availabilityErrors, setAvailabilityErrors] = useState({});
+  const [availableFields, setAvailableFields] = useState({});
   const [successVisible, setSuccessVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +54,7 @@ export default function RegisterScreen({ navigation }) {
     const timer = setTimeout(async () => {
       if (!dni && !email && !username) {
         setAvailabilityErrors({});
+        setAvailableFields({});
         return;
       }
       try {
@@ -61,12 +63,44 @@ export default function RegisterScreen({ navigation }) {
           email || '', 
           username || ''
         );
-        const takenFields = response.data || [];
-        const newAvErrors = {};
-        if (takenFields.includes('DNI')) newAvErrors.dni = 'Este DNI ya está registrado';
-        if (takenFields.includes('Email')) newAvErrors.email = 'Este Email ya está en uso';
-        if (takenFields.includes('Username')) newAvErrors.username = 'Este Nombre de usuario ya está en uso';
+        // apiConfig returns the parsed array directly if it's JSON
+        const takenFields = Array.isArray(response) ? response : (response.data || []);
+        
+        const newAvErrors = { ...availabilityErrors };
+        const newAvSuccess = { ...availableFields };
+
+        if (dni && dni.length > 5) {
+          if (takenFields.includes('DNI')) {
+            newAvErrors.dni = 'Este DNI ya está registrado';
+            newAvSuccess.dni = false;
+          } else {
+            delete newAvErrors.dni;
+            newAvSuccess.dni = true;
+          }
+        }
+        
+        if (email && email.includes('@')) {
+          if (takenFields.includes('Email')) {
+            newAvErrors.email = 'Este Email ya está en uso';
+            newAvSuccess.email = false;
+          } else {
+            delete newAvErrors.email;
+            newAvSuccess.email = true;
+          }
+        }
+
+        if (username && username.length >= 3) {
+          if (takenFields.includes('Username')) {
+            newAvErrors.username = 'Este Nombre de usuario ya está en uso';
+            newAvSuccess.username = false;
+          } else {
+            delete newAvErrors.username;
+            newAvSuccess.username = true;
+          }
+        }
+
         setAvailabilityErrors(newAvErrors);
+        setAvailableFields(newAvSuccess);
       } catch (error) {
         console.error('Error verificando disponibilidad', error);
       }
@@ -208,16 +242,30 @@ export default function RegisterScreen({ navigation }) {
                       iconName="card-account-details"
                       keyboardType="numeric"
                       value={dni}
-                      onChangeText={(text) => setDni(text.replace(/[^0-9]/g, ''))}
+                      onChangeText={(text) => {
+                        setDni(text.replace(/[^0-9]/g, ''));
+                        setAvailableFields(prev => ({ ...prev, dni: false }));
+                        if (availabilityErrors.dni) {
+                          setAvailabilityErrors(prev => { const n = {...prev}; delete n.dni; return n; });
+                        }
+                      }}
                       error={errors.dni || availabilityErrors.dni}
+                      success={availableFields.dni}
                     />
 
                     <CustomInput
                       label="Nombre de usuario"
                       iconName="at"
                       value={username}
-                      onChangeText={setUsername}
+                      onChangeText={(text) => {
+                        setUsername(text);
+                        setAvailableFields(prev => ({ ...prev, username: false }));
+                        if (availabilityErrors.username) {
+                          setAvailabilityErrors(prev => { const n = {...prev}; delete n.username; return n; });
+                        }
+                      }}
                       error={errors.username || availabilityErrors.username}
+                      success={availableFields.username}
                       autoCapitalize="none"
                     />
 
@@ -302,8 +350,15 @@ export default function RegisterScreen({ navigation }) {
                       iconName="email"
                       keyboardType="email-address"
                       value={email}
-                      onChangeText={setEmail}
+                      onChangeText={(text) => {
+                        setEmail(text);
+                        setAvailableFields(prev => ({ ...prev, email: false }));
+                        if (availabilityErrors.email) {
+                          setAvailabilityErrors(prev => { const n = {...prev}; delete n.email; return n; });
+                        }
+                      }}
                       error={errors.email || availabilityErrors.email}
+                      success={availableFields.email}
                       autoCapitalize="none"
                     />
                     
