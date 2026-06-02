@@ -84,6 +84,7 @@ export default function App() {
       screens: {
         Login: '',
         NuevaClave: 'NuevaClave',
+        Dashboard: 'dashboard',
       },
     },
   };

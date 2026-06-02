@@ -127,6 +127,7 @@ export default function Dashboard({ route, navigation }) {
       const getParam = (key) => urlParams.get(key) || route.params?.[key];
       const hasParam = (key) => urlParams.has(key) || (route.params && route.params[key] !== undefined);
 
+
       const cleanUpUrl = () => {
         window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/pagoSocio=[^&]+&?/, '').replace(/collection_status=[^&]+&?/, ''));
         navigation.setParams({ pagoSocio: undefined, collection_status: undefined, mp_return: undefined, preference_id: undefined });
@@ -142,8 +143,16 @@ export default function Dashboard({ route, navigation }) {
                   loadCliente();
                   setSuccessModalMessage("Felicidades ahora eres socio de Gol Ahora.");
                   cleanUpUrl();
+                }).catch(err => {
+                  console.error("Error actualizando socio", err);
+                  setErrorModalMessage("Ocurrió un error al intentar activar tu membresía.");
+                  cleanUpUrl();
                 });
               }
+            }).catch(err => {
+              console.error("Error obteniendo cliente", err);
+              setErrorModalMessage("Ocurrió un error al intentar verificar tus datos.");
+              cleanUpUrl();
             });
           }
         } else {
@@ -164,8 +173,7 @@ export default function Dashboard({ route, navigation }) {
 
   const handlePaySocio = async () => {
     try {
-      const baseUrl = window.location.href.split('?')[0];
-      let returnUrl = baseUrl + `?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
+      let returnUrl = window.location.origin + `/dashboard?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
       const response = await mercadoPagoService.createPreference("Suscripción Socio Activo", 2000, returnUrl);
       if (response && response.initPoint) {
         window.location.href = response.initPoint;
