@@ -86,4 +86,17 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * POST /api/User/forgot-password
+   * Solicita restablecimiento de contraseña.
+   */
+  forgotPassword: async (email) => {
+    try {
+      return await http.post(`${URL}/forgot-password`, { email });
+    } catch (error) {
+      console.error('Error en forgotPassword:', error);
+      throw error;
+    }
+  },
 };

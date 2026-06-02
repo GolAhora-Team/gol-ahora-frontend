@@ -17,30 +17,36 @@ import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import CustomInput from '../components/CustomInput';
 import Footer from '../components/Footer';
+import SuccessModal from '../components/SuccessModal';
+import { userService } from '../services/userService';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
 export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!email) {
       Alert.alert("Atención", "Por favor ingresa tu correo electrónico.");
       return;
     }
 
-    const message = "Si el correo existe en nuestra base de datos, recibirás un link para generar tu nueva contraseña.";
-    
-    if (Platform.OS === 'web') {
-      window.alert(message);
-      navigation.navigate('Login');
-    } else {
-      Alert.alert(
-        "Link enviado",
-        message,
-        [{ text: "Volver al Login", onPress: () => navigation.navigate('Login') }]
-      );
+    setIsLoading(true);
+    try {
+      await userService.forgotPassword(email.trim());
+      setShowSuccessModal(true);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Hubo un error al intentar enviar el correo. Por favor, intenta de nuevo.";
+      if (Platform.OS === 'web') {
+        window.alert(errorMessage);
+      } else {
+        Alert.alert("Error", errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -86,12 +92,13 @@ export default function ForgotPasswordScreen({ navigation }) {
                     />
 
                     <TouchableOpacity 
-                      style={styles.mainButton} 
+                      style={[styles.mainButton, isLoading && { opacity: 0.7 }]} 
                       activeOpacity={0.8}
                       onPress={handleReset}
+                      disabled={isLoading}
                     >
                       <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
-                        <Text style={styles.buttonText}>ENVIAR LINK</Text>
+                        <Text style={styles.buttonText}>{isLoading ? 'ENVIANDO...' : 'ENVIAR LINK'}</Text>
                       </LinearGradient>
                     </TouchableOpacity>
 
@@ -109,6 +116,15 @@ export default function ForgotPasswordScreen({ navigation }) {
         </KeyboardAvoidingView>
         <Footer />
       </SafeAreaView>
+
+      <SuccessModal
+        visible={showSuccessModal}
+        message="Correo de recuperación enviado exitosamente. Por favor, revisa tu bandeja de entrada."
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('Login');
+        }}
+      />
     </View>
   );
 }
