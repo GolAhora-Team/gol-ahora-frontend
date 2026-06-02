@@ -23,6 +23,8 @@ import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import StatCards from '../components/StatCards';
+import SuccessModal from '../components/SuccessModal';
+import ErrorModal from '../components/ErrorModal';
 import InfoCarousel from '../components/InfoCarousel';
 
 const { width: windowWidth } = Dimensions.get('window');
@@ -99,6 +101,8 @@ export default function Dashboard({ route, navigation }) {
   
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
   const [currentCliente, setCurrentCliente] = useState(null);
+  const [successModalMessage, setSuccessModalMessage] = useState(null);
+  const [errorModalMessage, setErrorModalMessage] = useState(null);
 
   React.useEffect(() => {
     if (role === 'CLIENTE' && idPersona) {
@@ -126,7 +130,7 @@ export default function Dashboard({ route, navigation }) {
               if (c) {
                 clienteService.update(idPersona, { ...c, esSocioActivo: true }).then(() => {
                   loadCliente();
-                  alert("¡Pago exitoso! Ahora eres Socio Activo.");
+                  setSuccessModalMessage("Felicidades ahora eres socio de Gol Ahora.");
                   // Limpiar URL
                   window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/pagoSocio=[^&]+&?/, ''));
                 });
@@ -136,6 +140,13 @@ export default function Dashboard({ route, navigation }) {
         } else {
           navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
         }
+      } else if (urlParams.has('pagoSocio') && urlParams.has('collection_status') && urlParams.get('collection_status') !== 'approved') {
+        setErrorModalMessage("El pago no se pudo completar y no se pudo dar de alta para ser socio.");
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/pagoSocio=[^&]+&?/, ''));
+      } else if (urlParams.has('pagoSocio') && !urlParams.has('collection_status')) {
+        // En caso de que haya tocado volver a la tienda antes de pagar, a veces no manda collection_status
+        setErrorModalMessage("El pago no se pudo completar y no se pudo dar de alta para ser socio.");
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/pagoSocio=[^&]+&?/, ''));
       } else if (urlParams.has('preference_id') || urlParams.has('mp_return')) {
         navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
       }
@@ -349,6 +360,17 @@ export default function Dashboard({ route, navigation }) {
           <Footer />
         </ScrollView>
       </SafeAreaView>
+
+      <SuccessModal
+        visible={!!successModalMessage}
+        message={successModalMessage}
+        onClose={() => setSuccessModalMessage(null)}
+      />
+      <ErrorModal
+        visible={!!errorModalMessage}
+        message={errorModalMessage}
+        onClose={() => setErrorModalMessage(null)}
+      />
     </View>
   );
 }
