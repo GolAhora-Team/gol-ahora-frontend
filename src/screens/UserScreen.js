@@ -42,7 +42,8 @@ export default function UserScreen({ route, navigation }) {
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
     fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
-    certificadoFile: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false
+    certificadoFile: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false,
+    aptoMedicoFileName: null, aptoMedicoBase64: null, aptoFechaInicio: '', aptoFechaFin: ''
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -171,6 +172,14 @@ export default function UserScreen({ route, navigation }) {
         // Update
         if (formData.role === 'CLIENTE') {
           await clienteService.update(formData.id, payloadToSave);
+          if (formData.aptoMedicoBase64 && formData.aptoFechaInicio && formData.aptoFechaFin) {
+            await userService.uploadAptoMedico({
+              clienteId: parseInt(formData.id),
+              archivoBase64: formData.aptoMedicoBase64,
+              fechaInicio: `${formData.aptoFechaInicio}T00:00:00.000Z`,
+              fechaFin: `${formData.aptoFechaFin}T00:00:00.000Z`
+            });
+          }
         } else if (formData.role === 'PROFE') {
           await profesorService.updateSimple(formData.id, payloadToSave);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {

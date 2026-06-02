@@ -112,4 +112,17 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * POST /api/User/apto-medico
+   * Sube el apto médico del cliente
+   */
+  uploadAptoMedico: async (payload) => {
+    try {
+      return await http.post(`${URL}/apto-medico`, payload);
+    } catch (error) {
+      console.error('Error en uploadAptoMedico:', error);
+      throw error;
+    }
+  },
 };

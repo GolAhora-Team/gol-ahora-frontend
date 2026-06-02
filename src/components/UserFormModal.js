@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 
@@ -23,20 +24,41 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
+        type: ['application/pdf', 'image/*'],
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
         if (file.size > 4 * 1024 * 1024) {
-          Alert.alert('Error', 'El archivo excede el límite de 4MB.');
+          alert('El archivo excede el límite de 4MB.');
           return;
         }
         setFormData(prev => ({ ...prev, certificadoFile: file.name }));
       }
     } catch (err) {
       console.error("Error picking document: ", err);
+    }
+  };
+
+  const handlePickAptoMedico = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.size > 2 * 1024 * 1024) {
+          alert('El archivo del apto médico excede el límite de 2MB.');
+          return;
+        }
+        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+        setFormData(prev => ({ ...prev, aptoMedicoFileName: file.name, aptoMedicoBase64: base64, aptoFisico: true }));
+      }
+    } catch (err) {
+      console.error("Error picking apto medico: ", err);
     }
   };
 
@@ -194,6 +216,30 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                     <Text style={[styles.statusText, formData.aptoFisico ? styles.textWhite : styles.textGreen]}>APTO FÍSICO</Text>
                   </TouchableOpacity>
                 </View>
+
+                {formData.aptoFisico && (
+                  <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
+                    <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO (PDF/IMG, MÁX 2MB)</Text>
+                    <TouchableOpacity style={styles.fileBtn} onPress={handlePickAptoMedico}>
+                      <MaterialCommunityIcons name="file-document-outline" size={24} color="#009b3a" />
+                      <Text style={styles.fileBtnText}>
+                        {formData.aptoMedicoFileName ? formData.aptoMedicoFileName : (formData.aptoMedicoArchivo ? "Certificado Guardado en BD" : "Seleccionar Archivo")}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.datesRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.greenLabelBold}>FECHA EMISIÓN</Text>
+                        <TextInput style={styles.cleanInput} value={formData.aptoFechaInicio} onChangeText={(t) => setFormData({...formData, aptoFechaInicio: t})} placeholder="YYYY-MM-DD" />
+                      </View>
+                      <View style={{ width: 10 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.greenLabelBold}>FECHA VENCIMIENTO</Text>
+                        <TextInput style={styles.cleanInput} value={formData.aptoFechaFin} onChangeText={(t) => setFormData({...formData, aptoFechaFin: t})} placeholder="YYYY-MM-DD" />
+                      </View>
+                    </View>
+                  </View>
+                )}
               </View>
             )}
 

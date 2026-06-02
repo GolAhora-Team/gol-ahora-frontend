@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import { http, API_BASE_URL } from '../services/apiConfig';
+import { asistenciaService } from '../services/asistenciaService';
 
 export default function ClasesProfeScreen({ route, navigation }) {
   const { role, idPersona } = route.params || { role: "PROFE", idPersona: null };
   const [clases, setClases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedClaseId, setExpandedClaseId] = useState(null);
+
+  const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
+  const [selectedClase, setSelectedClase] = useState(null);
+  const [presentesIds, setPresentesIds] = useState([]);
+  const [asistenciaDate, setAsistenciaDate] = useState(new Date().toISOString().split('T')[0]);
+  const [loadingAsistencia, setLoadingAsistencia] = useState(false);
 
   useEffect(() => {
     fetchClases();
@@ -31,6 +38,49 @@ export default function ClasesProfeScreen({ route, navigation }) {
 
   const toggleExpand = (id) => {
     setExpandedClaseId(expandedClaseId === id ? null : id);
+  };
+
+  const openAsistenciaModal = async (clase) => {
+    setSelectedClase(clase);
+    setAsistenciaModalVisible(true);
+    setLoadingAsistencia(true);
+    try {
+      const result = await asistenciaService.getAsistenciasPorClaseYFecha(clase.id, asistenciaDate);
+      if (result && result.length > 0) {
+        const pre = result.filter(a => a.presente).map(a => a.clienteId);
+        setPresentesIds(pre);
+      } else {
+        setPresentesIds([]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAsistencia(false);
+    }
+  };
+
+  const toggleAsistencia = (alumnoId) => {
+    if (presentesIds.includes(alumnoId)) {
+      setPresentesIds(presentesIds.filter(id => id !== alumnoId));
+    } else {
+      setPresentesIds([...presentesIds, alumnoId]);
+    }
+  };
+
+  const saveAsistencia = async () => {
+    try {
+      const payload = {
+        claseId: selectedClase.id,
+        fecha: `${asistenciaDate}T00:00:00.000Z`,
+        clientesPresentesIds: presentesIds
+      };
+      await asistenciaService.marcarAsistencia(payload);
+      Alert.alert('Éxito', 'La asistencia fue registrada correctamente.');
+      setAsistenciaModalVisible(false);
+    } catch (e) {
+      Alert.alert('Error', 'Hubo un error al guardar la asistencia.');
+      console.error(e);
+    }
   };
 
   return (
@@ -85,7 +135,14 @@ export default function ClasesProfeScreen({ route, navigation }) {
 
                   {isExpanded && (
                     <View style={styles.expandedContent}>
-                      <Text style={styles.sectionTitle}>Alumnos Inscriptos</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12 }}>
+                        <Text style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}>Alumnos Inscriptos</Text>
+                        <TouchableOpacity style={styles.takeAsistenciaBtn} onPress={() => openAsistenciaModal(clase)}>
+                          <MaterialCommunityIcons name="clipboard-check-outline" size={18} color="#fff" />
+                          <Text style={styles.takeAsistenciaBtnText}>TOMAR ASISTENCIA</Text>
+                        </TouchableOpacity>
+                      </View>
+                      
                       {alumnos.length === 0 ? (
                         <Text style={styles.emptyAlumnosText}>Aún no hay alumnos inscriptos.</Text>
                       ) : (
@@ -104,6 +161,57 @@ export default function ClasesProfeScreen({ route, navigation }) {
           )}
         </ScrollView>
       )}
+
+      <Modal visible={asistenciaModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>Asistencia - {selectedClase?.nombre}</Text>
+              <TouchableOpacity onPress={() => setAsistenciaModalVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={32} color="#009b3a" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dateSubtitle}>Fecha: {asistenciaDate}</Text>
+
+            {loadingAsistencia ? (
+              <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+                {selectedClase?.alumnos && selectedClase.alumnos.length > 0 ? (
+                  selectedClase.alumnos.map(alumno => {
+                    const isPresente = presentesIds.includes(alumno.id);
+                    return (
+                      <TouchableOpacity 
+                        key={alumno.id} 
+                        style={styles.asistenciaRow} 
+                        onPress={() => toggleAsistencia(alumno.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="account" size={24} color="#64748b" />
+                          <Text style={styles.alumnoNameModal}>{alumno.nombre} {alumno.apellido}</Text>
+                        </View>
+                        <MaterialCommunityIcons 
+                          name={isPresente ? "checkbox-marked" : "checkbox-blank-outline"} 
+                          size={28} 
+                          color={isPresente ? "#009b3a" : "#94a3b8"} 
+                        />
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <Text style={styles.emptyAlumnosText}>No hay alumnos inscriptos en esta clase.</Text>
+                )}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.saveBtn} onPress={saveAsistencia}>
+              <Text style={styles.saveBtnText}>GUARDAR ASISTENCIA</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenTemplate>
   );
 }
@@ -125,5 +233,16 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#475569', marginBottom: 12, marginTop: 12 },
   emptyAlumnosText: { color: '#94a3b8', fontStyle: 'italic', fontSize: 14 },
   alumnoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  alumnoName: { fontSize: 15, color: '#1e293b', marginLeft: 10, fontWeight: '500' }
+  alumnoName: { fontSize: 15, color: '#1e293b', marginLeft: 10, fontWeight: '500' },
+  takeAsistenciaBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  takeAsistenciaBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12, marginLeft: 6 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContainer: { width: '100%', maxWidth: 500, backgroundColor: '#fff', borderRadius: 24, padding: 25 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  modalHeaderTitle: { fontSize: 20, fontWeight: '900', color: '#009b3a' },
+  dateSubtitle: { fontSize: 14, color: '#64748b', fontWeight: '600', marginBottom: 20 },
+  asistenciaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  alumnoNameModal: { fontSize: 16, color: '#1e293b', fontWeight: '600', marginLeft: 12 },
+  saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 25 },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' }
 });
