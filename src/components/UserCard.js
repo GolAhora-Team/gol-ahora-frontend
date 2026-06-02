@@ -21,6 +21,30 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
 
   const edad = calcularEdad(item.fechaNacimiento);
 
+  const getCertificadoStatus = () => {
+    if (!item.certificadoFile) return { text: 'Sin Certificado', color: '#ef4444', bg: '#fee2e2', icon: 'certificate-outline' };
+    
+    if (item.sinCaducidad) return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
+    
+    if (item.certFechaFin) {
+      const parts = item.certFechaFin.split('/');
+      let endDate;
+      if (parts.length === 3) {
+        endDate = new Date(parts[2], parts[1] - 1, parts[0]);
+      } else {
+        endDate = new Date(item.certFechaFin);
+      }
+      
+      if (!isNaN(endDate) && endDate < new Date()) {
+        return { text: 'Certificado Vencido', color: '#ef4444', bg: '#fee2e2', icon: 'certificate' };
+      }
+    }
+    
+    return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
+  };
+
+  const certStatus = item.role === 'PROFE' ? getCertificadoStatus() : null;
+
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -39,22 +63,27 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
           <Text style={styles.userEmail}>{item.email}</Text>
         ) : null}
 
-        {(item.aptoFisico || item.esSocioActivo) && (
-          <View style={styles.badgesRow}>
-            {item.aptoFisico && (
-              <View style={[styles.badge, styles.badgeApto]}>
-                <MaterialCommunityIcons name="heart-pulse" size={12} color="#059669" />
-                <Text style={styles.badgeTextApto}>Apto Físico</Text>
-              </View>
-            )}
-            {item.esSocioActivo && (
-              <View style={[styles.badge, styles.badgeSocio]}>
-                <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
-                <Text style={styles.badgeTextSocio}>Socio Activo</Text>
-              </View>
-            )}
-          </View>
-        )}
+        <View style={styles.badgesRow}>
+          {item.aptoFisico && (
+            <View style={[styles.badge, styles.badgeApto]}>
+              <MaterialCommunityIcons name="heart-pulse" size={12} color="#059669" />
+              <Text style={styles.badgeTextApto}>Apto Físico</Text>
+            </View>
+          )}
+          {item.esSocioActivo && (
+            <View style={[styles.badge, styles.badgeSocio]}>
+              <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
+              <Text style={styles.badgeTextSocio}>Socio Activo</Text>
+            </View>
+          )}
+          {item.role === 'PROFE' && certStatus && (
+            <View style={[styles.badge, { backgroundColor: certStatus.bg }]}>
+              <MaterialCommunityIcons name={certStatus.icon} size={12} color={certStatus.color} />
+              <Text style={[styles.badgeTextApto, { color: certStatus.color }]}>{certStatus.text}</Text>
+            </View>
+          )}
+        </View>
+
       </View>
 
       {/* Verificamos el permiso de modificación */}

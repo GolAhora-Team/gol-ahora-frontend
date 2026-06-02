@@ -41,7 +41,8 @@ export default function UserScreen({ route, navigation }) {
     telefono: '', direccion: '', localidad: '', codigoPostal: '', provincia: 'Buenos Aires',
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', aptoFisico: false, especializacion: '',
-    fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: ''
+    fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
+    certificadoFile: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -187,7 +188,7 @@ export default function UserScreen({ route, navigation }) {
           ...payloadToSave, 
           dni: Number(formData.dni),
           especialidad: formData.especializacion || 'General',
-          certificacion: 'Ninguna', // Valor por defecto ya que no se pide en el form
+          certificacion: formData.certificadoFile || 'Ninguna',
           obraSocial: formData.obraSocial || 'Ninguna'
         };
         

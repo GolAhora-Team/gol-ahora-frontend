@@ -1,11 +1,32 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        if (file.size > 4 * 1024 * 1024) {
+          Alert.alert('Error', 'El archivo excede el límite de 4MB.');
+          return;
+        }
+        setFormData(prev => ({ ...prev, certificadoFile: file.name }));
+      }
+    } catch (err) {
+      console.error("Error picking document: ", err);
+    }
+  };
 
   const isRoleEditable = (r) => {
     if (!isEditing) return true;
@@ -119,6 +140,31 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS PROFESOR</Text>
                 <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Fútbol, Padel" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+                
+                <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO / PROFESIONAL (PDF, MÁX 4MB)</Text>
+                <TouchableOpacity style={styles.fileBtn} onPress={handlePickDocument}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
+                  <Text style={styles.fileBtnText}>
+                    {formData.certificadoFile ? formData.certificadoFile : "Seleccionar Archivo"}
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={styles.datesRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.greenLabelBold}>FECHA INICIO</Text>
+                    <TextInput style={styles.cleanInput} value={formData.certFechaInicio} onChangeText={(t) => setFormData({...formData, certFechaInicio: t})} placeholder="DD/MM/AAAA" />
+                  </View>
+                  <View style={{ width: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.greenLabelBold, formData.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
+                    <TextInput style={[styles.cleanInput, formData.sinCaducidad && { backgroundColor: '#f1f5f9', color: '#94a3b8' }]} value={formData.sinCaducidad ? 'Sin caducidad' : formData.certFechaFin} onChangeText={(t) => !formData.sinCaducidad && setFormData({...formData, certFechaFin: t})} placeholder="DD/MM/AAAA" editable={!formData.sinCaducidad} />
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.checkboxContainer} onPress={() => setFormData({...formData, sinCaducidad: !formData.sinCaducidad})}>
+                  <MaterialCommunityIcons name={formData.sinCaducidad ? "checkbox-marked" : "checkbox-blank-outline"} size={24} color="#009b3a" />
+                  <Text style={styles.checkboxLabel}>Sin fecha de caducidad</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -170,7 +216,6 @@ const styles = StyleSheet.create({
   greenInputText: { color: '#009b3a', fontWeight: '800' },
   row: { flexDirection: 'row', marginBottom: 15 },
   dateFullRow: { marginBottom: 20 },
-  dateInputGroup: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 14, height: 50, borderWidth: 1.5, borderColor: '#e2e8f0', paddingHorizontal: 15 },
   datePartInput: { color: '#000', fontWeight: '900', fontSize: 16, width: 35, textAlign: 'center', outlineStyle: 'none' },
   dateSeparator: { color: '#94a3b8', fontWeight: '900', fontSize: 18, marginHorizontal: 5 },
   genderRow: { flexDirection: 'row', gap: 10 },
@@ -190,5 +235,10 @@ const styles = StyleSheet.create({
   textWhite: { color: '#fff' },
   textGreen: { color: '#94a3b8' },
   saveBtn: { backgroundColor: '#009b3a', padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 15 },
-  saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 17 }
+  saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 17 },
+  fileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', padding: 15, borderRadius: 14, marginBottom: 15 },
+  fileBtnText: { marginLeft: 10, fontSize: 13, color: '#1e293b', fontWeight: '800', flex: 1 },
+  datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  checkboxLabel: { marginLeft: 8, fontSize: 14, color: '#334155', fontWeight: '800' }
 });
