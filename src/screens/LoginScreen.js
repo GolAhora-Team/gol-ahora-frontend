@@ -24,6 +24,9 @@ const LoginScreen = ({ navigation, route }) => {
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutEndTime, setLockoutEndTime] = useState(null);
 
   useEffect(() => {
     if (route?.params?.sessionClosedByInactivity) {
@@ -75,6 +78,17 @@ const LoginScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (lockoutEndTime) {
+      const remainingTime = Math.ceil((lockoutEndTime - Date.now()) / 1000);
+      if (remainingTime > 0) {
+        setErrorMessage(`Demasiados intentos. Espera ${remainingTime} segundos.`);
+        return;
+      } else {
+        setLockoutEndTime(null);
+        setFailedAttempts(0);
+      }
+    }
+
     setIsLoading(true);
     try {
       // Llamada real al backend: POST /api/User/login
@@ -114,10 +128,21 @@ const LoginScreen = ({ navigation, route }) => {
       } else {
         await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
       }
+      
+      setFailedAttempts(0);
+      setLockoutEndTime(null);
 
       navigation.replace('Dashboard', sessionData);
     } catch (error) {
-      setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+      
+      if (newFailedAttempts >= 3) {
+        setLockoutEndTime(Date.now() + 60000);
+        setErrorMessage('Demasiados intentos fallidos. Intenta de nuevo en 60 segundos.');
+      } else {
+        setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -230,10 +255,10 @@ const LoginScreen = ({ navigation, route }) => {
                   )}
 
                   <TouchableOpacity
-                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
+                    style={[styles.mainButton, (isLoading || lockoutEndTime) && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
-                    disabled={isLoading}
+                    disabled={isLoading || (lockoutEndTime && Date.now() < lockoutEndTime)}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
                       <Text style={styles.buttonText}>{isLoading ? 'INICIANDO SESIÓN...' : 'INGRESAR AL CAMPO'}</Text>
