@@ -84,6 +84,27 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                 labelStyle={styles.greenLabelBold}
                 inputStyle={[styles.greenInputText, { color: '#64748b' }]}
               />
+
+              <Text style={[styles.greenLabelBold, { marginTop: 15 }]}>DURACIÓN DE RESERVAS (Minutos)</Text>
+              <View style={styles.choiceRow}>
+                {[60, 90].map(d => (
+                  <TouchableOpacity 
+                    key={d} 
+                    style={[styles.choiceBtn, formData.duracionMax === d && styles.activeBtn]} 
+                    onPress={() => setFormData({...formData, duracionMax: d})}
+                  >
+                    <Text style={[styles.choiceText, formData.duracionMax === d ? styles.whiteText : styles.greenText]}>{d} min</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <CustomInput 
+                label="DURACIÓN PERSONALIZADA (Minutos)" 
+                value={formData.duracionMax ? formData.duracionMax.toString() : ""} 
+                onChangeText={v => setFormData({...formData, duracionMax: parseInt(v.replace(/[^0-9]/g, '')) || 0})}
+                containerStyle={styles.cleanInput}
+                labelStyle={styles.greenLabelBold}
+                inputStyle={styles.greenInputText}
+              />
             </View>
 
             {/* SECCIÓN DE MANTENIMIENTO TIPO USUARIO */}

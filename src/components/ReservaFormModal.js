@@ -3,9 +3,9 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { clienteService } from '../services/clienteService';
-import { reservaService } from '../services/reservaService';
 import { userService } from '../services/userService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
+import { descuentoService } from '../services/descuentoService';
 import ErrorModal from './ErrorModal';
 
 // ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
@@ -57,7 +57,7 @@ function StepCancha({ canchas, selectedCancha, onSelect }) {
 }
 
 // ─── PASO 2: CLIENTE O INVITADO ────────────────────────────────────────────────
-function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedCliente, invitado, setInvitado, errors }) {
+function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedCliente, invitado, setInvitado, errors, pctSocio }) {
   const [searchTerm, setSearchTerm] = useState('');
   const filteredClientes = searchTerm.length >= 2
     ? clientes.filter(c => 
@@ -164,7 +164,7 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
                   {selectedCliente.esSocioActivo && (
                     <View style={[s.badge, s.badgeSocio]}>
                       <MaterialCommunityIcons name="star-circle-outline" size={12} color="#d97706" />
-                      <Text style={s.badgeTextSocio}>Socio Activo - 10% DESC.</Text>
+                      <Text style={s.badgeTextSocio}>Socio Activo - {pctSocio}% DESC.</Text>
                     </View>
                   )}
                 </View>
@@ -213,7 +213,7 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
 }
 
 // ─── PASO 3: DÍA Y HORARIO ────────────────────────────────────────────────────
-function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, canchaId, errors }) {
+function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, cancha, errors }) {
   const scrollRef = useRef(null);
 
   const getNext7Days = () => {
@@ -232,16 +232,27 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
 
   const horarios = (() => {
     const todos = [];
-    for (let h = 10; h <= 23; h++) {
-      todos.push(`${h.toString().padStart(2, '0')}:00`);
+    const duracion = cancha?.original?.duracionMax || 60;
+    
+    let currentMins = 10 * 60;
+    const endMins = 23 * 60;
+    
+    while (currentMins <= endMins) {
+      const h = Math.floor(currentMins / 60);
+      const m = currentMins % 60;
+      todos.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+      currentMins += duracion;
     }
+
     if (!selectedDate) return todos;
     
     const now = new Date();
     if (selectedDate.toDateString() === now.toDateString()) {
       return todos.filter(hStr => {
-        const hInt = parseInt(hStr.split(':')[0], 10);
-        return hInt > now.getHours();
+        const [hInt, mInt] = hStr.split(':').map(Number);
+        if (hInt > now.getHours()) return true;
+        if (hInt === now.getHours() && mInt > now.getMinutes()) return true;
+        return false;
       });
     }
     return todos;
@@ -254,14 +265,31 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
   };
 
   const isHoraOcupada = (hora) => {
-    if (!selectedDate || !canchaId) return false;
+    if (!selectedDate || !cancha) return false;
     const fechaStr = selectedDate.toISOString().split('T')[0];
+    
+    const getMinutes = (timeStr) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+    
+    const slotStart = getMinutes(hora);
+    const duracion = cancha.original?.duracionMax || 60;
+    const slotEnd = slotStart + duracion;
+
     return reservasOcupadas.some(r => {
       const rFecha = r.fecha?.split('T')[0];
       const rCanchaId = r.canchaId?.toString() || r.cancha?.id?.toString();
-      if (rFecha !== fechaStr || rCanchaId !== canchaId.toString()) return false;
-      const rInicio = r.horaInicio?.substring(0, 5);
-      return rInicio === hora;
+      if (rFecha !== fechaStr || rCanchaId !== cancha.id?.toString()) return false;
+      
+      const rInicioStr = r.horaInicio?.substring(0, 5);
+      const rFinStr = r.horaFin?.substring(0, 5);
+      if (!rInicioStr || !rFinStr) return false;
+      
+      const rStart = getMinutes(rInicioStr);
+      const rEnd = getMinutes(rFinStr);
+      
+      return slotStart < rEnd && slotEnd > rStart;
     });
   };
 
@@ -332,9 +360,9 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
 }
 
 // ─── PASO 4: PAGO ──────────────────────────────────────────────────────────────
-function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precioBase, esSocio, errors }) {
-  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
-  const descSocio = esSocio ? precioBase * 0.10 : 0;
+function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precioBase, esSocio, errors, pctEfectivo, pctSocio }) {
+  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * (pctEfectivo / 100) : 0;
+  const descSocio = esSocio ? precioBase * (pctSocio / 100) : 0;
   const totalDescuentos = descEfectivo + descSocio;
   const montoFinal = precioBase - totalDescuentos;
 
@@ -351,7 +379,7 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
         >
           <MaterialCommunityIcons name="cash-multiple" size={28} color={metodoPago === 'EFECTIVO' ? '#fff' : '#009b3a'} />
           <Text style={[s.pagoBtnText, metodoPago === 'EFECTIVO' && { color: '#fff' }]}>Efectivo</Text>
-          <Text style={[s.pagoBtnSub, metodoPago === 'EFECTIVO' && { color: '#d1fae5' }]}>10% desc.</Text>
+          <Text style={[s.pagoBtnSub, metodoPago === 'EFECTIVO' && { color: '#d1fae5' }]}>{pctEfectivo}% desc.</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.pagoBtn, metodoPago === 'MERCADOPAGO' && s.pagoBtnActiveMP]}
@@ -382,14 +410,14 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
 
         {descEfectivo > 0 && (
           <View style={s.resumenRow}>
-            <Text style={s.descuentoLabel}>Descuento 10% pago en efectivo</Text>
+            <Text style={s.descuentoLabel}>Descuento {pctEfectivo}% pago en efectivo</Text>
             <Text style={s.descuentoValue}>-${descEfectivo.toLocaleString('es-AR')}</Text>
           </View>
         )}
 
         {descSocio > 0 && (
           <View style={s.resumenRow}>
-            <Text style={s.descuentoLabel}>Descuento 10% socio activo</Text>
+            <Text style={s.descuentoLabel}>Descuento {pctSocio}% socio activo</Text>
             <Text style={s.descuentoValue}>-${descSocio.toLocaleString('es-AR')}</Text>
           </View>
         )}
@@ -405,9 +433,9 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
 }
 
 // ─── PASO 5: CONFIRMACIÓN ──────────────────────────────────────────────────────
-function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase, esSocio, currentUserRole }) {
-  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
-  const descSocio = esSocio ? precioBase * 0.10 : 0;
+function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase, esSocio, currentUserRole, pctEfectivo, pctSocio }) {
+  const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * (pctEfectivo / 100) : 0;
+  const descSocio = esSocio ? precioBase * (pctSocio / 100) : 0;
   const montoFinal = precioBase - descEfectivo - descSocio;
   const fechaStr = fecha ? fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
   
@@ -475,9 +503,24 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorModalMessage, setErrorModalMessage] = useState(null);
+  const [descuentoSocioPct, setDescuentoSocioPct] = useState(10);
+  const [descuentoEfectivoPct, setDescuentoEfectivoPct] = useState(10);
 
   useEffect(() => {
     if (visible) {
+      const loadDescuentos = async () => {
+        try {
+          const descs = await descuentoService.getAll();
+          const socioDesc = descs.find(d => d.nombre.toLowerCase() === 'socio');
+          const efectivoDesc = descs.find(d => d.nombre.toLowerCase() === 'efectivo');
+          if (socioDesc) setDescuentoSocioPct(socioDesc.porcentaje);
+          if (efectivoDesc) setDescuentoEfectivoPct(efectivoDesc.porcentaje);
+        } catch (e) {
+          console.error("Error cargando descuentos:", e);
+        }
+      };
+      loadDescuentos();
+
       if (reservaToEdit) {
         setStep(1);
         const c = canchas.find(x => x.id === reservaToEdit.canchaId);
@@ -624,9 +667,9 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     else if (step > 1) setStep(step - 1);
   };
 
-  const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodo, esSocioActivo, emitidoPor) => {
-    const descEfectivo = metodo === 'EFECTIVO' ? precioBase * 0.10 : 0;
-    const descSocio = esSocioActivo ? precioBase * 0.10 : 0;
+  const generateComprobanteHtml = (persona, cancha, fecha, hora, precioBase, metodo, esSocioActivo, emitidoPor, pctEfectivo, pctSocio) => {
+    const descEfectivo = metodo === 'EFECTIVO' ? precioBase * (pctEfectivo / 100) : 0;
+    const descSocio = esSocioActivo ? precioBase * (pctSocio / 100) : 0;
     const montoFinal = precioBase - descEfectivo - descSocio;
     const fechaStr = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const now = new Date();
@@ -661,8 +704,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
             <div class="row"><span class="label">Horario</span> <span class="value">${hora}hs</span></div>
             <div class="row"><span class="label">Método de pago</span> <span class="value">${metodo === 'EFECTIVO' ? 'Efectivo' : 'Mercado Pago'}</span></div>
             <div class="row"><span class="label">Monto original</span> <span class="value">$${precioBase.toLocaleString('es-AR')}</span></div>
-            ${descEfectivo > 0 ? `<div class="row"><span class="label discount">Desc. 10% efectivo</span> <span class="discount">-$${descEfectivo.toLocaleString('es-AR')}</span></div>` : ''}
-            ${descSocio > 0 ? `<div class="row"><span class="label discount">Desc. 10% socio activo</span> <span class="discount">-$${descSocio.toLocaleString('es-AR')}</span></div>` : ''}
+            ${descEfectivo > 0 ? `<div class="row"><span class="label discount">Desc. ${pctEfectivo}% efectivo</span> <span class="discount">-$${descEfectivo.toLocaleString('es-AR')}</span></div>` : ''}
+            ${descSocio > 0 ? `<div class="row"><span class="label discount">Desc. ${pctSocio}% socio activo</span> <span class="discount">-$${descSocio.toLocaleString('es-AR')}</span></div>` : ''}
             <p class="total">TOTAL: $${montoFinal.toLocaleString('es-AR')}</p>
           </div>
           <div class="footer">
@@ -679,8 +722,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const persona = getPersona();
       const precioBase = getPrecioBase();
       const socio = esSocio();
-      const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * 0.10 : 0;
-      const descSocio = socio ? precioBase * 0.10 : 0;
+      const descEfectivo = metodoPago === 'EFECTIVO' ? precioBase * (descuentoEfectivoPct / 100) : 0;
+      const descSocio = socio ? precioBase * (descuentoSocioPct / 100) : 0;
       const montoFinal = precioBase - descEfectivo - descSocio;
 
       // Si es invitado, crear cliente temporal
@@ -736,16 +779,22 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       }
 
       // Payload de la reserva
-      const [horaH] = selectedHora.split(':').map(Number);
+      const [horaH, horaM] = selectedHora.split(':').map(Number);
+      const startMins = horaH * 60 + horaM;
+      const duracion = selectedCancha?.original?.duracionMax || 60;
+      const endMins = startMins + duracion;
+      const finH = Math.floor(endMins / 60);
+      const finM = endMins % 60;
+
       const reservaPayload = {
         Fecha: selectedDate.toISOString().split('T')[0],
         HoraInicio: `${selectedHora}:00`,
-        HoraFin: `${(horaH + 1).toString().padStart(2, '0')}:00:00`,
+        HoraFin: `${finH.toString().padStart(2, '0')}:${finM.toString().padStart(2, '0')}:00`,
         ClienteId: clienteIdFinal,
         CanchaId: parseInt(selectedCancha.id)
       };
 
-      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario);
+      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario, descuentoEfectivoPct, descuentoSocioPct);
       const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
 
       const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
@@ -878,14 +927,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
               <StepCliente
                 mode={clienteMode} setMode={setClienteMode}
                 clientes={clientes} selectedCliente={selectedCliente} setSelectedCliente={setSelectedCliente}
-                invitado={invitado} setInvitado={setInvitado} errors={errors}
+                invitado={invitado} setInvitado={setInvitado} errors={errors} pctSocio={descuentoSocioPct}
               />
             )}
             {step === 3 && (
               <StepDiaHorario
                 selectedDate={selectedDate} setSelectedDate={setSelectedDate}
                 selectedHora={selectedHora} setSelectedHora={setSelectedHora}
-                reservasOcupadas={reservasActuales} canchaId={selectedCancha?.id} errors={errors}
+                reservasOcupadas={reservasActuales} cancha={selectedCancha} errors={errors}
               />
             )}
             {step === 4 && (
@@ -893,6 +942,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
                 metodoPago={metodoPago} setMetodoPago={setMetodoPago}
                 codigoVale={codigoVale} setCodigoVale={setCodigoVale}
                 precioBase={getPrecioBase()} esSocio={esSocio()} errors={errors}
+                pctEfectivo={descuentoEfectivoPct} pctSocio={descuentoSocioPct}
               />
             )}
             {step === 5 && (
@@ -901,6 +951,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
                 fecha={selectedDate} hora={selectedHora}
                 metodoPago={metodoPago} precioBase={getPrecioBase()} esSocio={esSocio()}
                 currentUserRole={currentUserRole}
+                pctEfectivo={descuentoEfectivoPct} pctSocio={descuentoSocioPct}
               />
             )}
           </ScrollView>

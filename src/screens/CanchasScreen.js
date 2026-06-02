@@ -8,6 +8,7 @@ import CanchaFormModal from '../components/CanchaFormModal';
 import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
 import ConfirmModal from '../components/ConfirmModal';
+import DescuentosModal from '../components/DescuentosModal';
 import { canchaService } from '../services/canchaService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -31,6 +32,7 @@ export default function CanchaScreen({ route, navigation }) {
   const [formError, setFormError] = useState('');
   const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
   const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
+  const [descuentosModalVisible, setDescuentosModalVisible] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -80,10 +82,10 @@ export default function CanchaScreen({ route, navigation }) {
       if (cancha.tipo === 'F7') { dim = "30x50m"; precio = 65000; }
       else if (cancha.tipo === 'F11') { dim = "45x90m"; precio = 120000; }
       
-      setFormData({ ...cancha, dimensiones: dim, precioBase: cancha.original?.precioPorHora || precio });
+      setFormData({ ...cancha, dimensiones: dim, precioBase: cancha.original?.precioPorHora || precio, duracionMax: cancha.original?.duracionMax || 60 });
       setIsEditing(true);
     } else {
-      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioBase: 30000, enMantenimiento: false });
+      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioBase: 30000, enMantenimiento: false, duracionMax: 60 });
       setIsEditing(false);
     }
     setModalVisible(true);
@@ -111,7 +113,7 @@ export default function CanchaScreen({ route, navigation }) {
           Disponibilidad: formData.original?.disponibilidad ?? true,
           HoraInicio: formData.original?.horaInicio ?? "08:00:00",
           HoraFin: formData.original?.horaFin ?? "23:00:00",
-          DuracionMax: formData.original?.duracionMax ?? 60,
+          DuracionMax: formData.duracionMax || 60,
           PrecioPorHora: formData.precioBase ?? (formData.original?.precioPorHora ?? 30000)
         };
         await canchaService.update(formData.id, payload);
@@ -122,7 +124,7 @@ export default function CanchaScreen({ route, navigation }) {
           Disponibilidad: true,
           HoraInicio: "08:00:00",
           HoraFin: "23:00:00",
-          DuracionMax: 60,
+          DuracionMax: formData.duracionMax || 60,
           PrecioPorHora: formData.precioBase ?? 30000
         };
         await canchaService.create(payload);
@@ -292,10 +294,16 @@ export default function CanchaScreen({ route, navigation }) {
                 </TouchableOpacity>
             )}
             {canModify && (
-                <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
-                    <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-                    <Text style={styles.addButtonText}>NUEVA</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center' }]} onPress={() => setDescuentosModalVisible(true)}>
+                      <MaterialCommunityIcons name="percent" size={24} color="#fff" />
+                      <Text style={{ fontWeight: '900', color: '#fff', marginLeft: 5 }}>DESCUENTOS</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
+                      <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+                      <Text style={styles.addButtonText}>NUEVA</Text>
+                  </TouchableOpacity>
+                </>
             )}
         </View>
       </View>
@@ -354,6 +362,11 @@ export default function CanchaScreen({ route, navigation }) {
         message={successMessage}
         actionButtonText={currentPdfHtml ? "DESCARGAR PDF" : null}
         onAction={currentPdfHtml ? () => downloadPdf(currentPdfHtml) : null}
+      />
+
+      <DescuentosModal
+        visible={descuentosModalVisible}
+        onClose={() => setDescuentosModalVisible(false)}
       />
     </ScreenTemplate>
   );
