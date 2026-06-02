@@ -54,6 +54,7 @@ export default function ReservaScreen({ route, navigation }) {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get('collection_status');
       const prefId = urlParams.get('preference_id');
+      const isMpReturn = urlParams.get('mp_return') === 'true';
       
       if (status === 'approved') {
         const pendingResStr = window.localStorage.getItem('pendingReservation');
@@ -91,7 +92,7 @@ export default function ReservaScreen({ route, navigation }) {
             console.error("Error procesando reserva pendiente", e);
           }
         }
-      } else if (status === 'rejected' || status === 'null' || (prefId && status !== 'approved')) {
+      } else if (isMpReturn || status === 'rejected' || status === 'null' || (prefId && status !== 'approved')) {
         // El pago falló o el usuario lo canceló
         const pendingResStr = window.localStorage.getItem('pendingReservation');
         if (pendingResStr) {

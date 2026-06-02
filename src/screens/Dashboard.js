@@ -96,7 +96,7 @@ export default function Dashboard({ route, navigation }) {
   React.useEffect(() => {
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('collection_status') || urlParams.has('preference_id')) {
+      if (urlParams.has('collection_status') || urlParams.has('preference_id') || urlParams.has('mp_return')) {
         // Si venimos de MercadoPago, redirigir automáticamente al módulo de Reservas
         navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
       }

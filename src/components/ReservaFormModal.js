@@ -770,7 +770,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           };
           window.localStorage.setItem('pendingReservation', JSON.stringify(pendingReservation));
           
-          const currentUrl = window.location.href.split('?')[0]; // Limpiamos parametros
+          const baseUrl = window.location.href.split('?')[0]; 
+          const currentUrl = baseUrl + '?mp_return=true'; // Parámetro de control
           const mpResponse = await mercadoPagoService.createPreference(title, montoFinal, currentUrl);
           
           setIsLoading(false);
