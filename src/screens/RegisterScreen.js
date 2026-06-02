@@ -52,7 +52,7 @@ export default function RegisterScreen({ navigation }) {
     if (!dni) newErrors.dni = 'El DNI es obligatorio';
     if (!password) newErrors.password = 'La contraseña es obligatoria';
     else if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
-      newErrors.password = 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 especial';
+      newErrors.password = 'Al menos 1 mayúscula, 1 número, 1 símbolo y mínimo 8 caracteres';
     }
     if (!confirmPassword) newErrors.confirmPassword = 'Confirma tu contraseña';
     else if (password !== confirmPassword) newErrors.confirmPassword = 'Las contraseñas no coinciden';
@@ -256,14 +256,19 @@ export default function RegisterScreen({ navigation }) {
                       error={errors.contactoEmergencia}
                     />
 
-                    <CustomInput
-                      label="Contraseña"
-                      iconName="lock"
-                      isPassword={true}
-                      value={password}
-                      onChangeText={setPassword}
-                      error={errors.password}
-                    />
+                    <View style={{ width: '100%' }}>
+                      <CustomInput
+                        label="Contraseña"
+                        iconName="lock"
+                        isPassword={true}
+                        value={password}
+                        onChangeText={setPassword}
+                        error={errors.password}
+                      />
+                      <Text style={{ color: '#64748b', fontSize: 11, marginTop: -10, marginBottom: 15, marginLeft: 4 }}>
+                        Requisitos: Al menos 1 mayúscula, 1 número, 1 símbolo y mín. 8 caracteres.
+                      </Text>
+                    </View>
 
                     <CustomInput
                       label="Confirmar Contraseña"
