@@ -105,6 +105,7 @@ export default function Dashboard({ route, navigation }) {
   const [successModalMessage, setSuccessModalMessage] = useState(null);
   const [errorModalMessage, setErrorModalMessage] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [unsubscribeModalVisible, setUnsubscribeModalVisible] = useState(false);
 
   React.useEffect(() => {
     if (role === 'CLIENTE' && idPersona) {
@@ -180,6 +181,19 @@ export default function Dashboard({ route, navigation }) {
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo generar el pago.');
+    }
+  };
+
+  const handleUnsubscribeSocio = async () => {
+    try {
+      if (currentCliente) {
+        await clienteService.update(idPersona, { ...currentCliente, esSocioActivo: false });
+        await loadCliente();
+        setSuccessModalMessage("Te has dado de baja como socio de Gol Ahora.");
+      }
+    } catch (error) {
+      console.error("Error al dar de baja", error);
+      setErrorModalMessage("Ocurrió un error al intentar darte de baja.");
     }
   };
 
@@ -321,9 +335,13 @@ export default function Dashboard({ route, navigation }) {
                           <Text style={styles.statusCardTitle}>
                             {currentCliente.esSocioActivo ? "SOCIO ACTIVO" : "NO SOCIO"}
                           </Text>
-                          {!currentCliente.esSocioActivo && (
+                          {!currentCliente.esSocioActivo ? (
                             <TouchableOpacity style={styles.actionBtn} onPress={() => setConfirmModalVisible(true)}>
                               <Text style={styles.actionBtnText}>HACERME SOCIO ($2000)</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ef4444' }]} onPress={() => setUnsubscribeModalVisible(true)}>
+                              <Text style={styles.actionBtnText}>DARSE DE BAJA</Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -396,6 +414,17 @@ export default function Dashboard({ route, navigation }) {
         message="¿Estás seguro de que quieres hacerte socio? Serás redirigido a Mercado Pago para efectuar el pago de la membresía."
         confirmText="Ir a Pagar"
         cancelText="Cancelar"
+      />
+      <ConfirmModal
+        visible={unsubscribeModalVisible}
+        onClose={() => setUnsubscribeModalVisible(false)}
+        onConfirm={handleUnsubscribeSocio}
+        title="Darse de Baja"
+        message="¿Estás seguro de darte de baja como socio de Gol Ahora? Perderás todos tus beneficios exclusivos."
+        confirmText="Sí, dar de baja"
+        cancelText="Conservar membresía"
+        icon="alert-circle-outline"
+        color="#ef4444"
       />
     </View>
   );
