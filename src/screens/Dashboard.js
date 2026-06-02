@@ -407,18 +407,18 @@ export default function Dashboard({ route, navigation }) {
                         {/* Tarjeta Apto Médico */}
                         <View style={styles.statusCard}>
                           <MaterialCommunityIcons 
-                            name={currentCliente.aptoFisico ? "heart-pulse" : "heart-off"} 
+                            name={currentCliente.tieneAptoMedicoArchivo ? "heart-pulse" : "heart-off"} 
                             size={28} 
-                            color={currentCliente.aptoFisico ? "#009b3a" : "#ef4444"} 
+                            color={currentCliente.tieneAptoMedicoArchivo ? "#009b3a" : "#ef4444"} 
                           />
                           <Text style={styles.statusCardTitle}>
-                            {currentCliente.aptoFisico ? "APTO MÉDICO VIGENTE" : "SIN APTO MÉDICO"}
+                            {currentCliente.tieneAptoMedicoArchivo ? "APTO MÉDICO VIGENTE" : "SIN APTO MÉDICO"}
                           </Text>
-                          {!currentCliente.aptoFisico && (
-                            <TouchableOpacity style={styles.actionBtn} onPress={handleUploadAptoMedico}>
-                              <Text style={styles.actionBtnText}>SUBIR APTO MÉDICO</Text>
-                            </TouchableOpacity>
-                          )}
+                          <TouchableOpacity style={styles.actionBtn} onPress={handleUploadAptoMedico}>
+                            <Text style={styles.actionBtnText}>
+                              {currentCliente.tieneAptoMedicoArchivo ? "ACTUALIZAR APTO MÉDICO" : "SUBIR APTO MÉDICO"}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       </View>
                     </View>

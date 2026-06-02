@@ -111,9 +111,14 @@ export default function UserScreen({ route, navigation }) {
       
       let certInicio = '';
       let certFin = '';
+      let aptoInicio = '';
+      let aptoFin = '';
       if (user.role === 'PROFE') {
         if (user.certificadoFechaInicio) certInicio = user.certificadoFechaInicio.split('T')[0];
         if (user.certificadoFechaFin) certFin = user.certificadoFechaFin.split('T')[0];
+      } else if (user.role === 'CLIENTE') {
+        if (user.aptoMedicoFechaInicio) aptoInicio = user.aptoMedicoFechaInicio.split('T')[0];
+        if (user.aptoMedicoFechaFin) aptoFin = user.aptoMedicoFechaFin.split('T')[0];
       }
 
       setFormData({ 
@@ -124,7 +129,10 @@ export default function UserScreen({ route, navigation }) {
         certFechaInicio: certInicio,
         certFechaFin: certFin,
         sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaFin && user.tieneCertificado,
-        certificadoFile: user.tieneCertificado ? 'Certificado Guardado' : null
+        certificadoFile: user.tieneCertificado ? 'Certificado Guardado' : null,
+        aptoFechaInicio: aptoInicio,
+        aptoFechaFin: aptoFin,
+        aptoMedicoFileName: user.tieneAptoMedicoArchivo ? 'Apto Médico Guardado' : null
       });
       setOriginalRole(user.role);
       setIsEditing(true);
