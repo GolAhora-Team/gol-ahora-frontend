@@ -144,7 +144,8 @@ export default function Dashboard({ route, navigation }) {
 
   const handlePaySocio = async () => {
     try {
-      let returnUrl = window.location.origin + `/dashboard?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
+      const baseUrl = window.location.href.split('?')[0];
+      let returnUrl = baseUrl + `?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
       const response = await mercadoPagoService.createPreference("Suscripción Socio Activo", 2000, returnUrl);
       if (response && response.initPoint) {
         window.location.href = response.initPoint;
