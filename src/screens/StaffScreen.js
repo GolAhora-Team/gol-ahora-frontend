@@ -105,12 +105,6 @@ export default function StaffScreen({ route, navigation }) {
       {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
         <>
           <View style={styles.adminActions}>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
-              <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Asignar Clase</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.adminActions}>
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#6366f1' }]} onPress={() => handleOpenCreate('CLASE')}>
               <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
               <Text style={styles.actionBtnText}>Crear Clase</Text>
@@ -118,6 +112,12 @@ export default function StaffScreen({ route, navigation }) {
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#f97316' }]} onPress={() => handleOpenCreate('ENTRENAMIENTO')}>
               <MaterialCommunityIcons name="whistle" size={20} color="#fff" />
               <Text style={styles.actionBtnText}>Crear Entrenamiento</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.adminActions}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
+              <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
+              <Text style={styles.actionBtnText}>Asignar Clase</Text>
             </TouchableOpacity>
           </View>
         </>
