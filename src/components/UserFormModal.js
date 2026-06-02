@@ -135,6 +135,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS CLIENTE</Text>
                 
+                <TouchableOpacity 
+                  style={styles.checkboxContainer} 
+                  onPress={() => setFormData({...formData, tieneObraSocial: !formData.tieneObraSocial, obraSocial: !formData.tieneObraSocial ? formData.obraSocial : ''})}
+                >
+                  <MaterialCommunityIcons 
+                    name={formData.tieneObraSocial ? "checkbox-marked" : "checkbox-blank-outline"} 
+                    size={24} 
+                    color="#009b3a" 
+                  />
+                  <Text style={styles.checkboxLabel}>¿Tiene Obra Social / Prepaga?</Text>
+                </TouchableOpacity>
+
+                {formData.tieneObraSocial && (
+                
                 <View style={{ zIndex: 10 }}>
                   <Text style={styles.greenLabelBold}>OBRA SOCIAL</Text>
                   <TextInput
@@ -168,6 +182,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                     </View>
                   )}
                 </View>
+                )}
 
                 <View style={styles.statusContainer}>
                   <TouchableOpacity style={[styles.bigStatusBtn, formData.esSocioActivo ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({...formData, esSocioActivo: !formData.esSocioActivo})}>

@@ -40,7 +40,7 @@ export default function UserScreen({ route, navigation }) {
     dni: '', nombre: '', apellido: '', genero: 'Masculino',
     telefono: '', direccion: '', localidad: '', codigoPostal: '', provincia: 'Buenos Aires',
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
-    esSocioActivo: false, obraSocial: '', aptoFisico: false, especializacion: '',
+    esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
     fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
     certificadoFile: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false
   };
@@ -106,7 +106,8 @@ export default function UserScreen({ route, navigation }) {
       if (user.fechaNacimiento) {
         fecha = user.fechaNacimiento.split('T')[0];
       }
-      setFormData({ ...initialFormState, ...user, fechaNacimiento: fecha });
+      const hasObraSocial = user.obraSocial && user.obraSocial !== 'Ninguna' && user.obraSocial !== '';
+      setFormData({ ...initialFormState, ...user, fechaNacimiento: fecha, tieneObraSocial: hasObraSocial });
       setOriginalRole(user.role);
       setIsEditing(true);
     } else {
