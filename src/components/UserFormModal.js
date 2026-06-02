@@ -7,6 +7,18 @@ import DatePickerModal from './DatePickerModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
+
+  const topObrasSociales = [
+    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
+    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
+    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud", 
+    "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
+  ];
+
+  const filteredObrasSociales = formData.obraSocial 
+    ? topObrasSociales.filter(os => os.toLowerCase().includes(formData.obraSocial.toLowerCase()))
+    : topObrasSociales;
 
   const handlePickDocument = async () => {
     try {
@@ -122,7 +134,41 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {formData.role === 'CLIENTE' && (
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS CLIENTE</Text>
-                <CustomInput label="OBRA SOCIAL" value={formData.obraSocial} onChangeText={v => setFormData({...formData, obraSocial: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+                
+                <View style={{ zIndex: 10 }}>
+                  <Text style={styles.greenLabelBold}>OBRA SOCIAL</Text>
+                  <TextInput
+                    style={styles.cleanInput}
+                    value={formData.obraSocial}
+                    onChangeText={v => {
+                      setFormData({...formData, obraSocial: v});
+                      setShowObraSocialSuggestions(true);
+                    }}
+                    onFocus={() => setShowObraSocialSuggestions(true)}
+                    placeholder="Ej: OSDE, Swiss Medical..."
+                    placeholderTextColor="#94a3b8"
+                  />
+                  
+                  {showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                      <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                        {filteredObrasSociales.map((os, index) => (
+                          <TouchableOpacity 
+                            key={index} 
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              setFormData({...formData, obraSocial: os});
+                              setShowObraSocialSuggestions(false);
+                            }}
+                          >
+                            <Text style={styles.suggestionText}>{os}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
                 <View style={styles.statusContainer}>
                   <TouchableOpacity style={[styles.bigStatusBtn, formData.esSocioActivo ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({...formData, esSocioActivo: !formData.esSocioActivo})}>
                     <View style={[styles.iconCircle, { backgroundColor: formData.esSocioActivo ? '#fff' : '#e2e8f0' }]}><MaterialCommunityIcons name={formData.esSocioActivo ? "check-bold" : "close"} size={18} color={formData.esSocioActivo ? "#009b3a" : "#94a3b8"} /></View>
@@ -240,5 +286,8 @@ const styles = StyleSheet.create({
   fileBtnText: { marginLeft: 10, fontSize: 13, color: '#1e293b', fontWeight: '800', flex: 1 },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  checkboxLabel: { marginLeft: 8, fontSize: 14, color: '#334155', fontWeight: '800' }
+  checkboxLabel: { marginLeft: 8, fontSize: 14, color: '#334155', fontWeight: '800' },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 5, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
+  suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  suggestionText: { color: '#334155', fontSize: 14, fontWeight: '700' }
 });
