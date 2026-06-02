@@ -138,8 +138,8 @@ const LoginScreen = ({ navigation, route }) => {
       setFailedAttempts(newFailedAttempts);
       
       if (newFailedAttempts >= 3) {
-        setLockoutEndTime(Date.now() + 60000);
-        setErrorMessage('Demasiados intentos fallidos. Intenta de nuevo en 60 segundos.');
+        setLockoutEndTime(Date.now() + 30000);
+        setErrorMessage('Demasiados intentos fallidos. Intenta de nuevo en 30 segundos.');
       } else {
         setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
       }
