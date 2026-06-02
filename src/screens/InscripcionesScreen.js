@@ -5,8 +5,6 @@ import ScreenTemplate from './ScreenTemplate';
 import { claseService } from '../services/claseService';
 import { competicionService } from '../services/competicionService';
 import { entrenamientoService } from '../services/entrenamientoService';
-
-import CreateActivityModal from '../components/CreateActivityModal';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
 
@@ -15,9 +13,6 @@ export default function InscripcionesScreen({ route, navigation }) {
 
   const [actividades, setActividades] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [createType, setCreateType] = useState('CLASE');
   
   const [manageModalVisible, setManageModalVisible] = useState(false);
   const [selectedActividad, setSelectedActividad] = useState(null);
@@ -71,22 +66,6 @@ export default function InscripcionesScreen({ route, navigation }) {
       setLoading(false);
     }
   };
-
-  const handleOpenCreate = (type) => {
-    setCreateType(type);
-    setCreateModalVisible(true);
-  };
-
-  const handleCreateSave = async (payload, type) => {
-    if (type === 'CLASE') {
-      await claseService.create(payload);
-    } else {
-      await entrenamientoService.create(payload);
-    }
-    Alert.alert('Éxito', `${type === 'CLASE' ? 'Clase' : 'Entrenamiento'} creada correctamente.`);
-    loadActividades();
-  };
-
   const handleManage = (item) => {
     if (item.tipo === 'LIGA') {
       Alert.alert('Información', 'La gestión de equipos de Liga se maneja desde Competencias.');
@@ -130,6 +109,68 @@ export default function InscripcionesScreen({ route, navigation }) {
     return '#009b3a';
   };
 
+  const renderActividad = (item) => (
+    <View key={item.id + item.tipo} style={styles.card}>
+      <View style={styles.info}>
+        <View style={[styles.badge, { backgroundColor: getBadgeColor(item) }]}>
+          <Text style={styles.badgeText}>{item.tipo}</Text>
+        </View>
+        <Text style={styles.actividadName}>{item.nombre}</Text>
+        <Text style={styles.actividadDetail}>
+          <Text style={{ fontWeight: '900' }}>Horario: </Text>{item.horario || 'Sin definir'}
+        </Text>
+        <Text style={styles.actividadDetail}>
+          <Text style={{ fontWeight: '900' }}>Profesor: </Text>{item.profe}
+        </Text>
+        <View style={styles.cupoRow}>
+          <Text style={styles.actividadDetail}>
+            <Text style={{ fontWeight: '900' }}>Cupos: </Text>{item.cupo} / {item.max}
+          </Text>
+          {item.precio > 0 && (
+            <Text style={styles.precioText}>${item.precio?.toLocaleString('es-AR')}</Text>
+          )}
+        </View>
+      </View>
+      
+      <View style={styles.btnColumn}>
+        {canCreate && item.tipo !== 'LIGA' && (
+          <TouchableOpacity 
+            style={styles.manageBtn}
+            onPress={() => handleManage(item)}
+          >
+            <MaterialCommunityIcons name="account-group" size={20} color="#fff" />
+            <Text style={styles.btnTextSmall}>Gestionar</Text>
+          </TouchableOpacity>
+        )}
+
+        {item.tipo !== 'LIGA' && (
+          <TouchableOpacity 
+            style={[styles.inscribirBtn, item.cupo >= item.max && { opacity: 0.5 }]}
+            onPress={() => handleInscribirse(item)}
+            disabled={item.cupo >= item.max}
+          >
+            <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
+            <Text style={styles.btnTextSmall}>{isCliente ? 'Inscribirme' : 'Inscribir'}</Text>
+          </TouchableOpacity>
+        )}
+
+        {item.tipo === 'LIGA' && (
+          <TouchableOpacity 
+            style={[styles.manageBtn, { backgroundColor: '#64748b' }]}
+            onPress={() => handleManage(item)}
+          >
+            <MaterialCommunityIcons name="trophy" size={20} color="#fff" />
+            <Text style={styles.btnTextSmall}>Ver Liga</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  const clases = actividades.filter(a => a.tipo === 'CLASE');
+  const entrenamientos = actividades.filter(a => a.tipo === 'ENTRENAMIENTO');
+  const ligas = actividades.filter(a => a.tipo === 'LIGA');
+
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       <View style={styles.header}>
@@ -138,91 +179,32 @@ export default function InscripcionesScreen({ route, navigation }) {
         </Text>
       </View>
 
-      {canCreate && (
-        <View style={styles.createActions}>
-          <TouchableOpacity style={styles.createBtn} onPress={() => handleOpenCreate('CLASE')}>
-            <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
-            <Text style={styles.createBtnText}>Crear Clase</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.createBtn, { backgroundColor: '#3b82f6' }]} onPress={() => handleOpenCreate('ENTRENAMIENTO')}>
-            <MaterialCommunityIcons name="whistle" size={20} color="#fff" />
-            <Text style={styles.createBtnText}>Crear Entrenamiento</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-        {actividades.map(item => (
-          <View key={item.id + item.tipo} style={styles.card}>
-            <View style={styles.info}>
-              <View style={[styles.badge, { backgroundColor: getBadgeColor(item) }]}>
-                <Text style={styles.badgeText}>{item.tipo}</Text>
-              </View>
-              <Text style={styles.actividadName}>{item.nombre}</Text>
-              <Text style={styles.actividadDetail}>
-                <Text style={{ fontWeight: '900' }}>Horario: </Text>{item.horario || 'Sin definir'}
-              </Text>
-              <Text style={styles.actividadDetail}>
-                <Text style={{ fontWeight: '900' }}>Profesor: </Text>{item.profe}
-              </Text>
-              <View style={styles.cupoRow}>
-                <Text style={styles.actividadDetail}>
-                  <Text style={{ fontWeight: '900' }}>Cupos: </Text>{item.cupo} / {item.max}
-                </Text>
-                {item.precio > 0 && (
-                  <Text style={styles.precioText}>${item.precio?.toLocaleString('es-AR')}</Text>
-                )}
-              </View>
-            </View>
-            
-            <View style={styles.btnColumn}>
-              {/* Admin/Personal: Gestionar inscriptos */}
-              {canCreate && item.tipo !== 'LIGA' && (
-                <TouchableOpacity 
-                  style={styles.manageBtn}
-                  onPress={() => handleManage(item)}
-                >
-                  <MaterialCommunityIcons name="account-group" size={20} color="#fff" />
-                  <Text style={styles.btnTextSmall}>Gestionar</Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Admin/Personal/Cliente: Inscribir con pago */}
-              {item.tipo !== 'LIGA' && (
-                <TouchableOpacity 
-                  style={[styles.inscribirBtn, item.cupo >= item.max && { opacity: 0.5 }]}
-                  onPress={() => handleInscribirse(item)}
-                  disabled={item.cupo >= item.max}
-                >
-                  <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-                  <Text style={styles.btnTextSmall}>{isCliente ? 'Inscribirme' : 'Inscribir'}</Text>
-                </TouchableOpacity>
-              )}
-
-              {item.tipo === 'LIGA' && (
-                <TouchableOpacity 
-                  style={[styles.manageBtn, { backgroundColor: '#64748b' }]}
-                  onPress={() => handleManage(item)}
-                >
-                  <MaterialCommunityIcons name="trophy" size={20} color="#fff" />
-                  <Text style={styles.btnTextSmall}>Ver Liga</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+        {clases.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Clases</Text>
+            {clases.map(renderActividad)}
           </View>
-        ))}
+        )}
+
+        {entrenamientos.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Entrenamientos</Text>
+            {entrenamientos.map(renderActividad)}
+          </View>
+        )}
+
+        {ligas.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Ligas</Text>
+            {ligas.map(renderActividad)}
+          </View>
+        )}
+
         {actividades.length === 0 && (
           <Text style={styles.emptyText}>No hay actividades disponibles.</Text>
         )}
       </ScrollView>
-
-      <CreateActivityModal 
-        visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onSave={handleCreateSave}
-        title={createType === 'CLASE' ? 'Crear Nueva Clase' : 'Crear Nuevo Entrenamiento'}
-        type={createType}
-      />
 
       <ManageInscripcionesModal
         visible={manageModalVisible}
@@ -247,9 +229,6 @@ export default function InscripcionesScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   header: { marginBottom: 15 },
   title: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  createActions: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  createBtn: { flex: 1, backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12 },
-  createBtnText: { color: '#fff', fontWeight: '900', marginLeft: 8, fontSize: 13 },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12, flexDirection: 'row', alignItems: 'center', elevation: 3 },
   info: { flex: 1 },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginBottom: 5 },
@@ -262,5 +241,7 @@ const styles = StyleSheet.create({
   manageBtn: { backgroundColor: '#0f172a', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', flexDirection: 'row', gap: 5 },
   inscribirBtn: { backgroundColor: '#009b3a', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', flexDirection: 'row', gap: 5 },
   btnTextSmall: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  emptyText: { color: '#cbd5e1', fontSize: 14, textAlign: 'center', marginTop: 40, fontStyle: 'italic' }
+  emptyText: { color: '#cbd5e1', fontSize: 14, textAlign: 'center', marginTop: 40, fontStyle: 'italic' },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 15, paddingLeft: 5 }
 });
