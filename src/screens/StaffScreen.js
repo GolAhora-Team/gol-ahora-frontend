@@ -5,7 +5,6 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import AsistenciaModal from '../components/AsistenciaModal';
-import StaffFormModal from '../components/StaffFormModal';
 import AssignClassModal from '../components/AssignClassModal';
 import VerAlumnosModal from '../components/VerAlumnosModal';
 import CreateActivityModal from '../components/CreateActivityModal';
@@ -22,7 +21,6 @@ export default function StaffScreen({ route, navigation }) {
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
   const [claseSeleccionada, setClaseSeleccionada] = useState("");
   
-  const [staffModalVisible, setStaffModalVisible] = useState(false);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [alumnosModalVisible, setAlumnosModalVisible] = useState(false);
   const [claseParaAlumnos, setClaseParaAlumnos] = useState(null);
@@ -80,43 +78,6 @@ export default function StaffScreen({ route, navigation }) {
     setAlumnosModalVisible(true);
   };
 
-  const handleCreateProfesor = async (formData) => {
-    try {
-      setLoading(true);
-      const mappedData = { 
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        dni: 0,
-        especialidad: formData.especialidad || 'General',
-        certificacion: formData.certificado || 'Ninguna',
-        telefono: '',
-        direccion: '',
-        localidad: '',
-        codigoPostal: '',
-        provincia: 'Buenos Aires',
-        pais: 'Argentina',
-        email: formData.email,
-        fechaNacimiento: "2000-01-01T00:00:00.000Z",
-        genero: "Otro",
-        activo: true
-      };
-      
-      const payload = {
-        email: formData.email,
-        password: "1234",
-        request: mappedData
-      };
-
-      await userService.createUsuarioProfesor(payload);
-      Alert.alert('Éxito', `Profesor creado.\nUsuario: ${formData.email}\nContraseña: 1234`);
-      setStaffModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo crear el profesor.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -144,10 +105,6 @@ export default function StaffScreen({ route, navigation }) {
       {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
         <>
           <View style={styles.adminActions}>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setStaffModalVisible(true)}>
-              <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Nuevo Profesor</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
               <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
               <Text style={styles.actionBtnText}>Asignar Clase</Text>
@@ -215,12 +172,6 @@ export default function StaffScreen({ route, navigation }) {
         onClose={() => setAsistenciaModalVisible(false)} 
         claseId={claseSeleccionada?.id}
         claseNombre={claseSeleccionada?.nombre || claseSeleccionada} 
-      />
-      
-      <StaffFormModal
-        visible={staffModalVisible}
-        onClose={() => setStaffModalVisible(false)}
-        onSave={handleCreateProfesor}
       />
 
       <AssignClassModal
