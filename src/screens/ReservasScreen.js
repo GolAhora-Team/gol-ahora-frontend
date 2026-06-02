@@ -49,10 +49,11 @@ export default function ReservaScreen({ route, navigation }) {
   useEffect(() => {
     loadData();
 
-    // Verificación de retorno exitoso de Mercado Pago
+    // Verificación de retorno exitoso o fallido de Mercado Pago
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get('collection_status');
+      const prefId = urlParams.get('preference_id');
       
       if (status === 'approved') {
         const pendingResStr = window.localStorage.getItem('pendingReservation');
@@ -89,6 +90,16 @@ export default function ReservaScreen({ route, navigation }) {
           } catch(e) {
             console.error("Error procesando reserva pendiente", e);
           }
+        }
+      } else if (status === 'rejected' || status === 'null' || (prefId && status !== 'approved')) {
+        // El pago falló o el usuario lo canceló
+        const pendingResStr = window.localStorage.getItem('pendingReservation');
+        if (pendingResStr) {
+          window.localStorage.removeItem('pendingReservation');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setTimeout(() => {
+            Alert.alert('Pago Fallido', 'Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
+          }, 500);
         }
       }
     }

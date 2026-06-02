@@ -91,9 +91,17 @@ export default function Dashboard({ route, navigation }) {
 
   const { role, idPersona, idUsuario, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, idUsuario: null, nombreUsuario: "NOMBRE" };
   
-  // VARIABLE DE NOMBRE VINCULAR A FUTURO CON EL USERNAME
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
 
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('collection_status') || urlParams.has('preference_id')) {
+        // Si venimos de MercadoPago, redirigir automáticamente al módulo de Reservas
+        navigation.navigate('ReservasScreen', { role, idPersona, nombreUsuario: userName });
+      }
+    }
+  }, []);
 
   const getVisibleModules = () => {
     switch (role) {
