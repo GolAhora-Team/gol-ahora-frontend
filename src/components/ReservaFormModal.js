@@ -7,6 +7,7 @@ import { userService } from '../services/userService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { descuentoService } from '../services/descuentoService';
 import ErrorModal from './ErrorModal';
+import QRCode from 'react-native-qrcode-svg';
 
 // ─── PASO 1: SELECCIÓN DE CANCHA ───────────────────────────────────────────────
 function StepCancha({ canchas, selectedCancha, onSelect }) {
@@ -478,10 +479,10 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
       {metodoPago === 'MERCADOPAGO' && isAdminOrPersonal && (
         <View style={{ marginTop: 15, padding: 15, backgroundColor: '#f0fdf4', borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0' }}>
           <Text style={{ fontSize: 13, color: '#15803d', fontWeight: 'bold' }}>
-            El cliente debe transferir el monto exacto al Alias: GOL.AHORA.MP
+            Al confirmar, se generará un código QR para cobro presencial.
           </Text>
           <Text style={{ fontSize: 12, color: '#166534', marginTop: 5 }}>
-            Una vez que recibas y valides la transferencia en la cuenta, hacé click en Confirmar Reserva.
+            Mostrale el código al cliente para que lo escanee y pague desde su app de Mercado Pago.
           </Text>
         </View>
       )}
@@ -505,6 +506,11 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [errorModalMessage, setErrorModalMessage] = useState(null);
   const [descuentoSocioPct, setDescuentoSocioPct] = useState(10);
   const [descuentoEfectivoPct, setDescuentoEfectivoPct] = useState(10);
+
+  // States for Admin QR Modal
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [qrUrl, setQrUrl] = useState('');
+  const [pendingAdminReservaPayload, setPendingAdminReservaPayload] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -716,6 +722,37 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     `;
   };
 
+  const processAdminReservation = async (data) => {
+    try {
+      setIsLoading(true);
+      if (data.isEdit) {
+        await reservaService.update(reservaToEdit.id, data.reservaPayload);
+      } else {
+        await reservaService.create(data.reservaPayload);
+      }
+      await reportHistoryService.saveReporte(data.html, data.fileName);
+
+      onClose();
+      if (onReservaCreated) {
+        onReservaCreated({
+          fileName: data.fileName,
+          persona: data.persona,
+          cancha: data.cancha,
+          fecha: data.fecha,
+          hora: data.hora,
+          montoFinal: data.montoFinal,
+          metodoPago: data.metodoPago,
+          isEdit: data.isEdit
+        });
+      }
+    } catch (error) {
+      const msg = error.message || 'No se pudo registrar la reserva.';
+      setErrorModalMessage(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleConfirm = async () => {
     setIsLoading(true);
     try {
@@ -836,18 +873,13 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         }
       }
 
-      // FLUJO NORMAL (Efectivo o Admin/Personal manejando MercadoPago)
-      if (reservaToEdit) {
-        await reservaService.update(reservaToEdit.id, reservaPayload);
-      } else {
-        await reservaService.create(reservaPayload);
-      }
-      await reportHistoryService.saveReporte(html, fileName);
-
-      // Si es pago local, cerramos y notificamos
-      onClose();
-      if (onReservaCreated) {
-        onReservaCreated({
+      if (metodoPago === 'MERCADOPAGO' && isAdminOrPersonal) {
+        const title = `Reserva Cancha ${selectedCancha.nombre}`;
+        const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
+        setQrUrl(mpResponse.initPoint);
+        setPendingAdminReservaPayload({
+          reservaPayload,
+          html,
           fileName,
           persona,
           cancha: selectedCancha,
@@ -857,7 +889,24 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           metodoPago,
           isEdit: !!reservaToEdit
         });
+        setQrModalVisible(true);
+        setIsLoading(false);
+        return;
       }
+
+      // FLUJO NORMAL (Efectivo)
+      await processAdminReservation({
+        reservaPayload,
+        html,
+        fileName,
+        persona,
+        cancha: selectedCancha,
+        fecha: selectedDate,
+        hora: selectedHora,
+        montoFinal,
+        metodoPago,
+        isEdit: !!reservaToEdit
+      });
     } catch (error) {
       const msg = error.message || 'No se pudo registrar la reserva.';
       setErrorModalMessage(msg);
@@ -1001,6 +1050,38 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         message={errorModalMessage} 
         onClose={() => setErrorModalMessage(null)} 
       />
+
+      <Modal visible={qrModalVisible} transparent animationType="fade">
+        <View style={s.overlay}>
+          <View style={s.qrModalContainer}>
+            <Text style={s.qrModalTitle}>Cobro con Código QR</Text>
+            <Text style={s.qrModalText}>Pedile al cliente que escanee este código desde su app de Mercado Pago o cámara.</Text>
+            
+            <View style={s.qrBox}>
+              {qrUrl ? (
+                <QRCode value={qrUrl} size={220} />
+              ) : (
+                <ActivityIndicator size="large" color="#009ee3" />
+              )}
+            </View>
+
+            <TouchableOpacity 
+              style={s.qrConfirmBtn} 
+              onPress={() => {
+                 setQrModalVisible(false);
+                 processAdminReservation(pendingAdminReservaPayload);
+              }}
+            >
+              <Text style={s.qrConfirmBtnText}>Marcar como Pagado</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={s.qrCancelBtn} onPress={() => setQrModalVisible(false)}>
+              <Text style={s.qrCancelBtnText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </Modal>
   );
 }
@@ -1106,5 +1187,14 @@ const s = StyleSheet.create({
   badgeApto: { backgroundColor: '#d1fae5' },
   badgeTextApto: { color: '#059669', fontSize: 10, fontWeight: '800' },
   badgeSocio: { backgroundColor: '#fef3c7' },
-  badgeTextSocio: { color: '#d97706', fontSize: 10, fontWeight: '800' }
+  badgeTextSocio: { color: '#d97706', fontSize: 10, fontWeight: '800' },
+
+  qrModalContainer: { width: '90%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center' },
+  qrModalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 10 },
+  qrModalText: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 20 },
+  qrBox: { width: 240, height: 240, backgroundColor: '#f8fafc', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#e2e8f0' },
+  qrConfirmBtn: { backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 12 },
+  qrConfirmBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  qrCancelBtn: { paddingVertical: 12, paddingHorizontal: 24, width: '100%', alignItems: 'center' },
+  qrCancelBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 15 }
 });
