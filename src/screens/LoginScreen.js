@@ -292,10 +292,10 @@ const LoginScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 20 : 10 },
   headerClean: { alignItems: 'center', marginBottom: isWeb ? 25 : 15, marginTop: isWeb ? 0 : 15 },
-  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3 },
-  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center' },
+  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3, ...Platform.select({ web: { userSelect: 'none' } }) },
+  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
   badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
-  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1, ...Platform.select({ web: { userSelect: 'none' } }) },
   pitchContainer: {
     width: isWeb ? 450 : '92%', 
     height: isWeb ? 850 : windowHeight * 0.85, 
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   contentOverlay: { justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 0 : 20 },
   solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
-  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
+  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4, ...Platform.select({ web: { userSelect: 'none' } }) },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 58, borderRadius: 12, paddingHorizontal: 15, backgroundColor: '#f5f5f5', borderWidth: 1.5, borderColor: '#eee' },
   inputFocused: { borderColor: '#009b3a', backgroundColor: '#fff' },
   input: {
@@ -339,13 +339,13 @@ const styles = StyleSheet.create({
   },
   mainButton: { marginTop: 10, borderRadius: 15, overflow: 'hidden', elevation: 5 },
   gradientButton: { height: 60, justifyContent: 'center', alignItems: 'center' },
-  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
+  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5, ...Platform.select({ web: { userSelect: 'none' } }) },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
-  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700', ...Platform.select({ web: { userSelect: 'none' } }) },
   dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
   dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
-  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
-  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4 }
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4, ...Platform.select({ web: { userSelect: 'none' } }) }
 });
 
 export default LoginScreen;

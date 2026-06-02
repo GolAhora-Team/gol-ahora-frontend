@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
   socialIconsContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 15 },
   socialIcon: { marginHorizontal: 15, textShadowColor: 'rgba(0, 0, 0, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
   textContainer: { alignItems: 'center', paddingHorizontal: 20 },
-  addressText: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 5 },
-  copyrightText: { color: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontWeight: '500', letterSpacing: 0.5, textAlign: 'center' },
+  addressText: { color: 'rgba(255, 255, 255, 0.8)', fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 5, ...Platform.select({ web: { userSelect: 'none' } }) },
+  copyrightText: { color: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontWeight: '500', letterSpacing: 0.5, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
 });
 
 export default Footer;
