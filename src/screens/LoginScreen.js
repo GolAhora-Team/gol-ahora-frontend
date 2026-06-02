@@ -62,7 +62,7 @@ const LoginScreen = ({ navigation, route }) => {
         const savedSession = localStorage.getItem('GOL_AHORA_SESSION');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
-          navigation.replace('Dashboard', parsed);
+          navigation.replace('Dashboard', { ...parsed, ...(route?.params || {}) });
         }
       } catch (e) { }
     }
