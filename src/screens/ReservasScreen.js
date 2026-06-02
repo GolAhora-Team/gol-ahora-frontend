@@ -443,7 +443,15 @@ export default function ReservaScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successVisible}
-        onClose={() => { setSuccessVisible(false); setSuccessPdfData(null); setSuccessMessage(''); setErrorMode(false); }}
+        onClose={() => { 
+          setSuccessVisible(false); 
+          // Esperamos a que termine la animación de cierre (300ms) para limpiar el estado y evitar parpadeos
+          setTimeout(() => {
+            setSuccessPdfData(null); 
+            setSuccessMessage(''); 
+            setErrorMode(false); 
+          }, 350);
+        }}
         title={errorMode ? "Pago Cancelado" : (successMessage ? "¡Operación exitosa!" : (successPdfData?.isEdit ? "¡Reserva editada!" : "¡Reserva confirmada!"))}
         message={successMessage || (successPdfData?.isEdit ? "La reserva se modificó con éxito." : "La reserva se registró con éxito.")}
         actionButtonText={successPdfData ? "DESCARGAR PDF" : null}
