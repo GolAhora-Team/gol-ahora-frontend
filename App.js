@@ -7,6 +7,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import Dashboard from './src/screens/Dashboard';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import NuevaClaveScreen from './src/screens/NuevaClaveScreen';
 
 // MÓDULOS DEL DASHBOARD
 import UserScreen from './src/screens/UserScreen';
@@ -77,10 +78,21 @@ export default function App() {
     },
   };
 
+  const linking = {
+    prefixes: ['http://localhost:8081', 'gol-ahora://'],
+    config: {
+      screens: {
+        Login: '',
+        NuevaClave: 'NuevaClave',
+      },
+    },
+  };
+
   return (
     <NavigationContainer
       ref={navigationRef}
       theme={appTheme}
+      linking={linking}
       onReady={() => {
         setCurrentRouteName(navigationRef.getCurrentRoute()?.name);
       }}
@@ -105,6 +117,7 @@ export default function App() {
           <Stack.Screen name="Dashboard" component={Dashboard} options={{ title: "Gol Ahora - Panel Central" }} />
           <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Gol Ahora - Registro" }} />
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: "Gol Ahora - Recuperar Contraseña" }} />
+          <Stack.Screen name="NuevaClave" component={NuevaClaveScreen} options={{ title: "Gol Ahora - Nueva Contraseña" }} />
 
           {/* PANTALLAS DE MÓDULOS (VINCULADAS AL DASHBOARD) */}
           <Stack.Screen name="UserScreen" component={UserScreen} options={{ title: "Gol Ahora - Usuarios" }} />

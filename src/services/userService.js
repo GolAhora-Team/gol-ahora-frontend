@@ -99,4 +99,17 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * POST /api/User/reset-password
+   * Restablece la contraseña usando un token.
+   */
+  resetPassword: async (token, newPassword) => {
+    try {
+      return await http.post(`${URL}/reset-password`, { token, newPassword });
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
+      throw error;
+    }
+  },
 };
