@@ -159,19 +159,19 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                   <ActivityIndicator size="small" color="#009b3a" style={{marginVertical: 20}} />
                 ) : (
                   <>
-                    <Text style={styles.label}>Nombre</Text>
+                    <Text style={styles.label}>Nombre (No editable)</Text>
                     <TextInput 
-                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      style={[styles.input, styles.inputDisabled]} 
                       value={perfil.nombre} 
                       onChangeText={(t)=>setPerfil({...perfil, nombre:t})} 
-                      editable={isEditingInfo}
+                      editable={false}
                     />
-                    <Text style={styles.label}>Apellido</Text>
+                    <Text style={styles.label}>Apellido (No editable)</Text>
                     <TextInput 
-                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      style={[styles.input, styles.inputDisabled]} 
                       value={perfil.apellido} 
                       onChangeText={(t)=>setPerfil({...perfil, apellido:t})} 
-                      editable={isEditingInfo}
+                      editable={false}
                     />
                     <Text style={styles.label}>DNI / Usuario (No editable)</Text>
                     <TextInput 
@@ -205,7 +205,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       </View>
                     ) : (
                       <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditingInfo(true)}>
-                        <Text style={styles.editText}>EDITAR INFORMACIÓN</Text>
+                        <Text style={styles.editText}>EDITAR DIRECCIÓN Y TELÉFONO</Text>
                       </TouchableOpacity>
                     )}
                   </>
@@ -241,27 +241,6 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             )}
           </View>
         );
-      case 'PAGOS':
-        return (
-          <View style={styles.form}>
-            <Text style={styles.infoTxt}>Registrá tu tarjeta para abonar reservas de canchas e inscripciones (RNF-IN-01).</Text>
-            <Text style={styles.label}>Número de Tarjeta</Text>
-            <TextInput style={styles.input} placeholder="XXXX XXXX XXXX XXXX" keyboardType="numeric" />
-            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-              <View style={{width: '45%'}}>
-                <Text style={styles.label}>Vencimiento</Text>
-                <TextInput style={styles.input} placeholder="MM/YY" />
-              </View>
-              <View style={{width: '45%'}}>
-                <Text style={styles.label}>CVV</Text>
-                <TextInput style={styles.input} placeholder="123" secureTextEntry />
-              </View>
-            </View>
-            <TouchableOpacity style={[styles.saveBtn, {backgroundColor: '#06b6d4'}]}>
-              <Text style={styles.saveText}>GUARDAR TARJETA</Text>
-            </TouchableOpacity>
-          </View>
-        );
       case 'INFO':
         return (
           <ScrollView style={styles.aboutContainer} showsVerticalScrollIndicator={false}>
@@ -293,12 +272,6 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
               <TouchableOpacity onPress={() => setActiveTab('PERFIL')} style={[styles.tab, activeTab === 'PERFIL' && styles.activeTab]}>
                 <MaterialCommunityIcons name="account-cog" size={22} color={activeTab === 'PERFIL' ? '#009b3a' : '#94a3b8'} />
               </TouchableOpacity>
-
-              {userRole === 'CLIENTE' && (
-                <TouchableOpacity onPress={() => setActiveTab('PAGOS')} style={[styles.tab, activeTab === 'PAGOS' && styles.activeTab]}>
-                  <MaterialCommunityIcons name="credit-card-plus" size={22} color={activeTab === 'PAGOS' ? '#009b3a' : '#94a3b8'} />
-                </TouchableOpacity>
-              )}
 
               <TouchableOpacity onPress={() => setActiveTab('INFO')} style={[styles.tab, activeTab === 'INFO' && styles.activeTab]}>
                 <MaterialCommunityIcons name="information-outline" size={22} color={activeTab === 'INFO' ? '#009b3a' : '#94a3b8'} />
