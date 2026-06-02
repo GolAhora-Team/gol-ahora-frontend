@@ -25,6 +25,7 @@ import Header from '../components/Header';
 import StatCards from '../components/StatCards';
 import SuccessModal from '../components/SuccessModal';
 import ErrorModal from '../components/ErrorModal';
+import ConfirmModal from '../components/ConfirmModal';
 import InfoCarousel from '../components/InfoCarousel';
 
 const { width: windowWidth } = Dimensions.get('window');
@@ -103,6 +104,7 @@ export default function Dashboard({ route, navigation }) {
   const [currentCliente, setCurrentCliente] = useState(null);
   const [successModalMessage, setSuccessModalMessage] = useState(null);
   const [errorModalMessage, setErrorModalMessage] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
   React.useEffect(() => {
     if (role === 'CLIENTE' && idPersona) {
@@ -312,7 +314,7 @@ export default function Dashboard({ route, navigation }) {
                             {currentCliente.esSocioActivo ? "SOCIO ACTIVO" : "NO SOCIO"}
                           </Text>
                           {!currentCliente.esSocioActivo && (
-                            <TouchableOpacity style={styles.actionBtn} onPress={handlePaySocio}>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => setConfirmModalVisible(true)}>
                               <Text style={styles.actionBtnText}>HACERME SOCIO ($2000)</Text>
                             </TouchableOpacity>
                           )}
@@ -377,6 +379,15 @@ export default function Dashboard({ route, navigation }) {
         visible={!!errorModalMessage}
         message={errorModalMessage}
         onClose={() => setErrorModalMessage(null)}
+      />
+      <ConfirmModal
+        visible={confirmModalVisible}
+        onClose={() => setConfirmModalVisible(false)}
+        onConfirm={handlePaySocio}
+        title="Confirmar Suscripción"
+        message="¿Estás seguro de que quieres hacerte socio? Serás redirigido a Mercado Pago para efectuar el pago de la membresía."
+        confirmText="Ir a Pagar"
+        cancelText="Cancelar"
       />
     </View>
   );
