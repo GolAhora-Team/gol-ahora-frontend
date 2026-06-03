@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getEstadisticas } from './DataReportes';
-import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
 import { reservaService } from '../services/reservaService';
 
 const { width: windowWidth } = Dimensions.get('window');
@@ -17,14 +17,15 @@ export default function StatCards() {
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        const [facturas, reservas] = await Promise.all([
-          facturaService.getAll(),
+        const [pagos, reservas] = await Promise.all([
+          pagoService.getAll(),
           reservaService.getAll()
         ]);
         
-        if (facturas) {
-          const totalFacturas = facturas.reduce((sum, f) => sum + (f.monto || 0), 0);
-          setIngresosTotal(`$${totalFacturas.toLocaleString()}`);
+        if (pagos) {
+          const ingresosValidos = pagos.filter(p => p.estado === 2 || p.estado === 'Pagado' || p.estado === 'Aprobado' || p.estado === 'Completado');
+          const totalPagos = ingresosValidos.reduce((sum, p) => sum + (p.monto || 0), 0);
+          setIngresosTotal(`$${totalPagos.toLocaleString()}`);
         }
         if (reservas) {
           setReservasTotal(reservas.length.toString());
