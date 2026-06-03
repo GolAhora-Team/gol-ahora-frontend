@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function CompetenciaCard({ item, canModify, yaInscripto, onInscribir, onDelete, onVerFixture, onVerDetalle }) {
+export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onGenerarFixture }) {
+  const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
+
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -15,23 +17,36 @@ export default function CompetenciaCard({ item, canModify, yaInscripto, onInscri
       </View>
 
       <View style={styles.actions}>
+        {/* Row 1: VER + FIXTURE */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.verFixtureBtn} onPress={onVerDetalle}>
-            <Text style={styles.verFixtureText}>VER</Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={onVerDetalle}>
+            <Text style={styles.actionBtnText}>VER</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.verFixtureBtn} onPress={onVerFixture}>
-            <Text style={styles.verFixtureText}>VER FIXTURE</Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={onVerFixture}>
+            <Text style={styles.actionBtnText}>FIXTURE</Text>
           </TouchableOpacity>
-          {yaInscripto ? (
-            <View style={styles.doneBadge}>
-              <MaterialCommunityIcons name="check-decagram" size={16} color="#009b3a" />
-              <Text style={styles.doneText}>YA INSCRIPTO</Text>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.inscribirBtn} onPress={onInscribir}>
-              <Text style={styles.inscribirText}>INSCRIBIR</Text>
-            </TouchableOpacity>
-          )}
+        </View>
+
+        {/* Row 2: INSCRIBIR EQUIPOS + ELIMINAR EQUIPOS */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.inscribirBtn} onPress={onInscribir}>
+            <Text style={styles.inscribirText}>INSCRIBIR EQUIPOS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.eliminarBtn} onPress={onEliminarEquipos}>
+            <Text style={styles.eliminarText}>ELIMINAR EQUIPOS</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Row 3: GENERAR FIXTURE (disabled if not enough teams) */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity 
+            style={[styles.generarBtn, !cupoCompleto && styles.generarBtnDisabled]} 
+            onPress={cupoCompleto ? onGenerarFixture : null}
+            disabled={!cupoCompleto}
+          >
+            <MaterialCommunityIcons name="shuffle-variant" size={16} color={cupoCompleto ? '#fff' : '#94a3b8'} />
+            <Text style={[styles.generarText, !cupoCompleto && styles.generarTextDisabled]}>GENERAR FIXTURE</Text>
+          </TouchableOpacity>
         </View>
 
         {canModify && (
@@ -64,13 +79,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '800', color: '#1e293b' }, 
   dateText: { fontSize: 12, color: '#009b3a', fontWeight: '700', marginTop: 2 },
   detail: { fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '600' },
-  actions: { alignItems: 'flex-end', gap: 8, flexDirection: 'column' },
+  actions: { alignItems: 'flex-end', gap: 6, flexDirection: 'column' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  verFixtureBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1' },
-  verFixtureText: { color: '#1e293b', fontWeight: '900', fontSize: 11 },
-  inscribirBtn: { backgroundColor: '#009b3a', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10 },
-  inscribirText: { color: '#fff', fontWeight: '900', fontSize: 11 },
-  doneBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 8, borderRadius: 10 },
-  doneText: { color: '#009b3a', fontWeight: '900', fontSize: 11, marginLeft: 5 },
+  actionBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1' },
+  actionBtnText: { color: '#1e293b', fontWeight: '900', fontSize: 11 },
+  inscribirBtn: { backgroundColor: '#009b3a', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
+  inscribirText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  eliminarBtn: { backgroundColor: '#ef4444', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
+  eliminarText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  generarBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  generarBtnDisabled: { backgroundColor: '#e2e8f0' },
+  generarText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  generarTextDisabled: { color: '#94a3b8' },
   deleteBtn: { padding: 5 }
 });

@@ -14,6 +14,7 @@ import VerJugadoresModal from '../components/VerJugadoresModal';
 import FormacionModal from '../components/FormacionModal';
 import TorneoFixtureModal from '../components/TorneoFixtureModal';
 import EnrollTeamModal from '../components/EnrollTeamModal';
+import RemoveEquiposCompModal from '../components/RemoveEquiposCompModal';
 import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
@@ -57,6 +58,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [deleteCompeticionConfirmVisible, setDeleteCompeticionConfirmVisible] = useState(false);
   const [competicionToDelete, setCompeticionToDelete] = useState(null);
 
+  // Remove equipos from competicion
+  const [removeEquiposModalVisible, setRemoveEquiposModalVisible] = useState(false);
+  const [competicionToRemoveFrom, setCompeticionToRemoveFrom] = useState(null);
+
   // Jugadores modals
   const [addJugadoresVisible, setAddJugadoresVisible] = useState(false);
   const [removeJugadoresVisible, setRemoveJugadoresVisible] = useState(false);
@@ -87,7 +92,8 @@ export default function CompetenciasScreen({ route, navigation }) {
         inscriptos: c.cantInscriptos || 0,
         estado: c.estado === 1 ? 'inscripcion' : (c.estado === 2 ? 'en_juego' : 'finalizada'),
         fechaInicio: '15/06/2026',
-        premio: 'Trofeo + Medallas'
+        premio: 'Trofeo + Medallas',
+        tipoCancha: c.tipoCancha || 5
       }));
       setCompetencias(mapped);
 
@@ -148,6 +154,46 @@ export default function CompetenciasScreen({ route, navigation }) {
     }
     setCompeticionToEnroll(item);
     setEnrollModalVisible(true);
+  };
+
+  const handleEliminarEquipos = (item) => {
+    const inscriptos = equipos.filter(e => e.competicionId?.toString() === item.id?.toString());
+    if (inscriptos.length === 0) {
+      return Alert.alert("Sin equipos", "No hay equipos inscriptos en esta competición.");
+    }
+    setCompeticionToRemoveFrom(item);
+    setRemoveEquiposModalVisible(true);
+  };
+
+  const handleRemoveEquiposConfirm = async (equiposARemover) => {
+    if (!competicionToRemoveFrom || !equiposARemover || equiposARemover.length === 0) return;
+    try {
+      setLoading(true);
+      for (const equipo of equiposARemover) {
+        await equipoService.update(equipo.id, { ...equipo, competicionId: null });
+      }
+      setCompetencias(prev => prev.map(c =>
+        c.id === competicionToRemoveFrom.id
+          ? { ...c, inscriptos: Math.max(0, Number(c.inscriptos) - equiposARemover.length) }
+          : c
+      ));
+      const equipoIds = equiposARemover.map(e => e.id);
+      setEquipos(prev => prev.map(e =>
+        equipoIds.includes(e.id) ? { ...e, competicionId: null } : e
+      ));
+      setRemoveEquiposModalVisible(false);
+      setCompeticionToRemoveFrom(null);
+      showSuccess('Equipos Eliminados', `Se eliminaron ${equiposARemover.length} equipo(s) de ${competicionToRemoveFrom.nombre}.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron eliminar los equipos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerarFixture = (item) => {
+    // Por ahora no hace nada, solo placeholder
+    Alert.alert("Generar Fixture", "Esta funcionalidad se implementará próximamente.");
   };
 
   const handleSelectEquiposParaInscribir = async (equiposSeleccionados) => {
@@ -357,10 +403,11 @@ export default function CompetenciasScreen({ route, navigation }) {
                 key={item.id} 
                 item={item} 
                 canModify={isStaff}
-                yaInscripto={misInscripciones.includes(item.id)}
                 onInscribir={() => handleInscripcion(item)}
+                onEliminarEquipos={() => handleEliminarEquipos(item)}
                 onVerDetalle={() => handleVerDetalle(item)}
                 onVerFixture={() => handleVerFixture(item)}
+                onGenerarFixture={() => handleGenerarFixture(item)}
                 onDelete={() => askDeleteCompeticion(item)}
               />
             ))}
@@ -505,6 +552,13 @@ export default function CompetenciasScreen({ route, navigation }) {
         visible={viewModalVisible}
         onClose={() => setViewModalVisible(false)}
         competicion={selectedCompeticion}
+      />
+
+      <RemoveEquiposCompModal
+        visible={removeEquiposModalVisible}
+        onClose={() => { setRemoveEquiposModalVisible(false); setCompeticionToRemoveFrom(null); }}
+        enrolledEquipos={competicionToRemoveFrom ? equipos.filter(e => e.competicionId?.toString() === competicionToRemoveFrom.id?.toString()) : []}
+        onRemove={handleRemoveEquiposConfirm}
       />
     </ScreenTemplate>
   );

@@ -288,14 +288,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
           {!hasMatches && !loading && (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="tournament" size={48} color="#cbd5e1" />
-              <Text style={styles.emptyText}>El fixture aún no ha sido sorteado.</Text>
-              
-              {isStaff && (
-                <TouchableOpacity style={styles.actionBtn} onPress={handleGenerarFixture}>
-                  <MaterialCommunityIcons name="shuffle-variant" size={20} color="#fff" />
-                  <Text style={styles.actionBtnText}>SORTEAR FIXTURE</Text>
-                </TouchableOpacity>
-              )}
+              <Text style={styles.emptyText}>El fixture aún no ha sido generado.</Text>
               
               <TouchableOpacity style={styles.demoBtn} onPress={() => setDemoMode(!demoMode)}>
                 <MaterialCommunityIcons name="eye-outline" size={20} color="#009b3a" />
