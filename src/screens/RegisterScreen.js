@@ -236,7 +236,7 @@ export default function RegisterScreen({ navigation }) {
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />
 
-              <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
+              <View style={styles.contentOverlay}>
 
                 <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
@@ -250,7 +250,6 @@ export default function RegisterScreen({ navigation }) {
                   <ScrollView
                     ref={innerScrollViewRef}
                     showsVerticalScrollIndicator={false}
-                    style={{ maxHeight: windowHeight * 0.45 }}
                     nestedScrollEnabled={true}
                   >
                     <View style={styles.warningContainer}>
@@ -626,7 +625,7 @@ const styles = StyleSheet.create({
 
   pitchContainer: {
     width: isWeb ? 480 : '92%',
-    height: isWeb ? 880 : windowHeight * 0.9,
+    minHeight: isWeb ? 880 : windowHeight * 0.9,
     borderRadius: 30,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
@@ -640,7 +639,7 @@ const styles = StyleSheet.create({
     minHeight: windowHeight * 0.85,
     flex: 1,
   },
-  contentOverlay: { justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 0 : 20 },
+  contentOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 30 : 20 },
   solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
   labelInterno: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
