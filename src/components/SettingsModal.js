@@ -16,8 +16,16 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+
+  const topObrasSociales = [
+    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
+    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
+    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud", 
+    "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
+  ];
 
   const [perfil, setPerfil] = useState({
     nombre: '',
@@ -32,6 +40,10 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
     pais: '',
     contactoEmergencia: ''
   });
+
+  const filteredObrasSociales = perfil.obraSocial 
+    ? topObrasSociales.filter(os => os.toLowerCase().includes(perfil.obraSocial.toLowerCase()))
+    : topObrasSociales;
   
   // Para la actualizacion se requiere enviar el DTO completo dependiendo del rol
   const [fullData, setFullData] = useState(null);
@@ -208,28 +220,38 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       editable={false} 
                     />
                     <Text style={styles.label}>Obra Social</Text>
-                    <TextInput 
-                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
-                      value={perfil.obraSocial} 
-                      onChangeText={(t)=>setPerfil({...perfil, obraSocial:t})} 
-                      editable={isEditingInfo}
-                      {...(Platform.OS === 'web' ? { list: "obras-sociales" } : {})}
-                    />
-                    {Platform.OS === 'web' && (
-                      <datalist id="obras-sociales">
-                        <option value="OSDE" />
-                        <option value="Swiss Medical" />
-                        <option value="Galeno" />
-                        <option value="PAMI" />
-                        <option value="IOMA" />
-                        <option value="Medifé" />
-                        <option value="Omint" />
-                        <option value="Sancor Salud" />
-                        <option value="Accord Salud" />
-                        <option value="OSECAC" />
-                        <option value="OUPCN" />
-                      </datalist>
-                    )}
+                    <View style={{ zIndex: 10 }}>
+                      <TextInput 
+                        style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                        value={perfil.obraSocial} 
+                        onChangeText={(t) => {
+                          setPerfil({...perfil, obraSocial:t});
+                          setShowObraSocialSuggestions(true);
+                        }} 
+                        onFocus={() => isEditingInfo && setShowObraSocialSuggestions(true)}
+                        editable={isEditingInfo}
+                        placeholder={isEditingInfo ? "Ej: OSDE, Swiss Medical..." : ""}
+                        placeholderTextColor="#999"
+                      />
+                      {isEditingInfo && showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
+                        <View style={styles.suggestionsContainer}>
+                          <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                            {filteredObrasSociales.map((os, index) => (
+                              <TouchableOpacity 
+                                key={index} 
+                                style={styles.suggestionItem}
+                                onPress={() => {
+                                  setPerfil({...perfil, obraSocial:os});
+                                  setShowObraSocialSuggestions(false);
+                                }}
+                              >
+                                <Text style={styles.suggestionText}>{os}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.label}>Teléfono</Text>
                     <TextInput 
                       style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
@@ -410,5 +432,8 @@ const styles = StyleSheet.create({
   subTabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   subTabActive: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
   subTabText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  subTabTextActive: { color: '#009b3a' }
+  subTabTextActive: { color: '#009b3a' },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginTop: 5, marginBottom: 15, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
+  suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  suggestionText: { color: '#333', fontSize: 13, fontWeight: '600' }
 });
