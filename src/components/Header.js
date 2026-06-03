@@ -139,9 +139,9 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
       <View style={styles.headerIcons}>
       
         {weather.temp !== null && (
-          <View style={styles.weatherContainer}>
-            <MaterialCommunityIcons name={weather.icon} size={isMobile ? 22 : 26} color="#fff" />
-            <Text style={[styles.weatherText, isMobile && { fontSize: 14 }]} selectable={false}>{weather.temp}°</Text>
+          <View style={[styles.weatherContainer, isMobile && styles.weatherContainerMobile]}>
+            <MaterialCommunityIcons name={weather.icon} size={isMobile ? 20 : 26} color="#fff" />
+            <Text style={[styles.weatherText, isMobile && { fontSize: 13, marginLeft: 4 }]} selectable={false}>{weather.temp}°</Text>
           </View>
         )}
 
@@ -246,9 +246,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   headerMobile: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginHorizontal: 17.5,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    marginHorizontal: 10,
     borderRadius: 20,
   },
   headerWeb: { 
@@ -269,8 +269,8 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { userSelect: 'none' } })
   },
   headerBrandMobile: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 22,
   },
   roleBadge: { 
     alignSelf: 'flex-start', 
@@ -299,6 +299,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
   },
+  weatherContainerMobile: {
+    marginRight: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   weatherText: {
     color: '#fff',
     fontSize: 16,
@@ -316,10 +321,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   headerBtnMobile: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginLeft: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginLeft: 4,
   },
   btnActive: {
     backgroundColor: '#ffb300',
