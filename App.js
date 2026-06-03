@@ -22,6 +22,8 @@ import ReportesScreen from './src/screens/ReportesScreen';
 import ClientesScreen from './src/screens/ClientesScreen';
 import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+
 import { Platform, Text, TextInput } from 'react-native';
 import { 
   useFonts, 
@@ -131,7 +133,13 @@ export default function App() {
           <Stack.Screen name="UserScreen" component={UserScreen} options={{ title: "Gol Ahora - Usuarios" }} />
           <Stack.Screen name="CanchasScreen" component={CanchasScreen} options={{ title: "Gol Ahora - Canchas" }} />
           <Stack.Screen name="ReservasScreen" component={ReservasScreen} options={{ title: "Gol Ahora - Reservas" }} />
-          <Stack.Screen name="CompetenciasScreen" component={CompetenciasScreen} options={{ title: "Gol Ahora - Competencias" }} />
+          <Stack.Screen name="CompetenciasScreen" options={{ title: "Gol Ahora - Competencias" }}>
+            {(props) => (
+              <ErrorBoundary>
+                <CompetenciasScreen {...props} />
+              </ErrorBoundary>
+            )}
+          </Stack.Screen>
           <Stack.Screen name="StaffScreen" component={StaffScreen} options={{ title: "Gol Ahora - Staff" }} />
           <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} options={{ title: "Gol Ahora - Inscripciones" }} />
           <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} options={{ title: "Gol Ahora - Facturación" }} />
