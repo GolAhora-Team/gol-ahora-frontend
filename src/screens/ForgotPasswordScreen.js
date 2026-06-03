@@ -74,10 +74,10 @@ export default function ForgotPasswordScreen({ navigation }) {
               <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
 
                 <View style={styles.headerClean}>
-                  <Text style={styles.preTitle}>Complejo</Text>
+                  <Text style={styles.preTitle}>Recuperación</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
                   <View style={styles.badgeLine}>
-                    <Text style={styles.subtitleText}>RECUPERACIÓN</Text>
+                    <Text style={styles.subtitleText}>COMPLEJO GOL AHORA</Text>
                   </View>
                 </View>
 
