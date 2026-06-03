@@ -35,6 +35,7 @@ const NuevaClaveScreen = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [linkExpired, setLinkExpired] = useState(false);
+  const [isInvalidToken, setIsInvalidToken] = useState(false); // Nuevo estado
   const [countdown, setCountdown] = useState(5);
   const [token, setToken] = useState(null);
 
@@ -52,6 +53,28 @@ const NuevaClaveScreen = () => {
       }
     }
   }, [route]);
+
+  // Validar token al cargar
+  useEffect(() => {
+    const validateToken = async () => {
+      if (token) {
+        try {
+          const res = await userService.validateResetToken(token);
+          if (res && res.data && !res.data.isValid) {
+            setIsInvalidToken(true);
+            setLinkExpired(true);
+            setCountdown(0); // Evitar contador si ya es inválido
+          }
+        } catch (error) {
+          console.error(error);
+          setIsInvalidToken(true);
+          setLinkExpired(true);
+          setCountdown(0);
+        }
+      }
+    };
+    validateToken();
+  }, [token]);
 
   // Countdown timer when link expires
   useEffect(() => {
@@ -128,11 +151,15 @@ const NuevaClaveScreen = () => {
 
                 <View style={styles.solidGlassCard}>
                   <View style={styles.expiredIconContainer}>
-                    <MaterialCommunityIcons name="check-circle" size={60} color="#009b3a" />
+                    <MaterialCommunityIcons name={isInvalidToken ? "close-circle" : "check-circle"} size={60} color={isInvalidToken ? "#ef4444" : "#009b3a"} />
                   </View>
-                  <Text style={styles.expiredTitle}>¡Contraseña actualizada!</Text>
+                  <Text style={styles.expiredTitle}>
+                    {isInvalidToken ? "Enlace no válido" : "¡Contraseña actualizada!"}
+                  </Text>
                   <Text style={styles.expiredSubtitle}>
-                    Tu contraseña fue restablecida correctamente.
+                    {isInvalidToken 
+                      ? "El enlace de recuperación ha expirado o ya fue utilizado." 
+                      : "Tu contraseña fue restablecida correctamente."}
                   </Text>
 
                   <View style={styles.expiredBadge}>
@@ -140,13 +167,17 @@ const NuevaClaveScreen = () => {
                     <Text style={styles.expiredBadgeText}>Este enlace ya venció</Text>
                   </View>
 
-                  <Text style={styles.countdownLabel}>
-                    Serás redirigido al login en
-                  </Text>
-                  <View style={styles.countdownCircle}>
-                    <Text style={styles.countdownNumber}>{countdown}</Text>
-                  </View>
-                  <Text style={styles.countdownUnit}>segundos</Text>
+                  {!isInvalidToken && (
+                    <>
+                      <Text style={styles.countdownLabel}>
+                        Serás redirigido al login en
+                      </Text>
+                      <View style={styles.countdownCircle}>
+                        <Text style={styles.countdownNumber}>{countdown}</Text>
+                      </View>
+                      <Text style={styles.countdownUnit}>segundos</Text>
+                    </>
+                  )}
 
                   <TouchableOpacity
                     style={[styles.mainButton, { marginTop: 20 }]}

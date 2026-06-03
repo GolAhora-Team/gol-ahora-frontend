@@ -114,6 +114,20 @@ export const userService = {
   },
 
   /**
+   * GET /api/User/validate-reset-token
+   * Valida que el token de recuperación no esté vencido o usado.
+   */
+  validateResetToken: async (token) => {
+    try {
+      const response = await http.get(`${URL}/validate-reset-token?token=${token}`);
+      return response;
+    } catch (error) {
+      console.error('Error en validateResetToken:', error);
+      throw error;
+    }
+  },
+
+  /**
    * POST /api/User/apto-medico
    * Sube el apto médico del cliente
    */
