@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavigationContainer, useNavigationContainerRef, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef, DefaultTheme, getPathFromState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // IMPORTACIÓN DE PANTALLAS
@@ -88,6 +88,11 @@ export default function App() {
         Dashboard: 'dashboard',
       },
     },
+    getPathFromState(state, options) {
+      const path = getPathFromState(state, options);
+      // Elimina cualquier parámetro query (?role=...) de la URL generada
+      return path.split('?')[0];
+    }
   };
 
   return (

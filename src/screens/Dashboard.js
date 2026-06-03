@@ -141,6 +141,13 @@ export default function Dashboard({ route, navigation }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 600;
 
+  // Si no hay params (ej. refresh de página), vamos al login para que el auto-login restaure el estado
+  React.useEffect(() => {
+    if (!route.params || !route.params.role) {
+      navigation.replace('Login');
+    }
+  }, [route.params]);
+
   const { role, idPersona, idUsuario, nombreUsuario } = route.params || { role: "ADMIN", idPersona: null, idUsuario: null, nombreUsuario: "NOMBRE" };
   
   const [userName] = useState(nombreUsuario || "NOMBRE"); 
