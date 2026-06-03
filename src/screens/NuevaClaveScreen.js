@@ -11,7 +11,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   StatusBar,
-  Alert,
+
   Image,
   ActivityIndicator
 } from 'react-native';
@@ -34,6 +34,8 @@ const NuevaClaveScreen = () => {
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
+  const [countdown, setCountdown] = useState(5);
   const [token, setToken] = useState(null);
 
   const route = useRoute();
@@ -50,6 +52,17 @@ const NuevaClaveScreen = () => {
       }
     }
   }, [route]);
+
+  // Countdown timer when link expires
+  useEffect(() => {
+    if (!linkExpired) return;
+    if (countdown <= 0) {
+      navigation.navigate('Login');
+      return;
+    }
+    const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [linkExpired, countdown, navigation]);
 
   const handleReset = async () => {
     setErrorMessage('');
@@ -78,21 +91,8 @@ const NuevaClaveScreen = () => {
     setLoading(true);
     try {
       await userService.resetPassword(token, newPassword);
-      Alert.alert(
-        'Éxito',
-        'Contraseña restablecida correctamente.',
-        [
-          {
-            text: 'Aceptar',
-            onPress: () => navigation.navigate('Login')
-          }
-        ],
-        { cancelable: false }
-      );
-      // Redirección de respaldo por si el diálogo no bloquea en web/ciertas plataformas
-      setTimeout(() => {
-        navigation.navigate('Login');
-      }, 1500);
+      setLinkExpired(true);
+      setCountdown(5);
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message || 'Ocurrió un error al restablecer la contraseña.'
@@ -102,6 +102,84 @@ const NuevaClaveScreen = () => {
     }
   };
 
+  // ─── Vista de link vencido con countdown ───
+  if (linkExpired) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StatusBar barStyle="light-content" backgroundColor="#06230e" />
+        <Background />
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            overScrollMode="never"
+          >
+            <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
+              <BackgroundLogin />
+              <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
+                <View style={styles.headerClean}>
+                  <Text style={styles.preTitle}>Restablecer</Text>
+                  <Text style={styles.mainTitle}>NUEVA CLAVE</Text>
+                  <View style={styles.badgeLine}>
+                    <Text style={styles.subtitleText}>COMPLEJO GOL AHORA</Text>
+                  </View>
+                </View>
+
+                <View style={styles.solidGlassCard}>
+                  <View style={styles.expiredIconContainer}>
+                    <MaterialCommunityIcons name="check-circle" size={60} color="#009b3a" />
+                  </View>
+                  <Text style={styles.expiredTitle}>¡Contraseña actualizada!</Text>
+                  <Text style={styles.expiredSubtitle}>
+                    Tu contraseña fue restablecida correctamente.
+                  </Text>
+
+                  <View style={styles.expiredBadge}>
+                    <MaterialCommunityIcons name="link-off" size={20} color="#ef4444" />
+                    <Text style={styles.expiredBadgeText}>Este enlace ya venció</Text>
+                  </View>
+
+                  <Text style={styles.countdownLabel}>
+                    Serás redirigido al login en
+                  </Text>
+                  <View style={styles.countdownCircle}>
+                    <Text style={styles.countdownNumber}>{countdown}</Text>
+                  </View>
+                  <Text style={styles.countdownUnit}>segundos</Text>
+
+                  <TouchableOpacity
+                    style={[styles.mainButton, { marginTop: 20 }]}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
+                      <Text style={styles.buttonText}>IR AL LOGIN AHORA</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <Footer />
+
+            <View style={styles.dataFiscalContainer}>
+              <View style={styles.dataFiscalTextContainer}>
+                <Text style={styles.dataFiscalText}>Complejo Gol Ahora</Text>
+                <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
+              </View>
+              <Image
+                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }}
+                style={styles.dataFiscalImage}
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ─── Vista principal: formulario de nueva clave ───
   return (
     <View style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" backgroundColor="#06230e" />
@@ -137,9 +215,14 @@ const NuevaClaveScreen = () => {
                     Ingresá tu nueva contraseña de acceso. Asegurate de cumplir con las políticas de seguridad.
                   </Text>
 
+                  <View style={styles.policyBadge}>
+                    <MaterialCommunityIcons name="shield-check" size={18} color="#009b3a" />
+                    <Text style={styles.policyText}>Mínimo 8 caracteres, 1 Mayúscula y 1 Carácter especial</Text>
+                  </View>
+
                   {/* NUEVA CONTRASEÑA */}
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Nueva Contraseña</Text>
+                    <Text style={styles.label}>Nueva contraseña:</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'newPass' && styles.inputFocused]}>
                       <MaterialCommunityIcons
                         name="lock"
@@ -148,7 +231,7 @@ const NuevaClaveScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder="Mínimo 8 caracteres, 1 Mayús., 1 Especial"
+                        placeholder="Ingresa la nueva contraseña"
                         placeholderTextColor="#999"
                         secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('newPass'); setErrorMessage(''); }}
@@ -166,7 +249,7 @@ const NuevaClaveScreen = () => {
 
                   {/* CONFIRMAR CONTRASEÑA */}
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Confirmar Contraseña</Text>
+                    <Text style={styles.label}>Confirmar contraseña:</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'confirmPass' && styles.inputFocused]}>
                       <MaterialCommunityIcons
                         name="lock-check"
@@ -175,7 +258,7 @@ const NuevaClaveScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder="Repetí la contraseña ingresada"
+                        placeholder="Repetí la nueva contraseña"
                         placeholderTextColor="#999"
                         secureTextEntry={isSecureConfirm}
                         onFocus={() => { setFocusedInput('confirmPass'); setErrorMessage(''); }}
@@ -301,6 +384,93 @@ const styles = StyleSheet.create({
   buttonText: { color: '#000', fontWeight: '900', fontSize: 15, letterSpacing: 0.5, ...Platform.select({ web: { userSelect: 'none' } }) },
   footerLinks: { flexDirection: 'row', justifyContent: 'center', marginTop: 25, paddingHorizontal: 5 },
   linkText: { color: '#009b3a', fontSize: 14, fontWeight: '700', ...Platform.select({ web: { userSelect: 'none' } }) },
+  // Política de seguridad en verde
+  policyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  policyText: {
+    color: '#16a34a',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  // Estilos para la vista de link vencido
+  expiredIconContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  expiredTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 8,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  expiredSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  expiredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    marginBottom: 25,
+  },
+  expiredBadgeText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 8,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  countdownLabel: {
+    color: '#64748b',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 10,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  countdownCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#009b3a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 5,
+  },
+  countdownNumber: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  countdownUnit: {
+    color: '#64748b',
+    fontSize: 12,
+    textAlign: 'center',
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
   dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
   dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
   dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
