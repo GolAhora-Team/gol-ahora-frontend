@@ -12,6 +12,8 @@ import AddJugadoresModal from '../components/AddJugadoresModal';
 import RemoveJugadoresModal from '../components/RemoveJugadoresModal';
 import VerJugadoresModal from '../components/VerJugadoresModal';
 import FormacionModal from '../components/FormacionModal';
+import TorneoFixtureModal from '../components/TorneoFixtureModal';
+import EnrollTeamModal from '../components/EnrollTeamModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
@@ -28,6 +30,12 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '15/06/2026', descripcion: '' };
   const [formData, setFormData] = useState(initialForm);
+
+  // Fixture / Enroll modals
+  const [selectedCompeticion, setSelectedCompeticion] = useState(null);
+  const [fixtureModalVisible, setFixtureModalVisible] = useState(false);
+  const [enrollModalVisible, setEnrollModalVisible] = useState(false);
+  const [competicionToEnroll, setCompeticionToEnroll] = useState(null);
 
   // Equipo modals
   const [equipoModalVisible, setEquipoModalVisible] = useState(false);
@@ -125,21 +133,35 @@ export default function CompetenciasScreen({ route, navigation }) {
     if (item.inscriptos >= parseInt(item.maxEquipos)) {
       return Alert.alert("Cupo Lleno", "Ya no quedan lugares disponibles.");
     }
-    Alert.alert(
-      "Inscripción",
-      `¿Deseas anotarte en ${item.nombre}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "CONFIRMAR", 
-          onPress: () => {
-            setCompetencias(prev => prev.map(c => c.id === item.id ? { ...c, inscriptos: Number(c.inscriptos) + 1 } : c));
-            setMisInscripciones(prev => [...prev, item.id]);
-            Alert.alert("¡Éxito!", "Inscripción registrada.");
-          } 
-        }
-      ]
-    );
+    const availableEquipos = equipos.filter(e => !e.competicionId);
+    if (availableEquipos.length === 0) {
+      return Alert.alert("Atención", "No tienes equipos disponibles para inscribir. Crea un equipo primero que no esté en otra competición.");
+    }
+    setCompeticionToEnroll(item);
+    setEnrollModalVisible(true);
+  };
+
+  const handleSelectEquipoParaInscribir = async (equipo) => {
+    if (!competicionToEnroll) return;
+    try {
+      setLoading(true);
+      await equipoService.update(equipo.id, { ...equipo, competicionId: competicionToEnroll.id });
+      setCompetencias(prev => prev.map(c => c.id === competicionToEnroll.id ? { ...c, inscriptos: Number(c.inscriptos) + 1 } : c));
+      setMisInscripciones(prev => [...prev, competicionToEnroll.id]);
+      setEquipos(prev => prev.map(e => e.id === equipo.id ? { ...e, competicionId: competicionToEnroll.id } : e));
+      setEnrollModalVisible(false);
+      setCompeticionToEnroll(null);
+      showSuccess('¡Inscripción Exitosa!', `El equipo ${equipo.nombre} ha sido inscrito en ${competicionToEnroll.nombre}.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo inscribir el equipo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerFixture = (item) => {
+    setSelectedCompeticion(item);
+    setFixtureModalVisible(true);
   };
 
   // ── Equipo handlers ──
@@ -296,6 +318,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                 canModify={isStaff}
                 yaInscripto={misInscripciones.includes(item.id)}
                 onInscribir={() => handleInscripcion(item)}
+                onVerFixture={() => handleVerFixture(item)}
                 onDelete={async () => {
                   try {
                     await competicionService.delete(item.id);
@@ -401,6 +424,20 @@ export default function CompetenciasScreen({ route, navigation }) {
         onClose={() => setSuccessModalVisible(false)}
         title={successTitle}
         message={successMessage}
+      />
+
+      <TorneoFixtureModal 
+        visible={fixtureModalVisible}
+        onClose={() => setFixtureModalVisible(false)}
+        competicion={selectedCompeticion}
+        isStaff={isStaffCheck}
+      />
+
+      <EnrollTeamModal
+        visible={enrollModalVisible}
+        onClose={() => { setEnrollModalVisible(false); setCompeticionToEnroll(null); }}
+        availableEquipos={equipos.filter(e => !e.competicionId)}
+        onSelectEquipo={handleSelectEquipoParaInscribir}
       />
     </ScreenTemplate>
   );
