@@ -24,7 +24,13 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
     apellido: '',
     email: '', // DNI
     telefono: '',
-    direccion: ''
+    direccion: '',
+    obraSocial: '',
+    codigoPostal: '',
+    localidad: '',
+    provincia: '',
+    pais: '',
+    contactoEmergencia: ''
   });
   
   // Para la actualizacion se requiere enviar el DTO completo dependiendo del rol
@@ -61,7 +67,13 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
           apellido: data.apellido || '',
           email: data.dni?.toString() || '',
           telefono: data.telefono || '',
-          direccion: data.direccion || ''
+          direccion: data.direccion || '',
+          obraSocial: data.obraSocial || '',
+          codigoPostal: data.codigoPostal || '',
+          localidad: data.localidad || '',
+          provincia: data.provincia || '',
+          pais: data.pais || '',
+          contactoEmergencia: data.contactoEmergencia || ''
         });
       }
     } catch (error) {
@@ -84,7 +96,13 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         nombre: perfil.nombre,
         apellido: perfil.apellido,
         telefono: perfil.telefono,
-        direccion: perfil.direccion
+        direccion: perfil.direccion,
+        obraSocial: perfil.obraSocial,
+        codigoPostal: perfil.codigoPostal,
+        localidad: perfil.localidad,
+        provincia: perfil.provincia,
+        pais: perfil.pais,
+        contactoEmergencia: perfil.contactoEmergencia
       };
 
       if (userRole === 'CLIENTE') {
@@ -189,6 +207,29 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       value={perfil.email} 
                       editable={false} 
                     />
+                    <Text style={styles.label}>Obra Social</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.obraSocial} 
+                      onChangeText={(t)=>setPerfil({...perfil, obraSocial:t})} 
+                      editable={isEditingInfo}
+                      {...(Platform.OS === 'web' ? { list: "obras-sociales" } : {})}
+                    />
+                    {Platform.OS === 'web' && (
+                      <datalist id="obras-sociales">
+                        <option value="OSDE" />
+                        <option value="Swiss Medical" />
+                        <option value="Galeno" />
+                        <option value="PAMI" />
+                        <option value="IOMA" />
+                        <option value="Medifé" />
+                        <option value="Omint" />
+                        <option value="Sancor Salud" />
+                        <option value="Accord Salud" />
+                        <option value="OSECAC" />
+                        <option value="OUPCN" />
+                      </datalist>
+                    )}
                     <Text style={styles.label}>Teléfono</Text>
                     <TextInput 
                       style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
@@ -203,6 +244,41 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       onChangeText={(t)=>setPerfil({...perfil, direccion:t})} 
                       editable={isEditingInfo}
                     />
+                    <Text style={styles.label}>C.P.</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.codigoPostal} 
+                      onChangeText={(t)=>setPerfil({...perfil, codigoPostal:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Localidad</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.localidad} 
+                      onChangeText={(t)=>setPerfil({...perfil, localidad:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Provincia</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.provincia} 
+                      onChangeText={(t)=>setPerfil({...perfil, provincia:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>País</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.pais} 
+                      onChangeText={(t)=>setPerfil({...perfil, pais:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Contacto de Emergencia</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.contactoEmergencia} 
+                      onChangeText={(t)=>setPerfil({...perfil, contactoEmergencia:t})} 
+                      editable={isEditingInfo}
+                    />
 
                     {isEditingInfo ? (
                       <View style={styles.actionRow}>
@@ -215,7 +291,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       </View>
                     ) : (
                       <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditingInfo(true)}>
-                        <Text style={styles.editText}>EDITAR DIRECCIÓN Y TELÉFONO</Text>
+                        <Text style={styles.editText}>EDITAR INFORMACIÓN</Text>
                       </TouchableOpacity>
                     )}
                   </>
