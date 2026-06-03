@@ -524,14 +524,14 @@ export default function Dashboard({ route, navigation }) {
                 </View>
               )}
 
-              {/* WIDGET MUNDIAL 2026 - Barra horizontal inferior */}
-              <View style={styles.worldCupBar}>
-                <View style={styles.worldCupBarLeft}>
+              {/* WIDGET MUNDIAL 2026 - Responsive */}
+              <View style={[styles.worldCupBar, isMobile && styles.worldCupBarMobile]}>
+                <View style={[styles.worldCupBarLeft, isMobile && styles.worldCupBarLeftMobile]}>
                   <View style={styles.worldCupBarIcon}>
-                    <MaterialCommunityIcons name="trophy" size={24} color="#ffb300" />
+                    <MaterialCommunityIcons name="trophy" size={isMobile ? 20 : 24} color="#ffb300" />
                   </View>
                   <View style={styles.worldCupBarTitleContainer}>
-                    <Text style={styles.worldCupBarTitle} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
+                    <Text style={[styles.worldCupBarTitle, isMobile && styles.worldCupBarTitleMobile]} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
                     <Text style={styles.worldCupBarSubtitle} selectable={false}>PRÓXIMOS PARTIDOS DE LA SCALONETA 🇦🇷</Text>
                   </View>
                 </View>
@@ -539,7 +539,7 @@ export default function Dashboard({ route, navigation }) {
                   horizontal 
                   showsHorizontalScrollIndicator={false} 
                   contentContainerStyle={styles.worldCupBarScrollContent}
-                  style={styles.worldCupBarScroll}
+                  style={[styles.worldCupBarScroll, isMobile && styles.worldCupBarScrollMobile]}
                 >
                   {loadingWorldCup ? (
                     <ActivityIndicator size="small" color="#ffb300" style={{ marginHorizontal: 30 }} />
@@ -547,19 +547,19 @@ export default function Dashboard({ route, navigation }) {
                     <Text style={styles.worldCupBarNoMatches}>No hay partidos programados.</Text>
                   ) : (
                     worldCupMatches.map((match, idx) => (
-                      <View key={idx} style={styles.worldCupBarMatch}>
+                      <View key={idx} style={[styles.worldCupBarMatch, isMobile && styles.worldCupBarMatchMobile]}>
                         <View style={styles.worldCupBarMatchHeader}>
                           <Text style={styles.worldCupBarMatchday}>MATCHDAY {match.matchday || idx + 1}</Text>
                           <Text style={styles.worldCupBarGround}>{match.ground || ''}</Text>
                         </View>
                         <View style={styles.worldCupBarTeamsRow}>
-                          <Text style={styles.worldCupBarTeamLeft} numberOfLines={1}>
+                          <Text style={[styles.worldCupBarTeamLeft, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
                             {getFlag(match.team1)} <Text style={styles.worldCupBarTeamCode}>{match.team1?.substring(0, 2).toUpperCase()}</Text> {match.team1}
                           </Text>
                           <View style={styles.worldCupBarVsBadge}>
                             <Text style={styles.worldCupBarVsText}>VS</Text>
                           </View>
-                          <Text style={styles.worldCupBarTeamRight} numberOfLines={1}>
+                          <Text style={[styles.worldCupBarTeamRight, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
                             {match.team2} <Text style={styles.worldCupBarTeamCode}>{match.team2?.substring(0, 2).toUpperCase()}</Text> {getFlag(match.team2)}
                           </Text>
                         </View>
@@ -794,5 +794,34 @@ const styles = StyleSheet.create({
     fontStyle: 'italic', 
     marginHorizontal: 20,
     ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  // MOBILE OVERRIDES para el widget del mundial
+  worldCupBarMobile: {
+    flexDirection: 'column',
+    borderRadius: 16,
+    minHeight: undefined,
+  },
+  worldCupBarLeftMobile: {
+    minWidth: undefined,
+    width: '100%',
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,179,0,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  worldCupBarTitleMobile: {
+    fontSize: 11,
+  },
+  worldCupBarScrollMobile: {
+    maxHeight: 110,
+  },
+  worldCupBarMatchMobile: {
+    minWidth: 180,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  worldCupBarTeamMobile: {
+    fontSize: 11,
   },
 });
