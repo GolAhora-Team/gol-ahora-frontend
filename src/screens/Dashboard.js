@@ -593,8 +593,8 @@ export default function Dashboard({ route, navigation }) {
                             </View>
                           </View>
                           <View style={styles.worldCupBarTimeRow}>
-                            <MaterialCommunityIcons name="clock-outline" size={11} color="#475569" />
-                            <Text style={styles.worldCupBarMatchday}>
+                            <MaterialCommunityIcons name="clock-outline" size={11} color="#94a3b8" />
+                            <Text style={[styles.worldCupBarMatchday, { color: '#94a3b8', fontWeight: '700' }]}>
                               {match.date} a las {convertToArgentinaTime(match.time)}
                             </Text>
                           </View>
