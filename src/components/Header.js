@@ -251,9 +251,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   headerWeb: { 
-    maxWidth: 1200, 
-    alignSelf: 'center', 
-    width: '95%' 
+    // width: '95%' y maxWidth eliminados para que respete marginHorizontal
   },
   headerInfo: { 
     flex: 1, 
