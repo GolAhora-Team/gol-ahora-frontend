@@ -50,11 +50,15 @@ export default function ReservaScreen({ route, navigation }) {
 
   const scrollToSection = (key) => {
     if (Platform.OS === 'web') {
-      const el = document.getElementById('section-' + key);
+      const el = document.getElementById(key === 'top' ? 'top-reservas' : 'section-' + key);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } else {
+      if (key === 'top' && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: 0, animated: true });
+        return;
+      }
       const y = sectionOffsets.current[key];
       if (y !== undefined && scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ y: y, animated: true });
@@ -387,7 +391,7 @@ export default function ReservaScreen({ route, navigation }) {
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
 
-      <View style={styles.headerRow}>
+      <View style={styles.headerRow} nativeID="top-reservas">
         <Text style={styles.mainTitle}>Cronograma</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
@@ -616,6 +620,11 @@ export default function ReservaScreen({ route, navigation }) {
       </Modal>
 
 
+      {/* Botón flotante para subir */}
+      <TouchableOpacity style={styles.fabUp} onPress={() => scrollToSection('top')}>
+        <MaterialCommunityIcons name="arrow-up" size={24} color="#fff" />
+      </TouchableOpacity>
+
     </ScreenTemplate>
   );
 }
@@ -642,6 +651,23 @@ const styles = StyleSheet.create({
 
   groupSection: { marginBottom: 25 },
   groupTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 12, marginLeft: 4, letterSpacing: 0.5 },
+
+  fabUp: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#009b3a',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
 
   // View modal
   viewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
