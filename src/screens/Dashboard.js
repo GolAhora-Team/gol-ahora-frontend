@@ -146,8 +146,12 @@ export default function Dashboard({ route, navigation }) {
         const res = await fetch("https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json");
         const json = await res.json();
         if (json && json.matches) {
-          // Filtrar o tomar los primeros 6 partidos
-          setWorldCupMatches(json.matches.slice(0, 6));
+          // Filtrar partidos de Argentina
+          const argMatches = json.matches.filter(match => 
+            (match.team1 && match.team1.toLowerCase().includes('argentina')) || 
+            (match.team2 && match.team2.toLowerCase().includes('argentina'))
+          );
+          setWorldCupMatches(argMatches);
         }
       } catch (e) {
         console.error("Error fetching world cup matches", e);
@@ -620,22 +624,22 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: 11, fontWeight: '800', color: '#000' },
   
   // ESTILOS WIDGET MUNDIAL 2026
-  worldCupSection: { marginTop: 20, backgroundColor: 'rgba(15, 23, 42, 0.95)', borderRadius: 24, padding: 20, borderWidth: 1.5, borderColor: '#eab308' },
+  worldCupSection: { marginTop: 20, backgroundColor: 'rgba(6, 35, 14, 0.95)', borderRadius: 24, padding: 20, borderWidth: 1.5, borderColor: '#ffb300', maxWidth: 600, width: '100%', alignSelf: 'center' },
   worldCupHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   worldCupTitle: { color: '#fff', fontSize: 16, fontWeight: '900', marginLeft: 10, flex: 1, letterSpacing: 0.5 },
   worldCupLive: { backgroundColor: '#ef4444', color: '#fff', fontSize: 9, fontWeight: '900', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
-  worldCupSubtitle: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 15 },
+  worldCupSubtitle: { color: '#a3b899', fontSize: 12, fontWeight: '600', marginBottom: 15 },
   matchesList: { gap: 10 },
-  matchRow: { backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 16, padding: 14, borderLeftWidth: 4, borderLeftColor: '#eab308' },
+  matchRow: { backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: 16, padding: 14, borderLeftWidth: 4, borderLeftColor: '#ffb300' },
   matchMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  matchRound: { color: '#eab308', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  matchGround: { color: '#94a3b8', fontSize: 10, fontWeight: '700' },
+  matchRound: { color: '#ffb300', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  matchGround: { color: '#a3b899', fontSize: 10, fontWeight: '700' },
   matchTeamsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 },
   teamContainer: { flex: 1 },
   teamName: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  vsBadge: { backgroundColor: 'rgba(234, 179, 8, 0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginHorizontal: 10 },
-  vsText: { color: '#eab308', fontSize: 11, fontWeight: '900' },
+  vsBadge: { backgroundColor: 'rgba(255, 179, 0, 0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginHorizontal: 10 },
+  vsText: { color: '#ffb300', fontSize: 11, fontWeight: '900' },
   matchTimeContainer: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  matchTimeText: { color: '#94a3b8', fontSize: 10, fontWeight: '700' },
-  noMatchesText: { color: '#94a3b8', fontSize: 12, textAlign: 'center', marginVertical: 20, fontStyle: 'italic' }
+  matchTimeText: { color: '#a3b899', fontSize: 10, fontWeight: '700' },
+  noMatchesText: { color: '#a3b899', fontSize: 12, textAlign: 'center', marginVertical: 20, fontStyle: 'italic' }
 });
