@@ -59,6 +59,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [deleteCompeticionConfirmVisible, setDeleteCompeticionConfirmVisible] = useState(false);
   const [competicionToDelete, setCompeticionToDelete] = useState(null);
 
+  // Generar Fixture confirm modal
+  const [generarFixtureConfirmVisible, setGenerarFixtureConfirmVisible] = useState(false);
+  const [competicionToGenerarFixture, setCompeticionToGenerarFixture] = useState(null);
+
   // Remove equipos from competicion
   const [removeEquiposModalVisible, setRemoveEquiposModalVisible] = useState(false);
   const [competicionToRemoveFrom, setCompeticionToRemoveFrom] = useState(null);
@@ -206,18 +210,15 @@ export default function CompetenciasScreen({ route, navigation }) {
   };
 
   const handleGenerarFixture = (item) => {
-    Alert.alert(
-      'Generar Fixture',
-      `¿Deseas generar el fixture de manera aleatoria para "${item.nombre}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Generar', onPress: () => ejecutarGenerarFixture(item) }
-      ]
-    );
+    setCompeticionToGenerarFixture(item);
+    setGenerarFixtureConfirmVisible(true);
   };
 
-  const ejecutarGenerarFixture = async (item) => {
+  const ejecutarGenerarFixture = async () => {
+    if (!competicionToGenerarFixture) return;
+    const item = competicionToGenerarFixture;
     try {
+      setGenerarFixtureConfirmVisible(false);
       setLoading(true);
       await partidoService.generarFixture(item.id);
       // Mark competition as fixture generated
@@ -228,10 +229,12 @@ export default function CompetenciasScreen({ route, navigation }) {
       // Open fixture modal to show the results
       setSelectedCompeticion({ ...item, fixtureGenerado: true });
       setFixtureModalVisible(true);
+      setCompeticionToGenerarFixture(null);
     } catch (error) {
       setLoading(false);
       console.error(error);
       Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo generar el fixture. Asegurate de tener la cantidad correcta de equipos inscriptos.');
+      setCompeticionToGenerarFixture(null);
     }
   };
 
@@ -536,6 +539,18 @@ export default function CompetenciasScreen({ route, navigation }) {
         cancelText="Cancelar"
         icon="alert-circle-outline"
         color="#ef4444"
+      />
+
+      <ConfirmModal
+        visible={generarFixtureConfirmVisible}
+        onClose={() => { setGenerarFixtureConfirmVisible(false); setCompeticionToGenerarFixture(null); }}
+        onConfirm={ejecutarGenerarFixture}
+        title="Generar Fixture"
+        message={`¿Deseas generar el fixture de manera aleatoria para "${competicionToGenerarFixture?.nombre}"?`}
+        confirmText="Generar"
+        cancelText="Cancelar"
+        color="#3b82f6"
+        icon="shuffle-variant"
       />
 
       <AddJugadoresModal
