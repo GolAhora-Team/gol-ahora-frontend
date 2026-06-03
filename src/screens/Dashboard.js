@@ -11,7 +11,8 @@ import {
   StatusBar,
   useWindowDimensions,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -96,14 +97,29 @@ const ModuleCard = ({ module, currentRole, idPersona, userName, navigation, isMo
   );
 };
 
-const getFlag = (team) => {
-  if (!team) return '';
+const getFlagUrl = (team) => {
+  if (!team) return 'un'; // default
   const name = team.toLowerCase();
-  if (name.includes('argentina')) return '🇦🇷';
-  if (name.includes('algeria')) return '🇩🇿';
-  if (name.includes('austria')) return '🇦🇹';
-  if (name.includes('jordan')) return '🇯🇴';
-  return '🏳️';
+  if (name.includes('argentina')) return 'ar';
+  if (name.includes('algeria')) return 'dz';
+  if (name.includes('austria')) return 'at';
+  if (name.includes('jordan')) return 'jo';
+  if (name.includes('brazil') || name.includes('brasil')) return 'br';
+  if (name.includes('france')) return 'fr';
+  if (name.includes('spain') || name.includes('españa')) return 'es';
+  if (name.includes('england') || name.includes('inglaterra')) return 'gb-eng';
+  if (name.includes('uruguay')) return 'uy';
+  if (name.includes('chile')) return 'cl';
+  if (name.includes('colombia')) return 'co';
+  if (name.includes('ecuador')) return 'ec';
+  if (name.includes('peru') || name.includes('perú')) return 'pe';
+  if (name.includes('venezuela')) return 've';
+  if (name.includes('bolivia')) return 'bo';
+  if (name.includes('paraguay')) return 'py';
+  if (name.includes('mexico') || name.includes('méxico')) return 'mx';
+  if (name.includes('usa') || name.includes('estados unidos')) return 'us';
+  if (name.includes('canada') || name.includes('canadá')) return 'ca';
+  return 'un';
 };
 
 const convertToArgentinaTime = (timeStr) => {
@@ -553,15 +569,29 @@ export default function Dashboard({ route, navigation }) {
                           <Text style={styles.worldCupBarGround}>{match.ground || ''}</Text>
                         </View>
                         <View style={styles.worldCupBarTeamsRow}>
-                          <Text style={[styles.worldCupBarTeamLeft, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
-                            {getFlag(match.team1)} <Text style={styles.worldCupBarTeamCode}>{match.team1?.substring(0, 2).toUpperCase()}</Text> {match.team1}
-                          </Text>
+                          <View style={styles.teamContainer}>
+                            <Image 
+                              source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team1)}.png` }} 
+                              style={styles.flagIcon} 
+                              resizeMode="contain" 
+                            />
+                            <Text style={[styles.worldCupBarTeamLeft, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
+                              {match.team1}
+                            </Text>
+                          </View>
                           <View style={styles.worldCupBarVsBadge}>
                             <Text style={styles.worldCupBarVsText}>VS</Text>
                           </View>
-                          <Text style={[styles.worldCupBarTeamRight, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
-                            {match.team2} <Text style={styles.worldCupBarTeamCode}>{match.team2?.substring(0, 2).toUpperCase()}</Text> {getFlag(match.team2)}
-                          </Text>
+                          <View style={styles.teamContainer}>
+                            <Text style={[styles.worldCupBarTeamRight, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
+                              {match.team2}
+                            </Text>
+                            <Image 
+                              source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team2)}.png` }} 
+                              style={styles.flagIcon} 
+                              resizeMode="contain" 
+                            />
+                          </View>
                         </View>
                         <View style={styles.worldCupBarTimeRow}>
                           <MaterialCommunityIcons name="clock-outline" size={11} color="#ef4444" />
@@ -748,6 +778,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'center',
     gap: 8,
+  },
+  teamContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  flagIcon: {
+    width: 20,
+    height: 14,
+    borderRadius: 2,
   },
   worldCupBarTeamLeft: { 
     color: '#fff', 

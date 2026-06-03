@@ -9,6 +9,10 @@ import DatePickerModal from './DatePickerModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [calendarAptoInicioVisible, setCalendarAptoInicioVisible] = useState(false);
+  const [calendarAptoFinVisible, setCalendarAptoFinVisible] = useState(false);
+  const [calendarCertInicioVisible, setCalendarCertInicioVisible] = useState(false);
+  const [calendarCertFinVisible, setCalendarCertFinVisible] = useState(false);
   const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
 
@@ -264,22 +268,37 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 {formData.aptoFisico && (
                   <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
                     <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO (PDF/IMG, MÁX 2MB)</Text>
-                    <TouchableOpacity style={styles.fileBtn} onPress={handlePickAptoMedico}>
-                      <MaterialCommunityIcons name="file-document-outline" size={24} color="#009b3a" />
-                      <Text style={styles.fileBtnText}>
-                        {formData.aptoMedicoFileName ? formData.aptoMedicoFileName : (formData.aptoMedicoArchivo ? "Certificado Guardado en BD" : "Seleccionar Archivo")}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={[styles.fileBtn, { flex: 1 }]} onPress={handlePickAptoMedico}>
+                        <MaterialCommunityIcons name="file-document-outline" size={24} color="#009b3a" />
+                        <Text style={styles.fileBtnText}>
+                          {formData.aptoMedicoFileName ? formData.aptoMedicoFileName : (formData.tieneAptoMedicoArchivo ? "Certificado Guardado" : "Seleccionar Archivo")}
+                        </Text>
+                      </TouchableOpacity>
+                      {(formData.tieneAptoMedicoArchivo || formData.id) && formData.aptoMedicoFileName === 'Apto Médico Guardado' && (
+                        <TouchableOpacity 
+                          style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
+                          onPress={() => window.open(`http://localhost:5184/api/Clientes/${formData.id}/apto-medico/descargar`, '_blank')}
+                        >
+                          <MaterialCommunityIcons name="eye" size={24} color="#009b3a" />
+                          <Text style={[styles.fileBtnText, { color: '#009b3a' }]}>VER</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
 
                     <View style={styles.datesRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.greenLabelBold}>FECHA EMISIÓN</Text>
-                        <TextInput style={styles.cleanInput} value={formData.aptoFechaInicio} onChangeText={(t) => setFormData({...formData, aptoFechaInicio: t})} placeholder="YYYY-MM-DD" />
+                        <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarAptoInicioVisible(true)}>
+                          <Text style={{ color: formData.aptoFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaInicio || "YYYY-MM-DD"}</Text>
+                        </TouchableOpacity>
                       </View>
                       <View style={{ width: 10 }} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.greenLabelBold}>FECHA VENCIMIENTO</Text>
-                        <TextInput style={styles.cleanInput} value={formData.aptoFechaFin} onChangeText={(t) => setFormData({...formData, aptoFechaFin: t})} placeholder="YYYY-MM-DD" />
+                        <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarAptoFinVisible(true)}>
+                          <Text style={{ color: formData.aptoFechaFin ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaFin || "YYYY-MM-DD"}</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
@@ -293,22 +312,43 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 
                 <Text style={styles.greenLabelBold}>CERTIFICADO PROFESIONAL (PDF, MÁX 4MB)</Text>
-                <TouchableOpacity style={styles.fileBtn} onPress={handlePickDocument}>
-                  <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
-                  <Text style={styles.fileBtnText}>
-                    {formData.certificadoFile ? formData.certificadoFile : "Seleccionar Archivo"}
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity style={[styles.fileBtn, { flex: 1 }]} onPress={handlePickDocument}>
+                    <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
+                    <Text style={styles.fileBtnText}>
+                      {formData.certificadoFile ? formData.certificadoFile : "Seleccionar Archivo"}
+                    </Text>
+                  </TouchableOpacity>
+                  {(formData.tieneCertificado || formData.id) && formData.certificadoFile === 'Certificado Guardado' && (
+                    <TouchableOpacity 
+                      style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
+                      onPress={() => window.open(`http://localhost:5184/api/Profesor/${formData.id}/certificado/descargar`, '_blank')}
+                    >
+                      <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
+                      <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 <View style={styles.datesRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.greenLabelBold}>FECHA INICIO</Text>
-                    <TextInput style={styles.cleanInput} value={formData.certFechaInicio} onChangeText={(t) => setFormData({...formData, certFechaInicio: t})} placeholder="DD/MM/AAAA" />
+                    <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarCertInicioVisible(true)}>
+                      <Text style={{ color: formData.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.certFechaInicio || "YYYY-MM-DD"}</Text>
+                    </TouchableOpacity>
                   </View>
                   <View style={{ width: 10 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.greenLabelBold, formData.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
-                    <TextInput style={[styles.cleanInput, formData.sinCaducidad && { backgroundColor: '#f1f5f9', color: '#94a3b8' }]} value={formData.sinCaducidad ? 'Sin caducidad' : formData.certFechaFin} onChangeText={(t) => !formData.sinCaducidad && setFormData({...formData, certFechaFin: t})} placeholder="DD/MM/AAAA" editable={!formData.sinCaducidad} />
+                    <TouchableOpacity 
+                      style={[styles.cleanInput, formData.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]} 
+                      onPress={() => !formData.sinCaducidad && setCalendarCertFinVisible(true)}
+                      disabled={formData.sinCaducidad}
+                    >
+                      <Text style={{ color: formData.sinCaducidad ? '#94a3b8' : (formData.certFechaFin ? '#1e293b' : '#94a3b8'), fontWeight: '800' }}>
+                        {formData.sinCaducidad ? 'Sin caducidad' : (formData.certFechaFin || "YYYY-MM-DD")}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -379,6 +419,31 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         onClose={() => setCalendarVisible(false)}
         onSelect={(date) => setFormData({...formData, fechaNacimiento: date})}
         initialDate={formData.fechaNacimiento}
+      />
+      
+      <DatePickerModal 
+        visible={calendarAptoInicioVisible}
+        onClose={() => setCalendarAptoInicioVisible(false)}
+        onSelect={(date) => setFormData({...formData, aptoFechaInicio: date})}
+        initialDate={formData.aptoFechaInicio}
+      />
+      <DatePickerModal 
+        visible={calendarAptoFinVisible}
+        onClose={() => setCalendarAptoFinVisible(false)}
+        onSelect={(date) => setFormData({...formData, aptoFechaFin: date})}
+        initialDate={formData.aptoFechaFin}
+      />
+      <DatePickerModal 
+        visible={calendarCertInicioVisible}
+        onClose={() => setCalendarCertInicioVisible(false)}
+        onSelect={(date) => setFormData({...formData, certFechaInicio: date})}
+        initialDate={formData.certFechaInicio}
+      />
+      <DatePickerModal 
+        visible={calendarCertFinVisible}
+        onClose={() => setCalendarCertFinVisible(false)}
+        onSelect={(date) => setFormData({...formData, certFechaFin: date})}
+        initialDate={formData.certFechaFin}
       />
     </Modal>
   );
