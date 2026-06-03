@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -43,6 +43,17 @@ export default function ReservaScreen({ route, navigation }) {
   // --- NUEVOS ESTADOS DASHBOARD ---
   const [activeCourtsCount, setActiveCourtsCount] = useState(0);
   const [todayReservationsCount, setTodayReservationsCount] = useState(0);
+
+  // --- Refs para Scroll de Navegación ---
+  const scrollViewRef = useRef(null);
+  const sectionOffsets = useRef({});
+
+  const scrollToSection = (key) => {
+    const y = sectionOffsets.current[key];
+    if (y !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: y, animated: true });
+    }
+  };
 
   // --- Modales para Dashboard ---
   const [canchasUsoModalVisible, setCanchasUsoModalVisible] = useState(false);
@@ -387,7 +398,35 @@ export default function ReservaScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersContainer}>
+        {groupedReservas.groups.hoy.length > 0 && (
+          <TouchableOpacity style={styles.filterBtn} onPress={() => scrollToSection('hoy')}>
+            <Text style={styles.filterBtnText}>Hoy</Text>
+          </TouchableOpacity>
+        )}
+        {groupedReservas.groups.manana.length > 0 && (
+          <TouchableOpacity style={styles.filterBtn} onPress={() => scrollToSection('manana')}>
+            <Text style={styles.filterBtnText}>Mañana</Text>
+          </TouchableOpacity>
+        )}
+        {groupedReservas.groups.estaSemana.length > 0 && (
+          <TouchableOpacity style={styles.filterBtn} onPress={() => scrollToSection('estaSemana')}>
+            <Text style={styles.filterBtnText}>Esta Semana</Text>
+          </TouchableOpacity>
+        )}
+        {groupedReservas.groups.proximas.length > 0 && (
+          <TouchableOpacity style={styles.filterBtn} onPress={() => scrollToSection('proximas')}>
+            <Text style={styles.filterBtnText}>Próximas</Text>
+          </TouchableOpacity>
+        )}
+        {groupedReservas.groups.anteriores.length > 0 && (
+          <TouchableOpacity style={styles.filterBtn} onPress={() => scrollToSection('anteriores')}>
+            <Text style={styles.filterBtnText}>Anteriores</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
         {reservas.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={60} color="#94a3b8" />
@@ -396,31 +435,31 @@ export default function ReservaScreen({ route, navigation }) {
         ) : (
           <>
             {groupedReservas.groups.hoy.length > 0 && (
-              <View style={styles.groupSection}>
+              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['hoy'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas para hoy - {formatGroupDate(groupedReservas.sHoy)}</Text>
                 {renderReservaList(groupedReservas.groups.hoy)}
               </View>
             )}
             {groupedReservas.groups.manana.length > 0 && (
-              <View style={styles.groupSection}>
+              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['manana'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas para mañana - {formatGroupDate(groupedReservas.sManana)}</Text>
                 {renderReservaList(groupedReservas.groups.manana)}
               </View>
             )}
             {groupedReservas.groups.estaSemana.length > 0 && (
-              <View style={styles.groupSection}>
+              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['estaSemana'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas de esta semana</Text>
                 {renderReservaList(groupedReservas.groups.estaSemana)}
               </View>
             )}
             {groupedReservas.groups.proximas.length > 0 && (
-              <View style={styles.groupSection}>
+              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['proximas'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Próximas reservas</Text>
                 {renderReservaList(groupedReservas.groups.proximas)}
               </View>
             )}
             {groupedReservas.groups.anteriores.length > 0 && (
-              <View style={styles.groupSection}>
+              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['anteriores'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Historial Anteriores</Text>
                 {renderReservaList(groupedReservas.groups.anteriores)}
               </View>
@@ -588,6 +627,12 @@ const styles = StyleSheet.create({
   dashCardInfo: { marginLeft: 12 },
   dashCardValue: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
   dashCardLabel: { fontSize: 11, color: '#64748b', fontWeight: '800', textTransform: 'uppercase' },
+  
+  filtersScroll: { flexGrow: 0, marginBottom: 15, maxHeight: 40 },
+  filtersContainer: { gap: 10, paddingHorizontal: 5, alignItems: 'center' },
+  filterBtn: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  filterBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+
   groupSection: { marginBottom: 25 },
   groupTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 12, marginLeft: 4, letterSpacing: 0.5 },
 
