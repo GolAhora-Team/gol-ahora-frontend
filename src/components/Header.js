@@ -16,6 +16,7 @@ import SettingsModal from './SettingsModal';
 import ConfirmModal from './ConfirmModal';
 import NotificationDropdown from './NotificationDropdown';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../services/apiConfig';
 
 const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
@@ -81,12 +82,12 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const fetchUnreadCount = async () => {
     try {
       if (token && isFocused) {
-        axios.get('http://10.0.2.2:5122/api/Notificacion', {
+        fetch(`${API_BASE_URL}/Notificacion`, {
           headers: { Authorization: `Bearer ${token}` }
         })
-        .then(response => {
-          setNotificaciones(response.data);
-          const noLeidas = response.data.filter(n => !n.leida).length;
+        .then(res => res.json())
+        .then(data => {
+          const noLeidas = (data || []).filter(n => !n.leida).length;
           setUnreadCount(noLeidas);
         })
         .catch(e => console.log('Error notificaciones:', e));

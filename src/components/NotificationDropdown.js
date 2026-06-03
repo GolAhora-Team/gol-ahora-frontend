@@ -10,6 +10,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { API_BASE_URL } from '../services/apiConfig';
 
 const NotificationDropdown = ({ visible, onClose, token }) => {
   const [notificaciones, setNotificaciones] = useState([]);
@@ -25,7 +26,7 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
   const fetchNotificaciones = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5242/api/Notificacion', {
+      const response = await fetch(`${API_BASE_URL}/Notificacion`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,7 +44,7 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
 
   const marcarLeidas = async () => {
     try {
-      await fetch('http://localhost:5242/api/Notificacion/leidas', {
+      await fetch(`${API_BASE_URL}/Notificacion/leidas`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
