@@ -155,7 +155,7 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
                 >
                   <View style={styles.clienteInfo}>
                     <MaterialCommunityIcons
-                      name={!cliente.aptoFisico ? "cancel" : (isSelected(cliente.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline")}
+                      name={!cliente.aptoFisico ? "close-circle" : (isSelected(cliente.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline")}
                       size={22}
                       color={!cliente.aptoFisico ? "#ef4444" : (isSelected(cliente.id) ? "#009b3a" : "#94a3b8")}
                     />
