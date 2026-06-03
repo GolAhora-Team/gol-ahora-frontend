@@ -11,7 +11,7 @@ import {
   useWindowDimensions
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation, useIsFocused } from '@react-navigation/native'; 
 import SettingsModal from './SettingsModal';
 import ConfirmModal from './ConfirmModal';
 import NotificationDropdown from './NotificationDropdown';
@@ -21,6 +21,7 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const isMobile = width < 600;
+  const isFocused = useIsFocused();
   
   // Estados para efectos visuales y modales
   const [pressedSettings, setPressedSettings] = useState(false);
