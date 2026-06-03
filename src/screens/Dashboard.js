@@ -546,7 +546,7 @@ export default function Dashboard({ route, navigation }) {
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false} 
-                  contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 15, alignItems: 'stretch' }}
+                  contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 15, alignItems: 'stretch', flexGrow: 1 }}
                   style={{ marginTop: 15, marginBottom: 15, flexDirection: 'row' }}
                 >
                   {/* Title Card */}
@@ -709,6 +709,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     minWidth: isWeb ? 260 : 200,
+    flex: 1,
   },
   worldCupBarIcon: { 
     width: 42, 
@@ -739,6 +740,7 @@ const styles = StyleSheet.create({
   },
   worldCupMatchCard: {
     minWidth: isWeb ? 240 : 200,
+    flex: 1,
   },
   worldCupBarMatchHeader: { 
     flexDirection: 'row', 
