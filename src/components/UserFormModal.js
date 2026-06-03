@@ -104,8 +104,11 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const handleCobrarMembresia = async (metodoPago) => {
     setCobroModalVisible(false);
     try {
+      const now = new Date();
+      now.setHours(now.getHours() - 3); // Ajuste horario para Argentina (UTC-3)
+
       const payload = {
-        fechaEmision: new Date().toISOString(),
+        fechaEmision: now.toISOString(),
         total: 2000,
         estado: 1,
         tipo: 1,
