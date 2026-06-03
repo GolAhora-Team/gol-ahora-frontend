@@ -73,22 +73,25 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchUnreadCount = async (currentToken) => {
+  React.useEffect(() => {
+    if (token) fetchUnreadCount();
+  }, [token, isFocused]);
+
+  const fetchUnreadCount = async () => {
     try {
-      const res = await fetch('http://localhost:5242/api/Notificacion', {
-        headers: { 'Authorization': `Bearer ${currentToken}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const ultima = data.ultimaVista ? new Date(data.ultimaVista) : null;
-        const count = data.notificaciones.filter(n => 
-          !ultima || new Date(n.fechaCreacion) > ultima
-        ).length;
-        setUnreadCount(count);
+      if (token && isFocused) {
+        axios.get('http://10.0.2.2:5122/api/Notificacion', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => {
+          setNotificaciones(response.data);
+          const noLeidas = response.data.filter(n => !n.leida).length;
+          setUnreadCount(noLeidas);
+        })
+        .catch(e => console.log('Error notificaciones:', e));
       }
     } catch(e) {}
   };
-
 
   const getBadgeColor = () => {
     switch (userRole) {

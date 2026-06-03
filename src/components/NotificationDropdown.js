@@ -13,7 +13,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const NotificationDropdown = ({ visible, onClose, token }) => {
   const [notificaciones, setNotificaciones] = useState([]);
-  const [ultimaVista, setUltimaVista] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,8 +32,7 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
       });
       if (response.ok) {
         const data = await response.json();
-        setNotificaciones(data.notificaciones || []);
-        setUltimaVista(data.ultimaVista ? new Date(data.ultimaVista) : null);
+        setNotificaciones(data || []);
       }
     } catch (e) {
       console.log('Error fetching notificaciones:', e);
@@ -57,7 +55,7 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
   };
 
   const renderItem = ({ item }) => {
-    const isNew = ultimaVista ? new Date(item.fechaCreacion) > ultimaVista : true;
+    const isNew = !item.leida;
     
     let iconName = "bell-outline";
     let iconColor = "#000";
