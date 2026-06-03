@@ -220,7 +220,7 @@ export default function RegisterScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor="#06230e" />
       <Background />
 
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
@@ -241,8 +241,8 @@ export default function RegisterScreen({ navigation }) {
                 <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
-                  <View style={styles.roleTag}>
-                    <Text style={styles.roleTagText}>REGISTRATE</Text>
+                  <View style={styles.badgeLine}>
+                    <Text style={styles.subtitleText}>REGISTRATE</Text>
                   </View>
                 </View>
 
@@ -617,35 +617,31 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 },
-  headerClean: { alignItems: 'center', marginBottom: 15 },
-  preTitle: { color: '#fff', fontSize: 14, fontWeight: '300', letterSpacing: 3, textTransform: 'uppercase' },
-  mainTitle: { fontSize: 42, fontWeight: '900', color: '#fff', letterSpacing: -1 },
-  roleTag: { backgroundColor: '#ffb300', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 4, marginTop: 5 },
-  roleTagText: { color: '#000', fontSize: 10, fontWeight: '900' },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 20 : 10 },
+  headerClean: { alignItems: 'center', marginBottom: isWeb ? 25 : 15, marginTop: isWeb ? 0 : 15 },
+  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3, ...Platform.select({ web: { userSelect: 'none' } }) },
+  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
+  badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
+  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1, ...Platform.select({ web: { userSelect: 'none' } }) },
 
   pitchContainer: {
-    width: isWeb ? 480 : '94%',
+    width: isWeb ? 480 : '92%',
     height: isWeb ? 880 : windowHeight * 0.9,
-    borderRadius: 35,
+    borderRadius: 30,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
     position: 'relative'
   },
-  contentOverlay: { justifyContent: 'center', alignItems: 'center', padding: 15 },
-  solidGlassCard: {
-    width: '90%',
-    padding: 20,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    elevation: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10
+  pitchMobile: {
+    width: '95%',
+    height: undefined,
+    minHeight: windowHeight * 0.85,
+    flex: 1,
   },
+  contentOverlay: { justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 0 : 20 },
+  solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
   labelInterno: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   genderBtn: {
