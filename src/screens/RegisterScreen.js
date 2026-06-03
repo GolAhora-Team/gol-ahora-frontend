@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
 
   pitchContainer: {
     width: isWeb ? 480 : '92%',
-    minHeight: isWeb ? 880 : windowHeight * 0.9,
+    height: isWeb ? 850 : windowHeight * 0.85,
     borderRadius: 30,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 30 : 20 },
-  solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
+  solidGlassCard: { width: isWeb ? '88%' : '95%', flexShrink: 1, padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
   labelInterno: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   genderBtn: {
