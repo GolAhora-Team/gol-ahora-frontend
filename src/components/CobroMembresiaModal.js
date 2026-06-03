@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import QRCode from 'react-qr-code';
+import QRCode from 'react-native-qrcode-svg';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 
 export default function CobroMembresiaModal({ visible, onClose, onSuccess, precioBase = 2000 }) {
