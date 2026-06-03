@@ -26,7 +26,7 @@ export default function StaffFormModal({ visible, onClose, onSave, initialData }
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{initialData ? 'Editar Profesor' : 'Nuevo Profesor'}</Text>
           
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             <Text style={styles.label}>Nombre</Text>
             <TextInput 
               style={styles.input} 

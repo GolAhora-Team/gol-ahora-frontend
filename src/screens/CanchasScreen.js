@@ -308,7 +308,7 @@ export default function CanchaScreen({ route, navigation }) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
         {loading ? (
           <ActivityIndicator size="large" color="#009b3a" style={{ marginTop: 50 }} />
         ) : filteredCanchas.length === 0 ? (

@@ -227,7 +227,7 @@ export default function RegisterScreen({ navigation }) {
         >
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
             bounces={false}
             overScrollMode="never"
@@ -249,7 +249,7 @@ export default function RegisterScreen({ navigation }) {
                 <View style={styles.solidGlassCard}>
                   <ScrollView
                     ref={innerScrollViewRef}
-                    showsVerticalScrollIndicator={false}
+                    showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
                   >
                     <View style={styles.warningContainer}>

@@ -394,7 +394,7 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
             ))}
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
             {step === 1 && (
               <View>
                 <Text style={styles.stepTitle}>Seleccioná el tipo de cancha</Text>
@@ -659,7 +659,7 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
                   </Text>
                 </View>
               ) : (
-                <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+                <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={true}>
                   {jugadoresFiltrados.map(j => {
                     const posColor = POSICION_COLORS[POSICION_LABELS[j.posicion]] || '#94a3b8';
                     return (

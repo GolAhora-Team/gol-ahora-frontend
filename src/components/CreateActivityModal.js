@@ -141,7 +141,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             <Text style={styles.label}>Nombre</Text>
             <TextInput 
               style={styles.input} 

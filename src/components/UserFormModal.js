@@ -129,7 +129,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             </View>
           ) : null}
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             {/* 1. IDENTIDAD */}
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>1. IDENTIDAD</Text>

@@ -25,7 +25,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
             </View>
           ) : null}
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>1. ESPECIFICACIONES TÉCNICAS</Text>
               <CustomInput 

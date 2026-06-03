@@ -214,7 +214,7 @@ const LoginScreen = ({ navigation, route }) => {
         >
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
             bounces={false}
             overScrollMode="never"

@@ -425,7 +425,7 @@ export default function Dashboard({ route, navigation }) {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           bounces={false}
           overScrollMode="never"
         >

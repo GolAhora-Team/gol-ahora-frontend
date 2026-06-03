@@ -158,7 +158,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 40 }} />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
               
               {/* STEP 1: Seleccionar cliente (ADMIN) o resumen (CLIENTE) */}
               {step === 1 && (

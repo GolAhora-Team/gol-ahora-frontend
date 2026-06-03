@@ -387,7 +387,7 @@ export default function ReservaScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 40 }}>
         {reservas.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={60} color="#94a3b8" />
@@ -498,7 +498,7 @@ export default function ReservaScreen({ route, navigation }) {
             </View>
 
             {viewingReserva && (
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView showsVerticalScrollIndicator={true}>
                 <View style={styles.viewBrand}>
                   <MaterialCommunityIcons name="soccer-field" size={40} color="#009b3a" />
                   <Text style={styles.viewBrandText}>GOL AHORA</Text>
@@ -543,7 +543,7 @@ export default function ReservaScreen({ route, navigation }) {
                 <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
               {reservas.filter(r => r.estado === 'En Juego').map((reserva) => {
                 const now = new Date();
                 const [h, m] = (reserva.horaFin || '00:00').split(':').map(Number);

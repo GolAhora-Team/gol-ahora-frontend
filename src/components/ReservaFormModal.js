@@ -1013,7 +1013,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
             </View>
           )}
 
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             {step === 1 && (
               <StepCancha canchas={canchas} selectedCancha={selectedCancha} onSelect={setSelectedCancha} />
             )}

@@ -259,7 +259,7 @@ export default function CompetenciasScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
             {competencias.map(item => (
               <CompetenciaCard 
                 key={item.id} 
@@ -290,7 +290,7 @@ export default function CompetenciasScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
             {equipos.map(item => (
               <EquipoCard 
                 key={item.id} 

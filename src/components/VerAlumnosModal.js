@@ -44,7 +44,7 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
               {alumnos.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <MaterialCommunityIcons name="account-group-outline" size={40} color="#cbd5e1" />

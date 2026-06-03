@@ -57,7 +57,7 @@ export default function VerJugadoresModal({ visible, onClose, equipoId, equipoNo
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
-            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={true}>
               {jugadores.map((jugador, index) => (
                 <View key={jugador.id} style={styles.jugadorRow}>
                   <View style={[styles.numberBadge, { backgroundColor: POSICION_COLORS[jugador.posicion] || '#94a3b8' }]}>

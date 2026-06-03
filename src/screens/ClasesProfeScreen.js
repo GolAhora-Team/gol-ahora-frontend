@@ -99,7 +99,7 @@ export default function ClasesProfeScreen({ route, navigation }) {
       {loading ? (
         <ActivityIndicator size="large" color="#009b3a" style={{ marginTop: 50 }} />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+        <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
           {clases.length === 0 ? (
             <Text style={styles.emptyText}>No tienes clases asignadas.</Text>
           ) : (
@@ -183,7 +183,7 @@ export default function ClasesProfeScreen({ route, navigation }) {
             {loadingAsistencia ? (
               <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+              <ScrollView showsVerticalScrollIndicator={true} style={{ maxHeight: 400 }}>
                 {selectedClase?.alumnos && selectedClase.alumnos.length > 0 ? (
                   selectedClase.alumnos.map(alumno => {
                     const isPresente = presentesIds.includes(alumno.id);

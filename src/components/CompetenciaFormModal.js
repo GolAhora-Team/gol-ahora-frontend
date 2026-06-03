@@ -9,7 +9,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Nueva Competencia</Text>
           
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             <Text style={styles.label}>Nombre de la Liga/Torneo</Text>
             <TextInput 
               style={styles.input} 

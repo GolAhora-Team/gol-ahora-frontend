@@ -85,7 +85,7 @@ const ClientesScreen = () => {
         keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No hay clientes registrados.</Text>
         }

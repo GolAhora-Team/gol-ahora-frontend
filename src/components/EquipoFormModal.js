@@ -88,7 +88,7 @@ export default function EquipoFormModal({ visible, onClose, onSave, editData }) 
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{isEditing ? 'Editar Equipo' : 'Agregar Equipo'}</Text>
           
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             {isEditing && (editData.fechaAlta || editData.createdAt) && (
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Fecha de Alta</Text>

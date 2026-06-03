@@ -136,7 +136,7 @@ const NuevaClaveScreen = () => {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             bounces={false}
             overScrollMode="never"
           >
@@ -225,7 +225,7 @@ const NuevaClaveScreen = () => {
         >
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
             bounces={false}
             overScrollMode="never"

@@ -419,7 +419,7 @@ export default function UserScreen({ route, navigation }) {
 
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <ScrollView 
-          showsVerticalScrollIndicator={false} 
+          showsVerticalScrollIndicator={true} 
           style={{ flex: 1 }}
           ref={scrollViewRef}
         >

@@ -156,7 +156,7 @@ export default function FacturacionScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
       
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={true}>
         {activeTab === 'PAGOS' ? (
           <>
             {pagos.length === 0 ? (
@@ -266,7 +266,7 @@ export default function FacturacionScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
               <View style={styles.viewBrand}>
                 <Text style={styles.viewBrandText}>GOL AHORA</Text>
                 <Text style={styles.viewBrandSub}>COMPROBANTE DE RESERVA</Text>

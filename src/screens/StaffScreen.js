@@ -169,7 +169,7 @@ export default function StaffScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
         {itemsVisibles().map(item => (
           <View key={item.id} style={styles.claseCard}>
             <View style={styles.cardInfo}>

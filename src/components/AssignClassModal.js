@@ -70,7 +70,7 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
               <Text style={styles.label}>1. Selecciona un Profesor</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
                 {profesores.map(p => (

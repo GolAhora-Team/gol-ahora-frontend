@@ -27,7 +27,7 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           bounces={false}
           overScrollMode="never"
         >

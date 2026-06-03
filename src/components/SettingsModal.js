@@ -164,7 +164,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             </View>
 
             {perfilMode === 'INFO' ? (
-              <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.form} showsVerticalScrollIndicator={true}>
                 {isLoading && !fullData ? (
                   <ActivityIndicator size="small" color="#009b3a" style={{marginVertical: 20}} />
                 ) : (
@@ -222,7 +222,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                 )}
               </ScrollView>
             ) : (
-              <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.form} showsVerticalScrollIndicator={true}>
                 <Text style={styles.label}>Contraseña Actual</Text>
                 <TextInput 
                   style={styles.input} 
@@ -253,7 +253,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         );
       case 'INFO':
         return (
-          <ScrollView style={styles.aboutContainer} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.aboutContainer} showsVerticalScrollIndicator={true}>
             <Text style={styles.aboutTitle}>GOL AHORA</Text>
             <Text style={styles.aboutText}>
               Plataforma integral para la gestión de complejo de canchas de futbol, desarrollada para Ingeniería de Software I.

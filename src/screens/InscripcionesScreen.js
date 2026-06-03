@@ -179,7 +179,7 @@ export default function InscripcionesScreen({ route, navigation }) {
         </Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
         {clases.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Clases</Text>

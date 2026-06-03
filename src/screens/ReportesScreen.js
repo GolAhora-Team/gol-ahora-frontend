@@ -308,7 +308,7 @@ export default function ReportesScreen({ route, navigation }) {
 
       <View style={styles.mainVisualArea}>
         {reporteActivo === 'Canchas' || reporteActivo === 'Usuarios' ? (
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             <View style={styles.kpiCard}>
               <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
               <View style={{ marginLeft: 15 }}>
@@ -402,7 +402,7 @@ export default function ReportesScreen({ route, navigation }) {
             <View style={{ height: 100 }} />
           </ScrollView>
         ) : reporteActivo === 'Asistencia' ? (
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             <View style={styles.kpiCard}>
               <MaterialCommunityIcons name="account-check" size={32} color="#ffb300" />
               <View style={{ marginLeft: 15 }}>
@@ -463,7 +463,7 @@ export default function ReportesScreen({ route, navigation }) {
             <View style={{ height: 100 }} />
           </ScrollView>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             <View style={styles.kpiCard}>
               <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
               <View style={{ marginLeft: 15 }}>
@@ -525,7 +525,7 @@ export default function ReportesScreen({ route, navigation }) {
                   title="Reporte PDF"
                 />
               ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 15 }}>
+                <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ padding: 15 }}>
                   <Text style={{ textAlign: 'center', color: '#64748b', fontSize: 16, marginTop: 20 }}>
                     La previsualización está optimizada para Web. Utilice "Imprimir" para visualizar el documento en el visor nativo del dispositivo.
                   </Text>

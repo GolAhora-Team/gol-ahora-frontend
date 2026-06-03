@@ -154,7 +154,7 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
               <Text style={styles.emptyText}>No hay alumnos inscriptos en esta clase.</Text>
             </View>
           ) : (
-            <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.list} showsVerticalScrollIndicator={true}>
               {alumnos.map((alumno, idx) => (
                 <View key={alumno.id || idx} style={styles.row}>
                   <View style={styles.alumnoLeft}>

@@ -67,7 +67,7 @@ export default function RemoveJugadoresModal({ visible, onClose, equipoId, equip
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
-            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={true}>
               {jugadores.map(jugador => (
                 <View key={jugador.id} style={styles.jugadorRow}>
                   <View style={styles.jugadorInfo}>

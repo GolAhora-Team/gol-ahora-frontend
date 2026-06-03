@@ -138,7 +138,7 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
 
     return (
       <View style={styles.yearPickerContainer}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={true}>
           {years.map(y => (
             <TouchableOpacity 
               key={y} 

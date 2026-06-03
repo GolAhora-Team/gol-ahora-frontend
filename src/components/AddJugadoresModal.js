@@ -137,7 +137,7 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 20 }} />
           ) : (
-            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.listScroll} showsVerticalScrollIndicator={true}>
               {filtered.map(cliente => (
                 <TouchableOpacity
                   key={cliente.id}

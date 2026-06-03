@@ -118,7 +118,7 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
               
               <Text style={styles.sectionLabel}>Usuarios Inscriptos ({inscriptos.length})</Text>
               {inscriptos.length === 0 ? (
