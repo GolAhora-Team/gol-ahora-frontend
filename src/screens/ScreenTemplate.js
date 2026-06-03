@@ -45,8 +45,17 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
 
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('role') || urlParams.has('idPersona') || urlParams.has('idUsuario')) {
-        window.history.replaceState({}, document.title, window.location.pathname);
+      let changed = false;
+      ['role', 'idPersona', 'idUsuario', 'nombreUsuario'].forEach(key => {
+        if (urlParams.has(key)) {
+          urlParams.delete(key);
+          changed = true;
+        }
+      });
+      if (changed) {
+        const newSearch = urlParams.toString();
+        const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '');
+        window.history.replaceState({}, document.title, newUrl);
       }
     }
   }, [navigation]);
