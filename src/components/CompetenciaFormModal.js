@@ -32,7 +32,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             <View style={styles.selectorRow}>
               <TouchableOpacity 
                 style={[styles.selectorBtn, formData.tipo === 'LIGA' && styles.selectorActive]} 
-                onPress={() => setFormData({...formData, tipo: 'LIGA', maxEquipos: '8'})}
+                onPress={() => setFormData({...formData, tipo: 'LIGA', maxEquipos: '10'})}
               >
                 <MaterialCommunityIcons 
                   name="format-list-numbered" 
@@ -65,7 +65,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
 
             <Text style={styles.label}>Cantidad de Equipos</Text>
             <View style={styles.selectorRow}>
-              {['4', '8', formData.tipo === 'LIGA' ? '20' : '16'].map((num) => (
+              {(formData.tipo === 'LIGA' ? ['10', '20'] : ['4', '8', '16']).map((num) => (
                 <TouchableOpacity
                   key={num}
                   style={[styles.selectorBtn, formData.maxEquipos === num && styles.selectorActive]}

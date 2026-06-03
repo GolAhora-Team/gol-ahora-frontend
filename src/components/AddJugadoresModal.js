@@ -39,10 +39,15 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
         clienteService.getAll(),
         jugadorService.getAll()
       ]);
-      const equipoJugadores = (allJugadores || []).filter(j => j.equipoId?.toString() === equipoId?.toString());
-      const equipoClientesIds = new Set(equipoJugadores.map(j => j.clienteId?.toString()));
+      // Obtener los IDs de todos los clientes que ya pertenecen a algún equipo
+      const clientesEnCualquierEquipo = new Set(
+        (allJugadores || [])
+          .filter(j => j.equipoId)
+          .map(j => j.clienteId?.toString())
+      );
+      
       const clientesDisponibles = (data || []).filter(c => 
-        !equipoClientesIds.has(c.id?.toString())
+        !clientesEnCualquierEquipo.has(c.id?.toString())
       );
       
       setClientes(clientesDisponibles);
