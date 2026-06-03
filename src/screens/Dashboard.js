@@ -163,7 +163,6 @@ export default function Dashboard({ route, navigation }) {
 
   const [worldCupMatches, setWorldCupMatches] = useState([]);
   const [loadingWorldCup, setLoadingWorldCup] = useState(true);
-  const [isWorldCupExpanded, setIsWorldCupExpanded] = useState(false);
 
   React.useEffect(() => {
     const fetchWorldCup = async () => {
@@ -525,67 +524,56 @@ export default function Dashboard({ route, navigation }) {
                 </View>
               )}
 
-              {/* WIDGET MUNDIAL 2026 */}
-              <TouchableOpacity 
-                style={[styles.worldCupSection, { borderLeftWidth: 6, borderLeftColor: '#ffb300' }]} 
-                onPress={() => setIsWorldCupExpanded(!isWorldCupExpanded)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.worldCupHeader}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#ffb300', width: 44, height: 44, borderRadius: 22, marginRight: 12 }]}>
-                    <MaterialCommunityIcons name="trophy" size={22} color="#000" />
+              {/* WIDGET MUNDIAL 2026 - Barra horizontal inferior */}
+              <View style={styles.worldCupBar}>
+                <View style={styles.worldCupBarLeft}>
+                  <View style={styles.worldCupBarIcon}>
+                    <MaterialCommunityIcons name="trophy" size={24} color="#ffb300" />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.worldCupTitle, { color: '#0f172a' }]}>MUNDIAL DE LA FIFA 2026</Text>
-                    <Text style={styles.worldCupSubtitle}>Próximos Partidos de la Scaloneta 🇦🇷</Text>
+                  <View style={styles.worldCupBarTitleContainer}>
+                    <Text style={styles.worldCupBarTitle} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
+                    <Text style={styles.worldCupBarSubtitle} selectable={false}>PRÓXIMOS PARTIDOS DE LA SCALONETA 🇦🇷</Text>
                   </View>
-                  <MaterialCommunityIcons 
-                    name={isWorldCupExpanded ? "chevron-up" : "chevron-down"} 
-                    size={24} 
-                    color="#64748b" 
-                  />
                 </View>
-
-                {isWorldCupExpanded && (
-                  <View style={[styles.matchesList, { marginTop: 15 }]}>
-                    {loadingWorldCup ? (
-                      <ActivityIndicator size="small" color="#ffb300" style={{ marginVertical: 20 }} />
-                    ) : worldCupMatches.length === 0 ? (
-                      <Text style={styles.noMatchesText}>No hay partidos programados para Argentina.</Text>
-                    ) : (
-                      worldCupMatches.map((match, idx) => (
-                        <View key={idx} style={styles.matchRow}>
-                          <View style={styles.matchMeta}>
-                            <Text style={styles.matchRound}>{match.round}</Text>
-                            <Text style={styles.matchGround}>{match.ground}</Text>
-                          </View>
-                          <View style={styles.matchTeamsRow}>
-                            <View style={styles.teamContainer}>
-                              <Text style={styles.teamName} numberOfLines={1}>
-                                {match.team1 === 'Argentina' ? '🇦🇷 Argentina' : `${getFlag(match.team1)} ${match.team1}`}
-                              </Text>
-                            </View>
-                            <View style={styles.vsBadge}>
-                              <Text style={styles.vsText}>VS</Text>
-                            </View>
-                            <View style={[styles.teamContainer, { alignItems: 'flex-end' }]}>
-                              <Text style={styles.teamName} numberOfLines={1}>
-                                {match.team2 === 'Argentina' ? 'Argentina 🇦🇷' : `${match.team2} ${getFlag(match.team2)}`}
-                              </Text>
-                            </View>
-                          </View>
-                          <View style={styles.matchTimeContainer}>
-                            <MaterialCommunityIcons name="clock-outline" size={12} color="#64748b" />
-                            <Text style={styles.matchTimeText}>
-                              {match.date} a las {convertToArgentinaTime(match.time)}
-                            </Text>
-                          </View>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={styles.worldCupBarScrollContent}
+                  style={styles.worldCupBarScroll}
+                >
+                  {loadingWorldCup ? (
+                    <ActivityIndicator size="small" color="#ffb300" style={{ marginHorizontal: 30 }} />
+                  ) : worldCupMatches.length === 0 ? (
+                    <Text style={styles.worldCupBarNoMatches}>No hay partidos programados.</Text>
+                  ) : (
+                    worldCupMatches.map((match, idx) => (
+                      <View key={idx} style={styles.worldCupBarMatch}>
+                        <View style={styles.worldCupBarMatchHeader}>
+                          <Text style={styles.worldCupBarMatchday}>MATCHDAY {match.matchday || idx + 1}</Text>
+                          <Text style={styles.worldCupBarGround}>{match.ground || ''}</Text>
                         </View>
-                      ))
-                    )}
-                  </View>
-                )}
-              </TouchableOpacity>
+                        <View style={styles.worldCupBarTeamsRow}>
+                          <Text style={styles.worldCupBarTeamLeft} numberOfLines={1}>
+                            {getFlag(match.team1)} <Text style={styles.worldCupBarTeamCode}>{match.team1?.substring(0, 2).toUpperCase()}</Text> {match.team1}
+                          </Text>
+                          <View style={styles.worldCupBarVsBadge}>
+                            <Text style={styles.worldCupBarVsText}>VS</Text>
+                          </View>
+                          <Text style={styles.worldCupBarTeamRight} numberOfLines={1}>
+                            {match.team2} <Text style={styles.worldCupBarTeamCode}>{match.team2?.substring(0, 2).toUpperCase()}</Text> {getFlag(match.team2)}
+                          </Text>
+                        </View>
+                        <View style={styles.worldCupBarTimeRow}>
+                          <MaterialCommunityIcons name="clock-outline" size={11} color="#ef4444" />
+                          <Text style={styles.worldCupBarTimeText}>
+                            {match.date} a las {convertToArgentinaTime(match.time)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
 
             </View>
           </View>
@@ -667,23 +655,144 @@ const styles = StyleSheet.create({
   actionBtn: { marginTop: 10, backgroundColor: '#ffb300', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, width: '100%', alignItems: 'center' },
   actionBtnText: { fontSize: 11, fontWeight: '800', color: '#000' },
   
-  // ESTILOS WIDGET MUNDIAL 2026
-  worldCupSection: { marginTop: 20, marginBottom: 15, backgroundColor: 'rgba(255, 255, 255, 0.92)', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', maxWidth: 600, width: '100%', alignSelf: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
-  worldCupHeader: { flexDirection: 'row', alignItems: 'center' },
-  worldCupTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a', letterSpacing: -0.3 },
-  worldCupLive: { backgroundColor: '#ef4444', color: '#fff', fontSize: 9, fontWeight: '900', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
-  worldCupSubtitle: { fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
-  matchesList: { gap: 10 },
-  matchRow: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', borderLeftWidth: 4, borderLeftColor: '#ffb300' },
-  matchMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  matchRound: { color: '#004d1a', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  matchGround: { color: '#64748b', fontSize: 10, fontWeight: '700' },
-  matchTeamsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 6 },
-  teamContainer: { flex: 1 },
-  teamName: { color: '#1e293b', fontSize: 14, fontWeight: '800' },
-  vsBadge: { backgroundColor: 'rgba(255, 179, 0, 0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginHorizontal: 10 },
-  vsText: { color: '#ffb300', fontSize: 11, fontWeight: '900' },
-  matchTimeContainer: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  matchTimeText: { color: '#64748b', fontSize: 10, fontWeight: '700' },
-  noMatchesText: { color: '#64748b', fontSize: 12, textAlign: 'center', marginVertical: 20, fontStyle: 'italic' }
+  // ESTILOS WIDGET MUNDIAL 2026 - Barra horizontal
+  worldCupBar: { 
+    marginTop: 20, 
+    marginBottom: 15, 
+    backgroundColor: '#0c2a1a', 
+    borderRadius: 20, 
+    flexDirection: 'row', 
+    alignItems: 'stretch', 
+    overflow: 'hidden', 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(255,179,0,0.3)', 
+    width: '100%', 
+    alignSelf: 'center',
+    minHeight: 100,
+  },
+  worldCupBarLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#0a2215', 
+    paddingHorizontal: 16, 
+    paddingVertical: 14, 
+    borderRightWidth: 1.5, 
+    borderRightColor: 'rgba(255,179,0,0.2)',
+    minWidth: isWeb ? 280 : 200,
+    flexShrink: 0,
+  },
+  worldCupBarIcon: { 
+    width: 42, 
+    height: 42, 
+    borderRadius: 21, 
+    backgroundColor: 'rgba(255,179,0,0.15)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12,
+  },
+  worldCupBarTitleContainer: { 
+    flexShrink: 1,
+  },
+  worldCupBarTitle: { 
+    color: '#fff', 
+    fontSize: isWeb ? 14 : 12, 
+    fontWeight: '900', 
+    letterSpacing: 0.5,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarSubtitle: { 
+    color: '#94a3b8', 
+    fontSize: isWeb ? 10 : 8, 
+    fontWeight: '700', 
+    marginTop: 3, 
+    letterSpacing: 0.3,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarScroll: { 
+    flex: 1,
+  },
+  worldCupBarScrollContent: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 10, 
+    gap: 0,
+  },
+  worldCupBarMatch: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRightWidth: 1, 
+    borderRightColor: 'rgba(255,255,255,0.08)',
+    minWidth: isWeb ? 240 : 200,
+  },
+  worldCupBarMatchHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  worldCupBarMatchday: { 
+    color: '#fff', 
+    fontSize: 10, 
+    fontWeight: '900', 
+    letterSpacing: 0.5,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarGround: { 
+    color: '#94a3b8', 
+    fontSize: 9, 
+    fontWeight: '700',
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarTeamsRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    gap: 8,
+  },
+  worldCupBarTeamLeft: { 
+    color: '#fff', 
+    fontSize: 13, 
+    fontWeight: '800',
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarTeamRight: { 
+    color: '#fff', 
+    fontSize: 13, 
+    fontWeight: '800',
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarTeamCode: { 
+    color: '#94a3b8', 
+    fontSize: 10, 
+    fontWeight: '600',
+  },
+  worldCupBarVsBadge: { 
+    paddingHorizontal: 6, 
+    paddingVertical: 1, 
+    borderRadius: 4,
+  },
+  worldCupBarVsText: { 
+    color: '#ffb300', 
+    fontSize: 11, 
+    fontWeight: '900',
+  },
+  worldCupBarTimeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4, 
+    marginTop: 6,
+  },
+  worldCupBarTimeText: { 
+    color: '#ef4444', 
+    fontSize: 10, 
+    fontWeight: '700',
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
+  worldCupBarNoMatches: { 
+    color: '#94a3b8', 
+    fontSize: 11, 
+    fontStyle: 'italic', 
+    marginHorizontal: 20,
+    ...Platform.select({ web: { userSelect: 'none' } }),
+  },
 });
