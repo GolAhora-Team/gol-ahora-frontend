@@ -88,12 +88,19 @@ export default function StaffScreen({ route, navigation }) {
   };
 
   const handleCreateSave = async (payload, type) => {
+    // Esta función es llamada desde CreateActivityModal.
+    // El modal re-lanza el error si falla, así que lo manejamos aquí
+    // y mostramos UNA SOLA alerta al usuario.
     if (type === 'CLASE') {
       await claseService.create(payload);
     } else {
       await entrenamientoService.create(payload);
     }
-    Alert.alert('Éxito', `${type === 'CLASE' ? 'Clase' : 'Entrenamiento'} creado correctamente.`);
+    // Si llegamos acá, fue exitoso
+    Alert.alert(
+      '✅ ¡Creado con éxito!',
+      `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se guardó en la base de datos.`
+    );
     loadData();
   };
 

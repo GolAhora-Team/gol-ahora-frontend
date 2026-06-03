@@ -62,8 +62,18 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     return `${diasStr} ${formData.horaInicio}-${formData.horaFin}`;
   };
 
+  // Formatea una hora "HH:mm" o "HH:mm:ss" a siempre devolver "HH:mm:ss"
+  const formatTimeSpan = (hora) => {
+    if (!hora) return '00:00:00';
+    const parts = hora.trim().split(':');
+    const h = parts[0]?.padStart(2, '0') || '00';
+    const m = parts[1]?.padStart(2, '0') || '00';
+    const s = parts[2]?.padStart(2, '0') || '00';
+    return `${h}:${m}:${s}`;
+  };
+
   const handleSave = async () => {
-    if (!formData.nombre) {
+    if (!formData.nombre.trim()) {
       Alert.alert('Atención', 'El nombre es obligatorio.');
       return;
     }
@@ -75,39 +85,46 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       Alert.alert('Atención', 'Ingresá la hora de inicio y fin.');
       return;
     }
+    if (!formData.profesorId) {
+      Alert.alert('Atención', 'Debes seleccionar un Profesor. El profesor debe tener certificado vigente.');
+      return;
+    }
     
     setSaving(true);
     try {
-      let payload;
-      // Add 2 days to current date to safely avoid "past date" validation errors from the backend timezone differences
+      // Usar +3 días para evitar problemas de zona horaria con la validación del backend (DateTime.UtcNow)
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 2);
+      futureDate.setDate(futureDate.getDate() + 3);
       const safeFecha = futureDate.toISOString();
 
+      let payload;
       if (type === 'CLASE') {
         payload = {
-          nombre: formData.nombre,
+          nombre: formData.nombre.trim(),
           descripcion: buildHorarioString(),
           capacidadMax: parseInt(formData.maxAlumnos) || 20,
           fecha: safeFecha,
-          horaInicio: formData.horaInicio.length === 5 ? formData.horaInicio + ':00' : formData.horaInicio,
-          horaFin: formData.horaFin.length === 5 ? formData.horaFin + ':00' : formData.horaFin,
+          horaInicio: formatTimeSpan(formData.horaInicio),
+          horaFin: formatTimeSpan(formData.horaFin),
           precioInscripcion: parseFloat(formData.precio) || 5000,
-          profesorId: formData.profesorId || 1
+          profesorId: parseInt(formData.profesorId)
         };
       } else {
         payload = {
-          nombre: formData.nombre,
+          nombre: formData.nombre.trim(),
           fecha: safeFecha,
           cupoMaximo: parseInt(formData.maxAlumnos) || 20,
-          profesorId: formData.profesorId || 1
+          profesorId: parseInt(formData.profesorId)
         };
       }
       
       await onSave(payload, type);
       onClose();
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo crear la actividad.');
+      // Mostramos el mensaje de error devuelto por el backend al usuario
+      const msg = error?.message || 'No se pudo guardar. Verificá los datos e intentá nuevamente.';
+      Alert.alert('Error al guardar', msg);
+      console.error('[CreateActivityModal] Error al guardar:', error);
     } finally {
       setSaving(false);
     }
@@ -209,7 +226,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
               onChangeText={text => setFormData({...formData, precio: text.replace(/[^0-9]/g, '')})}
             />
 
-            <Text style={styles.label}>Profesor (Opcional)</Text>
+            <Text style={styles.label}>Profesor <Text style={{ color: '#ef4444' }}>(Obligatorio — debe tener certificado vigente)</Text></Text>
             {loading ? (
               <ActivityIndicator size="small" color="#009b3a" style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
             ) : (
