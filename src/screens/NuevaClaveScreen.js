@@ -60,10 +60,11 @@ const NuevaClaveScreen = () => {
       if (token) {
         try {
           const res = await userService.validateResetToken(token);
-          if (res && res.data && !res.data.isValid) {
+          // userService ya retorna el JSON deserializado, no un objeto de axios
+          if (res && !res.isValid) {
             setIsInvalidToken(true);
             setLinkExpired(true);
-            setCountdown(0); // Evitar contador si ya es inválido
+            setCountdown(0);
           }
         } catch (error) {
           console.error(error);
@@ -76,16 +77,16 @@ const NuevaClaveScreen = () => {
     validateToken();
   }, [token]);
 
-  // Countdown timer when link expires
+  // Countdown timer when link expires (solo para éxito de cambio de clave)
   useEffect(() => {
-    if (!linkExpired) return;
+    if (!linkExpired || isInvalidToken) return; // No redirigir si el token es inválido
     if (countdown <= 0) {
       navigation.navigate('Login');
       return;
     }
     const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
     return () => clearTimeout(timer);
-  }, [linkExpired, countdown, navigation]);
+  }, [linkExpired, countdown, navigation, isInvalidToken]);
 
   const handleReset = async () => {
     setErrorMessage('');
@@ -114,6 +115,7 @@ const NuevaClaveScreen = () => {
     setLoading(true);
     try {
       await userService.resetPassword(token, newPassword);
+      setIsInvalidToken(false);
       setLinkExpired(true);
       setCountdown(5);
     } catch (error) {
