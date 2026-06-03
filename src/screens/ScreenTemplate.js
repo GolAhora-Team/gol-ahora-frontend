@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -7,6 +7,7 @@ import {
   Platform, 
   StatusBar 
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
@@ -18,6 +19,37 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
   const handleBack = () => {
     if (navigation && navigation.goBack) navigation.goBack();
   };
+
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        let storedSession = null;
+        if (Platform.OS === 'web') {
+          const item = localStorage.getItem('GOL_AHORA_SESSION');
+          if (item) storedSession = JSON.parse(item);
+        } else {
+          const item = await AsyncStorage.getItem('GOL_AHORA_SESSION');
+          if (item) storedSession = JSON.parse(item);
+        }
+        
+        if (!storedSession) {
+          if (navigation && navigation.replace) {
+            navigation.replace('Login');
+          }
+        }
+      } catch (e) {
+        if (navigation && navigation.replace) navigation.replace('Login');
+      }
+    };
+    verifySession();
+
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('role') || urlParams.has('idPersona') || urlParams.has('idUsuario')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [navigation]);
 
   return (
     <View style={styles.mainContainer}>
