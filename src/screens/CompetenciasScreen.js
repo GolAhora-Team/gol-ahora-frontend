@@ -145,19 +145,28 @@ export default function CompetenciasScreen({ route, navigation }) {
     setEnrollModalVisible(true);
   };
 
-  const handleSelectEquipoParaInscribir = async (equipo) => {
-    if (!competicionToEnroll) return;
+  const handleSelectEquiposParaInscribir = async (equiposSeleccionados) => {
+    if (!competicionToEnroll || !equiposSeleccionados || equiposSeleccionados.length === 0) return;
     try {
       setLoading(true);
-      await equipoService.update(equipo.id, { ...equipo, competicionId: competicionToEnroll.id });
-      setCompetencias(prev => prev.map(c => c.id === competicionToEnroll.id ? { ...c, inscriptos: Number(c.inscriptos) + 1 } : c));
+      for (const equipo of equiposSeleccionados) {
+        await equipoService.update(equipo.id, { ...equipo, competicionId: competicionToEnroll.id });
+      }
+      setCompetencias(prev => prev.map(c => 
+        c.id === competicionToEnroll.id 
+          ? { ...c, inscriptos: Number(c.inscriptos) + equiposSeleccionados.length } 
+          : c
+      ));
       setMisInscripciones(prev => [...prev, competicionToEnroll.id]);
-      setEquipos(prev => prev.map(e => e.id === equipo.id ? { ...e, competicionId: competicionToEnroll.id } : e));
+      const equipoIds = equiposSeleccionados.map(e => e.id);
+      setEquipos(prev => prev.map(e => 
+        equipoIds.includes(e.id) ? { ...e, competicionId: competicionToEnroll.id } : e
+      ));
       setEnrollModalVisible(false);
       setCompeticionToEnroll(null);
-      showSuccess('¡Inscripción Exitosa!', `El equipo ${equipo.nombre} ha sido inscrito en ${competicionToEnroll.nombre}.`);
+      showSuccess('¡Inscripción Exitosa!', `Se inscribieron ${equiposSeleccionados.length} equipo(s) en ${competicionToEnroll.nombre}.`);
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo inscribir el equipo.');
+      Alert.alert('Error', error.message || 'No se pudieron inscribir los equipos.');
     } finally {
       setLoading(false);
     }
