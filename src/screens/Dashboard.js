@@ -539,17 +539,21 @@ export default function Dashboard({ route, navigation }) {
                   )}
 
                   {/* WIDGET MUNDIAL 2026 - Responsive Horizontal Cards */}
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 10, alignItems: 'stretch' }}
-                    style={{ marginTop: 15, marginBottom: 15, flexDirection: 'row' }}
-                  >
-                    {/* Title Card */}
-                    <View style={[styles.worldCupCard, styles.worldCupTitleCard, isMobile && styles.worldCupCardMobile]}>
-                      <View style={styles.worldCupBarIcon}>
-                        <MaterialCommunityIcons name="trophy" size={isMobile ? 20 : 24} color="#ffb300" />
-                      </View>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false} 
+                      contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 15, alignItems: 'stretch' }}
+                      style={{ marginTop: 15, marginBottom: 15, flexDirection: 'row' }}
+                    >
+                      {/* Title Card */}
+                      <View style={[styles.worldCupCard, styles.worldCupTitleCard, isMobile && styles.worldCupCardMobile]}>
+                        <View style={{ marginRight: 12, justifyContent: 'center' }}>
+                          <Image 
+                            source={require('../../assets/logo-mundial.png')} 
+                            style={{ width: 38, height: 50 }} 
+                            resizeMode="contain" 
+                          />
+                        </View>
                       <View style={styles.worldCupBarTitleContainer}>
                         <Text style={[styles.worldCupBarTitle, isMobile && styles.worldCupBarTitleMobile]} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
                         <Text style={styles.worldCupBarSubtitle} selectable={false}>PRÓXIMOS PARTIDOS DE LA SCALONETA</Text>
@@ -601,15 +605,6 @@ export default function Dashboard({ route, navigation }) {
                         </View>
                       ))
                     )}
-
-                    {/* Logo FIFA Card */}
-                    <View style={[styles.worldCupCard, { justifyContent: 'center', paddingHorizontal: 20 }, isMobile && styles.worldCupCardMobile]}>
-                      <Image 
-                        source={require('../../assets/logo-mundial.png')} 
-                        style={{ width: 45, height: 60 }} 
-                        resizeMode="contain" 
-                      />
-                    </View>
                   </ScrollView>
 
                 </View>
