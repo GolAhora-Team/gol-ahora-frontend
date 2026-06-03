@@ -10,7 +10,8 @@ import {
   Platform, 
   StatusBar,
   useWindowDimensions,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
