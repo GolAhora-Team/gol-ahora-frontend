@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function RemoveEquiposCompModal({ visible, onClose, enrolledEquipos, onRemove }) {
   const [selected, setSelected] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (visible) {
       setSelected([]);
       setIsConfirming(false);
+      setSearch('');
     }
   }, [visible]);
 
   if (!enrolledEquipos) return null;
+
+  const filteredEquipos = enrolledEquipos.filter(e =>
+    e.nombre?.toLowerCase().includes(search.toLowerCase())
+  );
 
   const toggleSelect = (equipo) => {
     if (selected.find(e => e.id === equipo.id)) {
@@ -42,8 +48,25 @@ export default function RemoveEquiposCompModal({ visible, onClose, enrolledEquip
           </View>
           <Text style={styles.subtitle}>Seleccioná los equipos que deseas eliminar de la competición:</Text>
           
+          {/* Search bar */}
+          <View style={styles.searchContainer}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar equipo por nombre..."
+              value={search}
+              onChangeText={setSearch}
+              placeholderTextColor="#94a3b8"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="#94a3b8" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           <ScrollView style={styles.list}>
-            {enrolledEquipos.map(equipo => {
+            {filteredEquipos.map(equipo => {
               const isSel = selected.some(s => s.id === equipo.id);
               return (
                 <TouchableOpacity 
@@ -63,8 +86,10 @@ export default function RemoveEquiposCompModal({ visible, onClose, enrolledEquip
                 </TouchableOpacity>
               );
             })}
-            {enrolledEquipos.length === 0 && (
-              <Text style={styles.emptyText}>No hay equipos inscriptos en esta competición.</Text>
+            {filteredEquipos.length === 0 && (
+              <Text style={styles.emptyText}>
+                {search.length > 0 ? 'No se encontraron equipos con ese nombre.' : 'No hay equipos inscriptos en esta competición.'}
+              </Text>
             )}
           </ScrollView>
 
@@ -114,7 +139,25 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
   closeBtn: { padding: 4 },
-  subtitle: { fontSize: 13, color: '#64748b', marginBottom: 15, fontWeight: '600' },
+  subtitle: { fontSize: 13, color: '#64748b', marginBottom: 10, fontWeight: '600' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '600',
+  },
   list: { flexGrow: 0 },
   equipoCard: {
     flexDirection: 'row',

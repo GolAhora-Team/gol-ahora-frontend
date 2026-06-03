@@ -46,6 +46,17 @@ export default function ViewCompetenciaModal({ visible, onClose, competicion }) 
               </View>
             </View>
 
+            <View style={styles.row}>
+              <View style={[styles.infoGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Fecha de Inicio</Text>
+                <Text style={styles.value}>{competicion.fechaInicio || 'Sin definir'}</Text>
+              </View>
+              <View style={[styles.infoGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Fecha de Finalización</Text>
+                <Text style={styles.value}>{competicion.fechaFin || 'Sin definir'}</Text>
+              </View>
+            </View>
+
             <View style={styles.infoGroup}>
               <Text style={styles.label}>Descripción</Text>
               <Text style={styles.value}>{competicion.descripcion || 'Sin descripción'}</Text>

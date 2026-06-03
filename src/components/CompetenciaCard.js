@@ -2,17 +2,49 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const getEstadoInfo = (item) => {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const parseFecha = (fechaStr) => {
+    if (!fechaStr) return null;
+    const parts = fechaStr.split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  };
+
+  const inicio = parseFecha(item.fechaInicio);
+  const fin = parseFecha(item.fechaFin);
+
+  if (inicio && fin) {
+    if (hoy < inicio) return { label: 'AÚN NO INICIÓ', color: '#64748b', bg: '#f1f5f9' };
+    if (hoy > fin) return { label: 'FINALIZADO', color: '#ef4444', bg: '#fef2f2' };
+    return { label: 'EN JUEGO', color: '#009b3a', bg: '#f0fdf4' };
+  }
+  if (inicio) {
+    if (hoy < inicio) return { label: 'AÚN NO INICIÓ', color: '#64748b', bg: '#f1f5f9' };
+    return { label: 'EN JUEGO', color: '#009b3a', bg: '#f0fdf4' };
+  }
+  return { label: 'SIN FECHA', color: '#94a3b8', bg: '#f8fafc' };
+};
+
 export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onGenerarFixture }) {
   const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
+  const estadoInfo = getEstadoInfo(item);
 
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
-        <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
-          <Text style={styles.badgeText}>{item.tipo}</Text>
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
+          <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
+            <Text style={styles.badgeText}>{item.tipo}</Text>
+          </View>
+          <View style={[styles.badge, { backgroundColor: estadoInfo.bg, borderWidth: 1, borderColor: estadoInfo.color }]}>
+            <Text style={[styles.badgeText, { color: estadoInfo.color }]}>{estadoInfo.label}</Text>
+          </View>
         </View>
         <Text style={styles.title}>{item.nombre}</Text>
-        <Text style={styles.dateText}>Inicia: {item.fechaInicio}</Text>
+        <Text style={styles.dateText}>Inicia: {item.fechaInicio}{item.fechaFin ? ` — Fin: ${item.fechaFin}` : ''}</Text>
         <Text style={styles.detail}>Cupos: {item.inscriptos} / {item.maxEquipos}</Text>
       </View>
 
@@ -37,17 +69,19 @@ export default function CompetenciaCard({ item, canModify, onInscribir, onElimin
           </TouchableOpacity>
         </View>
 
-        {/* Row 3: GENERAR FIXTURE (disabled if not enough teams) */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={[styles.generarBtn, !cupoCompleto && styles.generarBtnDisabled]} 
-            onPress={cupoCompleto ? onGenerarFixture : null}
-            disabled={!cupoCompleto}
-          >
-            <MaterialCommunityIcons name="shuffle-variant" size={16} color={cupoCompleto ? '#fff' : '#94a3b8'} />
-            <Text style={[styles.generarText, !cupoCompleto && styles.generarTextDisabled]}>GENERAR FIXTURE</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Row 3: GENERAR FIXTURE (hidden if already generated, disabled if not enough teams) */}
+        {!item.fixtureGenerado && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity 
+              style={[styles.generarBtn, !cupoCompleto && styles.generarBtnDisabled]} 
+              onPress={cupoCompleto ? onGenerarFixture : null}
+              disabled={!cupoCompleto}
+            >
+              <MaterialCommunityIcons name="shuffle-variant" size={16} color={cupoCompleto ? '#fff' : '#94a3b8'} />
+              <Text style={[styles.generarText, !cupoCompleto && styles.generarTextDisabled]}>GENERAR FIXTURE</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {canModify && (
           <TouchableOpacity onPress={onDelete} style={styles.deleteBtn}>
@@ -74,10 +108,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   infoSide: { flex: 1 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginBottom: 5 },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   badgeText: { color: '#fff', fontWeight: '900', fontSize: 10 },
   title: { fontSize: 17, fontWeight: '800', color: '#1e293b' }, 
-  dateText: { fontSize: 12, color: '#009b3a', fontWeight: '700', marginTop: 2 },
+  dateText: { fontSize: 11, color: '#009b3a', fontWeight: '700', marginTop: 2 },
   detail: { fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '600' },
   actions: { alignItems: 'flex-end', gap: 6, flexDirection: 'column' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

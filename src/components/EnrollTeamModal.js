@@ -1,24 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function EnrollTeamModal({ visible, onClose, availableEquipos, onSelectEquipo }) {
+export default function EnrollTeamModal({ visible, onClose, availableEquipos, onSelectEquipo, maxSlots }) {
   const [selected, setSelected] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const slotsAvailable = maxSlots || 999;
 
   useEffect(() => {
     if (visible) {
       setSelected([]);
       setIsConfirming(false);
+      setSearch('');
     }
   }, [visible]);
 
   if (!availableEquipos) return null;
 
+  const filteredEquipos = availableEquipos.filter(e =>
+    e.nombre?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const toggleSelect = (equipo) => {
     if (selected.find(e => e.id === equipo.id)) {
       setSelected(prev => prev.filter(e => e.id !== equipo.id));
     } else {
+      // Don't allow selecting more than available slots
+      if (selected.length >= slotsAvailable) return;
       setSelected(prev => [...prev, equipo]);
     }
   };
@@ -30,6 +40,8 @@ export default function EnrollTeamModal({ visible, onClose, availableEquipos, on
     setIsConfirming(false);
   };
 
+  const isAtLimit = selected.length >= slotsAvailable;
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -40,31 +52,52 @@ export default function EnrollTeamModal({ visible, onClose, availableEquipos, on
               <MaterialCommunityIcons name="close" size={28} color="#64748b" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.subtitle}>Seleccioná los equipos que deseas inscribir en la competición:</Text>
+          <Text style={styles.subtitle}>Seleccioná los equipos que deseas inscribir en la competición ({selected.length}/{slotsAvailable} cupos):</Text>
           
+          {/* Search bar */}
+          <View style={styles.searchContainer}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar equipo por nombre..."
+              value={search}
+              onChangeText={setSearch}
+              placeholderTextColor="#94a3b8"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="#94a3b8" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           <ScrollView style={styles.list}>
-            {availableEquipos.map(equipo => {
+            {filteredEquipos.map(equipo => {
               const isSel = selected.some(s => s.id === equipo.id);
+              const isDisabled = !isSel && isAtLimit;
               return (
                 <TouchableOpacity 
                   key={equipo.id} 
-                  style={[styles.equipoCard, isSel && styles.equipoCardSelected]} 
-                  onPress={() => toggleSelect(equipo)}
+                  style={[styles.equipoCard, isSel && styles.equipoCardSelected, isDisabled && styles.equipoCardDisabled]} 
+                  onPress={() => !isDisabled && toggleSelect(equipo)}
+                  disabled={isDisabled}
                 >
                   <MaterialCommunityIcons 
                     name={isSel ? "checkbox-marked-circle" : "shield"} 
                     size={32} 
-                    color={isSel ? "#009b3a" : (equipo.colorPrimario || '#1e293b')} 
+                    color={isSel ? "#009b3a" : isDisabled ? "#cbd5e1" : (equipo.colorPrimario || '#1e293b')} 
                   />
                   <View style={styles.info}>
-                    <Text style={styles.equipoName}>{equipo.nombre}</Text>
+                    <Text style={[styles.equipoName, isDisabled && styles.equipoNameDisabled]}>{equipo.nombre}</Text>
                     <Text style={styles.equipoDesc}>{equipo.descripcion || 'Sin descripción'}</Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
-            {availableEquipos.length === 0 && (
-              <Text style={styles.emptyText}>No tienes equipos disponibles para inscribir.</Text>
+            {filteredEquipos.length === 0 && (
+              <Text style={styles.emptyText}>
+                {search.length > 0 ? 'No se encontraron equipos con ese nombre.' : 'No tienes equipos disponibles para inscribir.'}
+              </Text>
             )}
           </ScrollView>
 
@@ -114,7 +147,25 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
   closeBtn: { padding: 4 },
-  subtitle: { fontSize: 13, color: '#64748b', marginBottom: 15, fontWeight: '600' },
+  subtitle: { fontSize: 13, color: '#64748b', marginBottom: 10, fontWeight: '600' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '600',
+  },
   list: { flexGrow: 0 },
   equipoCard: {
     flexDirection: 'row',
@@ -130,8 +181,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdf4',
     borderColor: '#bbf7d0',
   },
+  equipoCardDisabled: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+    opacity: 0.5,
+  },
   info: { flex: 1, marginLeft: 12 },
   equipoName: { fontSize: 16, fontWeight: '800', color: '#334155' },
+  equipoNameDisabled: { color: '#94a3b8' },
   equipoDesc: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
   emptyText: { textAlign: 'center', color: '#94a3b8', paddingVertical: 20, fontWeight: '600' },
   btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },

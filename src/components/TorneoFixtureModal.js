@@ -311,6 +311,12 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
             </View>
           )}
 
+          {/* Aceptar button */}
+          {(hasMatches || demoMode) && !loading && (
+            <TouchableOpacity style={styles.acceptBtn} onPress={onClose}>
+              <Text style={styles.acceptBtnText}>ACEPTAR</Text>
+            </TouchableOpacity>
+          )}
           {/* Edit Match Overlay */}
           {editingMatch && (
             <View style={styles.editOverlay}>
@@ -482,5 +488,7 @@ const styles = StyleSheet.create({
   editTeam: { fontSize: 15, fontWeight: '700', color: '#1e293b', flex: 1 },
   scoreInput: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, width: 60, textAlign: 'center', fontSize: 18, fontWeight: '800', padding: 5 },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 10 },
-  editBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }
+  editBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  acceptBtn: { backgroundColor: '#009b3a', margin: 20, padding: 15, borderRadius: 12, alignItems: 'center' },
+  acceptBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 }
 });

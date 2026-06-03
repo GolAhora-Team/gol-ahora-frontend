@@ -19,6 +19,7 @@ import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
+import { partidoService } from '../services/partidoService';
 
 export default function CompetenciasScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
@@ -31,7 +32,7 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '15/06/2026', descripcion: '', tipoCancha: 5 };
+  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '', fechaFin: '', descripcion: '', tipoCancha: 5 };
   const [formData, setFormData] = useState(initialForm);
 
   // Fixture / Enroll modals
@@ -91,9 +92,11 @@ export default function CompetenciasScreen({ route, navigation }) {
         maxEquipos: c.cantidadEquipos?.toString() || (c.tipo === 1 ? '20' : '16'),
         inscriptos: c.cantInscriptos || 0,
         estado: c.estado === 1 ? 'inscripcion' : (c.estado === 2 ? 'en_juego' : 'finalizada'),
-        fechaInicio: '15/06/2026',
+        fechaInicio: c.fechaInicio ? new Date(c.fechaInicio).toLocaleDateString('es-AR') : '',
+        fechaFin: c.fechaFin ? new Date(c.fechaFin).toLocaleDateString('es-AR') : '',
         premio: 'Trofeo + Medallas',
-        tipoCancha: c.tipoCancha || 5
+        tipoCancha: c.tipoCancha || 5,
+        fixtureGenerado: c.fixtureGenerado || false
       }));
       setCompetencias(mapped);
 
@@ -119,7 +122,9 @@ export default function CompetenciasScreen({ route, navigation }) {
       Tipo: formData.tipo === 'LIGA' ? 1 : 2,
       Descripcion: formData.descripcion || '',
       CantidadEquipos: parseInt(formData.maxEquipos, 10),
-      TipoCancha: formData.tipoCancha
+      TipoCancha: formData.tipoCancha,
+      FechaInicio: formData.fechaInicio ? convertDateToISO(formData.fechaInicio) : null,
+      FechaFin: formData.fechaFin ? convertDateToISO(formData.fechaFin) : null
     };
 
     try {
@@ -131,17 +136,26 @@ export default function CompetenciasScreen({ route, navigation }) {
         descripcion: result?.descripcion || formData.descripcion,
         maxEquipos: result?.cantidadEquipos?.toString() || formData.maxEquipos,
         inscriptos: result?.cantInscriptos || 0,
-        estado: result?.estado === 1 ? 'inscripcion' : (result?.estado === 2 ? 'en_juego' : 'finalizada'),
-        fechaInicio: formData.fechaInicio || '15/06/2026',
+        estado: 'inscripcion',
+        fechaInicio: formData.fechaInicio,
+        fechaFin: formData.fechaFin,
         premio: formData.premio || 'Trofeo',
-        tipoCancha: result?.tipoCancha || formData.tipoCancha
+        tipoCancha: result?.tipoCancha || formData.tipoCancha,
+        fixtureGenerado: false
       };
       setCompetencias(prev => [...prev, nueva]);
       setFormData(initialForm);
       setModalVisible(false);
+      showSuccess('¡Competencia Creada!', `La competencia ${nueva.nombre} ha sido creada exitosamente.`);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo crear la competencia.');
     }
+  };
+
+  const convertDateToISO = (dateStr) => {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    return `${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`;
   };
 
   const handleInscripcion = (item) => {
@@ -192,8 +206,33 @@ export default function CompetenciasScreen({ route, navigation }) {
   };
 
   const handleGenerarFixture = (item) => {
-    // Por ahora no hace nada, solo placeholder
-    Alert.alert("Generar Fixture", "Esta funcionalidad se implementará próximamente.");
+    Alert.alert(
+      'Generar Fixture',
+      `¿Deseas generar el fixture de manera aleatoria para "${item.nombre}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Generar', onPress: () => ejecutarGenerarFixture(item) }
+      ]
+    );
+  };
+
+  const ejecutarGenerarFixture = async (item) => {
+    try {
+      setLoading(true);
+      await partidoService.generarFixture(item.id);
+      // Mark competition as fixture generated
+      setCompetencias(prev => prev.map(c =>
+        c.id === item.id ? { ...c, fixtureGenerado: true } : c
+      ));
+      setLoading(false);
+      // Open fixture modal to show the results
+      setSelectedCompeticion({ ...item, fixtureGenerado: true });
+      setFixtureModalVisible(true);
+    } catch (error) {
+      setLoading(false);
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo generar el fixture. Asegurate de tener la cantidad correcta de equipos inscriptos.');
+    }
   };
 
   const handleSelectEquiposParaInscribir = async (equiposSeleccionados) => {
@@ -546,6 +585,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         onClose={() => { setEnrollModalVisible(false); setCompeticionToEnroll(null); }}
         availableEquipos={equipos.filter(e => !e.competicionId)}
         onSelectEquipo={handleSelectEquiposParaInscribir}
+        maxSlots={competicionToEnroll ? Math.max(0, parseInt(competicionToEnroll.maxEquipos) - competicionToEnroll.inscriptos) : 999}
       />
 
       <ViewCompetenciaModal

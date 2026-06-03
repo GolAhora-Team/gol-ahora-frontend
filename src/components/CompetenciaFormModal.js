@@ -2,7 +2,25 @@ import React from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+const formatDateInput = (text, previousText) => {
+  // Remove all non-numeric characters
+  const digits = text.replace(/\D/g, '');
+  
+  // Limit to 8 digits (DDMMYYYY)
+  const limited = digits.substring(0, 8);
+  
+  // Auto-insert slashes
+  if (limited.length <= 2) return limited;
+  if (limited.length <= 4) return `${limited.substring(0, 2)}/${limited.substring(2)}`;
+  return `${limited.substring(0, 2)}/${limited.substring(2, 4)}/${limited.substring(4)}`;
+};
+
 export default function CompetenciaFormModal({ visible, onClose, formData, setFormData, onSave }) {
+  const handleDateChange = (field, text) => {
+    const formatted = formatDateInput(text, formData[field]);
+    setFormData({...formData, [field]: formatted});
+  };
+
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
@@ -59,8 +77,20 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             <TextInput 
               style={styles.input} 
               value={formData.fechaInicio} 
-              onChangeText={(t) => setFormData({...formData, fechaInicio: t})}
-              placeholder="DD/MM/YYYY"
+              onChangeText={(t) => handleDateChange('fechaInicio', t)}
+              placeholder="DD/MM/AAAA"
+              keyboardType="numeric"
+              maxLength={10}
+            />
+
+            <Text style={styles.label}>Fecha de Finalización</Text>
+            <TextInput 
+              style={styles.input} 
+              value={formData.fechaFin} 
+              onChangeText={(t) => handleDateChange('fechaFin', t)}
+              placeholder="DD/MM/AAAA"
+              keyboardType="numeric"
+              maxLength={10}
             />
 
             <Text style={styles.label}>Tipo de Cancha</Text>
@@ -110,7 +140,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 25, padding: 25, width: '90%', maxWidth: 400, elevation: 10 },
+  modalContent: { backgroundColor: '#fff', borderRadius: 25, padding: 25, width: '90%', maxWidth: 400, elevation: 10, maxHeight: '85%' },
   modalTitle: { color: '#1e293b', fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
   label: { color: '#64748b', fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 12 },
   input: { backgroundColor: '#f1f5f9', color: '#1e293b', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 14 },
