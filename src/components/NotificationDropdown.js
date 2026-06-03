@@ -88,11 +88,11 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
       onRequestClose={onClose}
     >
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={styles.dropdown} activeOpacity={1} onPress={() => {}}>
+        <TouchableOpacity style={styles.modalCard} activeOpacity={1} onPress={() => {}}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Notificaciones</Text>
+            <Text style={styles.currentSectionTitle}>NOTIFICACIONES</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={24} color="#000" />
+              <MaterialCommunityIcons name="close-circle" size={26} color="#ef4444" />
             </TouchableOpacity>
           </View>
           
@@ -117,21 +117,21 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: Platform.OS === 'web' ? 'flex-start' : 'center',
-    alignItems: Platform.OS === 'web' ? 'flex-end' : 'center',
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  dropdown: {
+  modalCard: {
     backgroundColor: '#fff',
-    width: Platform.OS === 'web' ? 400 : '90%',
-    maxHeight: Platform.OS === 'web' ? '80%' : '70%',
-    marginRight: Platform.OS === 'web' ? 50 : 0,
-    marginTop: Platform.OS === 'web' ? 80 : 0,
-    borderRadius: 12,
-    elevation: 10,
+    width: '90%',
+    maxWidth: 450,
+    maxHeight: '85%',
+    borderRadius: 30,
+    padding: 25,
+    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
     shadowRadius: 10,
     overflow: 'hidden',
   },
@@ -139,14 +139,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#f8f9fa'
+    borderBottomColor: '#f1f5f9',
+    paddingBottom: 10,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  currentSectionTitle: { 
+    fontSize: 11, 
+    fontWeight: '900', 
+    color: '#009b3a', 
+    letterSpacing: 1.2 
   },
   closeBtn: {
     padding: 5,
@@ -165,9 +167,9 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: 'row',
-    padding: 15,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
+    borderBottomColor: '#f1f5f9',
     alignItems: 'center',
   },
   newItem: {
