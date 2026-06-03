@@ -341,6 +341,13 @@ const LoginScreen = ({ navigation, route }) => {
                 style={styles.dataFiscalImage}
               />
             </View>
+            <TouchableOpacity 
+              style={styles.devLinkContainer} 
+              onPress={() => navigation?.navigate('DesarrolladoPor')}
+            >
+              <MaterialCommunityIcons name="cog" size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.devLinkText}>Desarrollado por</Text>
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -424,7 +431,9 @@ const styles = StyleSheet.create({
   dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
   dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
   dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
-  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4, ...Platform.select({ web: { userSelect: 'none' } }) }
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4, ...Platform.select({ web: { userSelect: 'none' } }) },
+  devLinkContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, opacity: 0.7 },
+  devLinkText: { color: 'rgba(255,255,255,0.5)', marginLeft: 5, fontSize: 12 },
 });
 
 export default LoginScreen;
