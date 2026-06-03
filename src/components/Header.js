@@ -14,6 +14,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
 import SettingsModal from './SettingsModal';
 import ConfirmModal from './ConfirmModal';
+import NotificationDropdown from './NotificationDropdown';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const navigation = useNavigation();
@@ -27,6 +29,9 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [weather, setWeather] = useState({ temp: null, icon: 'weather-cloudy' });
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [token, setToken] = useState(null);
 
   React.useEffect(() => {
     fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.7964&longitude=-58.2758&current_weather=true')
@@ -47,7 +52,42 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         }
       })
       .catch(e => console.log('Weather fetch error:', e));
+
+    const checkToken = async () => {
+      try {
+        const storedToken = Platform.OS === 'web' 
+          ? localStorage.getItem('GOL_AHORA_SESSION') 
+          : await AsyncStorage.getItem('userToken');
+        if (storedToken) {
+          setToken(storedToken);
+          fetchUnreadCount(storedToken);
+        }
+      } catch (e) { }
+    };
+    checkToken();
+    
+    // Polling every 60s
+    const interval = setInterval(() => {
+      checkToken();
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchUnreadCount = async (currentToken) => {
+    try {
+      const res = await fetch('http://localhost:5242/api/Notificacion', {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const ultima = data.ultimaVista ? new Date(data.ultimaVista) : null;
+        const count = data.notificaciones.filter(n => 
+          !ultima || new Date(n.fechaCreacion) > ultima
+        ).length;
+        setUnreadCount(count);
+      }
+    } catch(e) {}
+  };
 
 
   const getBadgeColor = () => {
@@ -101,6 +141,25 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         )}
 
         <TouchableOpacity 
+          style={[styles.headerBtn, isMobile && styles.headerBtnMobile, notificationsVisible && styles.btnActive]} 
+          onPress={() => {
+            setNotificationsVisible(true);
+            setUnreadCount(0);
+          }}
+        >
+          <MaterialCommunityIcons 
+            name={unreadCount > 0 ? "bell-badge-outline" : "bell-outline"} 
+            size={isMobile ? 22 : 28} 
+            color={notificationsVisible ? "#000" : "#fff"} 
+          />
+          {unreadCount > 0 && (
+            <View style={styles.badgeContainer}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
           style={[styles.headerBtn, isMobile && styles.headerBtnMobile, pressedSettings && styles.btnActive]} 
           activeOpacity={1}
           onPressIn={() => setPressedSettings(true)}
@@ -138,6 +197,12 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         userName={title}
         idPersona={idPersona}
         idUsuario={idUsuario}
+      />
+
+      <NotificationDropdown 
+        visible={notificationsVisible}
+        onClose={() => setNotificationsVisible(false)}
+        token={token}
       />
 
       <ConfirmModal
@@ -269,6 +334,24 @@ const styles = StyleSheet.create({
     fontSize: 18, 
     fontWeight: 'bold',
     letterSpacing: 1
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#dc3545',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   }
 });
 
