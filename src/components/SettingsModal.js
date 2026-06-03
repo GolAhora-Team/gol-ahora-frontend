@@ -115,6 +115,16 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
       return;
     }
 
+    // Regla de contraseña: mínimo 8 caracteres, una mayúscula y un carácter especial
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>_+\-\[\]\\\/]).{8,}$/;
+    if (!passwordRegex.test(passwords.newPass)) {
+      Alert.alert(
+        "Contraseña débil",
+        "La nueva contraseña debe tener como mínimo 8 caracteres, al menos una letra mayúscula y al menos un carácter especial (ej: @, $, !, #)."
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       await userService.changePassword({

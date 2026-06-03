@@ -6,7 +6,7 @@ import { http, API_BASE_URL } from '../services/apiConfig';
 import { asistenciaService } from '../services/asistenciaService';
 
 export default function ClasesProfeScreen({ route, navigation }) {
-  const { role, idPersona } = route.params || { role: "PROFE", idPersona: null };
+  const { role, idPersona, nombreUsuario } = route.params || { role: "PROFE", idPersona: null, nombreUsuario: "" };
   const [clases, setClases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedClaseId, setExpandedClaseId] = useState(null);
@@ -86,7 +86,14 @@ export default function ClasesProfeScreen({ route, navigation }) {
   return (
     <ScreenTemplate userRole={role} navigation={navigation}>
       <View style={styles.headerRow}>
-        <Text style={styles.mainTitle}>Mis Clases a Cargo</Text>
+        <View>
+          <Text style={styles.mainTitle}>Mis Clases a Cargo</Text>
+          {nombreUsuario ? (
+            <Text style={{ color: '#ffb300', fontSize: 16, fontWeight: '800', marginTop: 4 }}>
+              Profesor: {nombreUsuario}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       {loading ? (

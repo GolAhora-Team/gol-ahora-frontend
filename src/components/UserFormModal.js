@@ -10,6 +10,7 @@ import DatePickerModal from './DatePickerModal';
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
+  const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
 
   const topObrasSociales = [
     "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
@@ -18,9 +19,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
     "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
   ];
 
+  const topLocalidades = [
+    "Florencio Varela", "Hudson", "Ranelagh", "Cruce Varela", "Quilmes", 
+    "Ezpeleta", "Berazategui", "Bosques", "Sourigues", "Plátanos", 
+    "Gutiérrez", "Villa España", "Bernal", "Don Bosco", "Wilde", 
+    "Adrogué", "Temperley", "Lomas de Zamora", "Lanús", "Avellaneda"
+  ];
+
   const filteredObrasSociales = formData.obraSocial 
     ? topObrasSociales.filter(os => os.toLowerCase().includes(formData.obraSocial.toLowerCase()))
     : topObrasSociales;
+
+  const filteredLocalidades = formData.localidad
+    ? topLocalidades.filter(loc => loc.toLowerCase().includes(formData.localidad.toLowerCase()))
+    : topLocalidades;
 
   const handlePickDocument = async () => {
     try {
@@ -317,7 +329,38 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               </View>
               <CustomInput label="DIRECCIÓN" value={formData.direccion} onChangeText={v => setFormData({...formData, direccion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
               <View style={styles.row}>
-                <View style={{flex: 1}}><CustomInput label="LOCALIDAD" value={formData.localidad} onChangeText={v => setFormData({...formData, localidad: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
+                <View style={{flex: 1, zIndex: 20}}>
+                  <Text style={styles.greenLabelBold}>LOCALIDAD</Text>
+                  <TextInput
+                    style={styles.cleanInput}
+                    value={formData.localidad}
+                    onChangeText={v => {
+                      setFormData({...formData, localidad: v});
+                      setShowLocalidadSuggestions(true);
+                    }}
+                    onFocus={() => setShowLocalidadSuggestions(true)}
+                    placeholder="Ej: Hudson, Ranelagh..."
+                    placeholderTextColor="#94a3b8"
+                  />
+                  {showLocalidadSuggestions && filteredLocalidades.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                      <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                        {filteredLocalidades.map((loc, index) => (
+                          <TouchableOpacity 
+                            key={index} 
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              setFormData({...formData, localidad: loc});
+                              setShowLocalidadSuggestions(false);
+                            }}
+                          >
+                            <Text style={styles.suggestionText}>{loc}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
                 <View style={{flex: 1, marginLeft: 10}}><CustomInput label="PROVINCIA" value={formData.provincia} onChangeText={v => setFormData({...formData, provincia: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
               </View>
               <CustomInput label="PAÍS" value={formData.pais} onChangeText={v => setFormData({...formData, pais: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
