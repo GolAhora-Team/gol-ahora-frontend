@@ -49,9 +49,16 @@ export default function ReservaScreen({ route, navigation }) {
   const sectionOffsets = useRef({});
 
   const scrollToSection = (key) => {
-    const y = sectionOffsets.current[key];
-    if (y !== undefined && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: y, animated: true });
+    if (Platform.OS === 'web') {
+      const el = document.getElementById('section-' + key);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      const y = sectionOffsets.current[key];
+      if (y !== undefined && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: y, animated: true });
+      }
     }
   };
 
@@ -435,31 +442,31 @@ export default function ReservaScreen({ route, navigation }) {
         ) : (
           <>
             {groupedReservas.groups.hoy.length > 0 && (
-              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['hoy'] = e.nativeEvent.layout.y}>
+              <View style={styles.groupSection} nativeID="section-hoy" onLayout={(e) => sectionOffsets.current['hoy'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas para hoy - {formatGroupDate(groupedReservas.sHoy)}</Text>
                 {renderReservaList(groupedReservas.groups.hoy)}
               </View>
             )}
             {groupedReservas.groups.manana.length > 0 && (
-              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['manana'] = e.nativeEvent.layout.y}>
+              <View style={styles.groupSection} nativeID="section-manana" onLayout={(e) => sectionOffsets.current['manana'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas para mañana - {formatGroupDate(groupedReservas.sManana)}</Text>
                 {renderReservaList(groupedReservas.groups.manana)}
               </View>
             )}
             {groupedReservas.groups.estaSemana.length > 0 && (
-              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['estaSemana'] = e.nativeEvent.layout.y}>
+              <View style={styles.groupSection} nativeID="section-estaSemana" onLayout={(e) => sectionOffsets.current['estaSemana'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Reservas de esta semana</Text>
                 {renderReservaList(groupedReservas.groups.estaSemana)}
               </View>
             )}
             {groupedReservas.groups.proximas.length > 0 && (
-              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['proximas'] = e.nativeEvent.layout.y}>
+              <View style={styles.groupSection} nativeID="section-proximas" onLayout={(e) => sectionOffsets.current['proximas'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Próximas reservas</Text>
                 {renderReservaList(groupedReservas.groups.proximas)}
               </View>
             )}
             {groupedReservas.groups.anteriores.length > 0 && (
-              <View style={styles.groupSection} onLayout={(e) => sectionOffsets.current['anteriores'] = e.nativeEvent.layout.y}>
+              <View style={styles.groupSection} nativeID="section-anteriores" onLayout={(e) => sectionOffsets.current['anteriores'] = e.nativeEvent.layout.y}>
                 <Text style={styles.groupTitle}>Historial Anteriores</Text>
                 {renderReservaList(groupedReservas.groups.anteriores)}
               </View>
