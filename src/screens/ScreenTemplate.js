@@ -13,7 +13,7 @@ import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
 import HeaderSecondary from '../components/HeaderSecondary';
 
-export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false }) {
+export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false, floatingComponent }) {
   
   const handleBack = () => {
     if (navigation && navigation.goBack) navigation.goBack();
@@ -53,6 +53,7 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
           <Footer />
         </ScrollView>
       </SafeAreaView>
+      {floatingComponent}
     </View>
   );
 }

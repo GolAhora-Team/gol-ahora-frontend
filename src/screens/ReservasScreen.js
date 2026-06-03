@@ -389,7 +389,15 @@ export default function ReservaScreen({ route, navigation }) {
   };
 
   return (
-    <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+    <ScreenTemplate 
+      userRole={currentUserRole} 
+      navigation={navigation}
+      floatingComponent={
+        <TouchableOpacity style={styles.fabUp} onPress={() => scrollToSection('top')}>
+          <MaterialCommunityIcons name="arrow-up" size={24} color="#fff" />
+        </TouchableOpacity>
+      }
+    >
 
       <View style={styles.headerRow} nativeID="top-reservas">
         <Text style={styles.mainTitle}>Cronograma</Text>
@@ -619,12 +627,6 @@ export default function ReservaScreen({ route, navigation }) {
         </View>
       </Modal>
 
-
-      {/* Botón flotante para subir */}
-      <TouchableOpacity style={styles.fabUp} onPress={() => scrollToSection('top')}>
-        <MaterialCommunityIcons name="arrow-up" size={24} color="#fff" />
-      </TouchableOpacity>
-
     </ScreenTemplate>
   );
 }
@@ -653,7 +655,7 @@ const styles = StyleSheet.create({
   groupTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 12, marginLeft: 4, letterSpacing: 0.5 },
 
   fabUp: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    position: 'absolute',
     bottom: 30,
     right: 30,
     backgroundColor: '#009b3a',
