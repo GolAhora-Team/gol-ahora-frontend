@@ -16,6 +16,8 @@ export default function StaffScreen({ route, navigation }) {
   const { role: currentUserRole, userName = "NombreProfe ApellidoProfe" } = route.params || { role: "PROFE" };
 
   const [todasLasClases, setTodasLasClases] = useState([]);
+  const [todosLosEntrenamientos, setTodosLosEntrenamientos] = useState([]);
+  const [activeTab, setActiveTab] = useState('CLASES');
   const [loading, setLoading] = useState(true);
 
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
@@ -31,27 +33,49 @@ export default function StaffScreen({ route, navigation }) {
     loadClases();
   }, []);
 
-  const loadClases = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await claseService.getAll();
-      const mapped = (data || []).map(c => ({
+      const [clasesData, entrenamientosData] = await Promise.all([
+        claseService.getAll().catch(() => []),
+        entrenamientoService.getAll().catch(() => [])
+      ]);
+      
+      const mappedClases = (clasesData || []).map(c => ({
         ...c,
         id: c.id?.toString(),
         profe: c.profesorNombre || c.profe || 'Sin asignar',
-        alumnos: c.cantidadAlumnos || c.alumnos || c.clientes?.length || 0,
+        alumnos: c.cantidadAlumnos || c.alumnos || c.clientes?.length || c.asistencias?.length || 0,
+        precio: c.precioInscripcion || c.precio || 0,
+        capacidad: c.capacidadMax || c.capacidad || 20,
+        horario: c.descripcion || `${c.horaInicio} - ${c.horaFin}`
       }));
-      setTodasLasClases(mapped);
+      setTodasLasClases(mappedClases);
+
+      const mappedEntrenamientos = (entrenamientosData || []).map(e => ({
+        ...e,
+        id: e.id?.toString(),
+        profe: e.profesorNombre || e.profe || 'Sin asignar',
+        alumnos: e.cantidadAlumnos || e.alumnos || e.clientes?.length || 0,
+        precio: e.precio || 0,
+        capacidad: e.cupoMaximo || 20,
+        horario: e.fecha ? e.fecha.split('T')[0] : 'Sin fecha'
+      }));
+      setTodosLosEntrenamientos(mappedEntrenamientos);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las clases.');
+      Alert.alert('Error', 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
     }
   };
 
-  const clasesVisibles = (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL')
-    ? todasLasClases 
-    : todasLasClases.filter(clase => clase.profe === userName);
+  const itemsVisibles = () => {
+    const lista = activeTab === 'CLASES' ? todasLasClases : todosLosEntrenamientos;
+    if (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') {
+      return lista;
+    }
+    return lista.filter(item => item.profe === userName);
+  };
 
   const abrirAsistencia = (clase) => {
     setClaseSeleccionada(clase);
@@ -70,7 +94,7 @@ export default function StaffScreen({ route, navigation }) {
       await entrenamientoService.create(payload);
     }
     Alert.alert('Éxito', `${type === 'CLASE' ? 'Clase' : 'Entrenamiento'} creado correctamente.`);
-    loadClases();
+    loadData();
   };
 
   const abrirVerAlumnos = (clase) => {
@@ -123,35 +147,56 @@ export default function StaffScreen({ route, navigation }) {
         </>
       )}
 
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'CLASES' && styles.tabBtnActive]} 
+          onPress={() => setActiveTab('CLASES')}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'CLASES' && styles.tabBtnTextActive]}>Ver Clases</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'ENTRENAMIENTOS' && styles.tabBtnActive]} 
+          onPress={() => setActiveTab('ENTRENAMIENTOS')}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'ENTRENAMIENTOS' && styles.tabBtnTextActive]}>Ver Entrenamientos</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-        {clasesVisibles.map(clase => (
-          <View key={clase.id} style={styles.claseCard}>
+        {itemsVisibles().map(item => (
+          <View key={item.id} style={styles.claseCard}>
             <View style={styles.cardInfo}>
-              <Text style={styles.claseTitle}>{clase.nombre}</Text>
+              <Text style={styles.claseTitle}>{item.nombre}</Text>
               <Text style={styles.claseDetail}>
-                <Text style={{ fontWeight: '900' }}>Horario:</Text> {clase.horario}
+                <Text style={{ fontWeight: '900' }}>Horario/Fecha:</Text> {item.horario}
+              </Text>
+              <Text style={styles.claseDetail}>
+                <Text style={{ fontWeight: '900' }}>Precio:</Text> ${item.precio}
+              </Text>
+              <Text style={styles.claseDetail}>
+                <Text style={{ fontWeight: '900' }}>Capacidad:</Text> {item.alumnos} / {item.capacidad} inscriptos
               </Text>
               {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
                 <Text style={styles.claseDetail}>
-                  <Text style={{ fontWeight: '900' }}>Profesor:</Text> {clase.profe}
+                  <Text style={{ fontWeight: '900' }}>Profesor:</Text> {item.profe}
                 </Text>
               )}
             </View>
             
             <View style={styles.badgeContainer}>
               <View style={styles.alumnosBadge}>
-                <Text style={styles.badgeText}>{clase.alumnos} Alumnos</Text>
+                <Text style={styles.badgeText}>{item.alumnos} Alumnos</Text>
               </View>
               <View style={styles.btnRow}>
                 <TouchableOpacity 
                   style={styles.verAlumnosBtn} 
-                  onPress={() => abrirVerAlumnos(clase)}
+                  onPress={() => abrirVerAlumnos(item)}
                 >
                   <Text style={styles.btnTextInfo}>VER ALUMNOS</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.asistenciaBtn} 
-                  onPress={() => abrirAsistencia(clase)}
+                  onPress={() => abrirAsistencia(item)}
                 >
                   <Text style={styles.btnText}>ASISTENCIA</Text>
                 </TouchableOpacity>
@@ -160,9 +205,9 @@ export default function StaffScreen({ route, navigation }) {
           </View>
         ))}
 
-        {clasesVisibles.length === 0 && (
+        {itemsVisibles().length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No hay clases programadas para mostrar.</Text>
+            <Text style={styles.emptyText}>No hay {activeTab === 'CLASES' ? 'clases' : 'entrenamientos'} para mostrar.</Text>
           </View>
         )}
       </ScrollView>
@@ -177,7 +222,7 @@ export default function StaffScreen({ route, navigation }) {
       <AssignClassModal
         visible={assignModalVisible}
         onClose={() => setAssignModalVisible(false)}
-        onAssignSuccess={loadClases}
+        onAssignSuccess={loadData}
       />
 
       <VerAlumnosModal
@@ -222,5 +267,10 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
   btnTextInfo: { color: '#64748b', fontSize: 11, fontWeight: '900' },
   emptyContainer: { marginTop: 50, alignItems: 'center' },
-  emptyText: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.8 }
+  emptyText: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.8 },
+  tabsContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 4, marginBottom: 20 },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabBtnActive: { backgroundColor: '#009b3a' },
+  tabBtnText: { color: '#a1a1aa', fontWeight: '800', fontSize: 13 },
+  tabBtnTextActive: { color: '#ffffff' }
 });

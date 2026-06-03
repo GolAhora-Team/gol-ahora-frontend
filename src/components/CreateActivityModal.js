@@ -79,21 +79,26 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     setSaving(true);
     try {
       let payload;
+      // Add 2 days to current date to safely avoid "past date" validation errors from the backend timezone differences
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 2);
+      const safeFecha = futureDate.toISOString();
+
       if (type === 'CLASE') {
         payload = {
           nombre: formData.nombre,
           descripcion: buildHorarioString(),
           capacidadMax: parseInt(formData.maxAlumnos) || 20,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: safeFecha,
           horaInicio: formData.horaInicio.length === 5 ? formData.horaInicio + ':00' : formData.horaInicio,
           horaFin: formData.horaFin.length === 5 ? formData.horaFin + ':00' : formData.horaFin,
           precioInscripcion: parseFloat(formData.precio) || 5000,
-          profesorId: formData.profesorId || 1 // Backend requires a valid ProfesorId
+          profesorId: formData.profesorId || 1
         };
       } else {
         payload = {
           nombre: formData.nombre,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: safeFecha,
           cupoMaximo: parseInt(formData.maxAlumnos) || 20,
           profesorId: formData.profesorId || 1
         };
