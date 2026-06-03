@@ -7,6 +7,7 @@ import { facturaService } from '../services/facturaService';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 import CobroMembresiaModal from './CobroMembresiaModal';
+import SuccessModal from './SuccessModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -17,6 +18,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
   const [cobroModalVisible, setCobroModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const topObrasSociales = [
     "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
@@ -111,7 +113,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
       };
       await facturaService.create(payload);
       setFormData({ ...formData, esSocioActivo: true });
-      alert("Factura generada correctamente. El cliente ahora es Socio Activo.");
+      setSuccessMessage("Factura generada correctamente. El cliente ahora es Socio Activo.");
     } catch (e) {
       console.error(e);
       alert("Hubo un error al generar la factura.");
@@ -457,6 +459,11 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         onClose={() => setCobroModalVisible(false)} 
         onSuccess={handleCobrarMembresia} 
         precioBase={2000} 
+      />
+      <SuccessModal 
+        visible={!!successMessage}
+        onClose={() => setSuccessMessage('')}
+        message={successMessage}
       />
     </Modal>
   );
