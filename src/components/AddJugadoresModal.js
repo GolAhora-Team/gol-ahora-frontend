@@ -42,7 +42,7 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
       const equipoJugadores = (allJugadores || []).filter(j => j.equipoId?.toString() === equipoId?.toString());
       const equipoClientesIds = new Set(equipoJugadores.map(j => j.clienteId?.toString()));
       const clientesDisponibles = (data || []).filter(c => 
-        !equipoClientesIds.has(c.id?.toString()) && c.aptoFisico === true
+        !equipoClientesIds.has(c.id?.toString())
       );
       
       setClientes(clientesDisponibles);
@@ -64,6 +64,9 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
   const isSelected = (clienteId) => selectedJugadores.some(sj => sj.clienteId === clienteId);
 
   const handleClientePress = (cliente) => {
+    if (!cliente.aptoFisico) {
+      return Alert.alert('Atención', 'Este usuario no tiene el apto físico cargado o está vencido. No puede ser inscrito en el equipo.');
+    }
     if (isSelected(cliente.id)) {
       // Already added, remove from list
       setSelectedJugadores(prev => prev.filter(sj => sj.clienteId !== cliente.id));
@@ -143,24 +146,35 @@ export default function AddJugadoresModal({ visible, onClose, onConfirm, equipoI
               {filtered.map(cliente => (
                 <TouchableOpacity
                   key={cliente.id}
-                  style={[styles.clienteRow, isSelected(cliente.id) && styles.clienteRowSelected]}
+                  style={[
+                    styles.clienteRow, 
+                    isSelected(cliente.id) && styles.clienteRowSelected,
+                    !cliente.aptoFisico && { opacity: 0.6, backgroundColor: '#f8fafc' }
+                  ]}
                   onPress={() => handleClientePress(cliente)}
                 >
                   <View style={styles.clienteInfo}>
                     <MaterialCommunityIcons
-                      name={isSelected(cliente.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+                      name={!cliente.aptoFisico ? "cancel" : (isSelected(cliente.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline")}
                       size={22}
-                      color={isSelected(cliente.id) ? "#009b3a" : "#94a3b8"}
+                      color={!cliente.aptoFisico ? "#ef4444" : (isSelected(cliente.id) ? "#009b3a" : "#94a3b8")}
                     />
                     <View style={{ marginLeft: 10, flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <View>
-                        <Text style={styles.clienteNombre}>{cliente.nombre} {cliente.apellido}</Text>
+                        <Text style={[styles.clienteNombre, !cliente.aptoFisico && { color: '#94a3b8' }]}>{cliente.nombre} {cliente.apellido}</Text>
                         <Text style={styles.clienteDni}>DNI: {cliente.dni}</Text>
                       </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0' }}>
-                        <MaterialCommunityIcons name="heart-pulse" size={14} color="#009b3a" />
-                        <Text style={{ fontSize: 9, color: '#009b3a', fontWeight: '800', marginLeft: 2 }}>APTO</Text>
-                      </View>
+                      {cliente.aptoFisico ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0' }}>
+                          <MaterialCommunityIcons name="heart-pulse" size={14} color="#009b3a" />
+                          <Text style={{ fontSize: 9, color: '#009b3a', fontWeight: '800', marginLeft: 2 }}>APTO</Text>
+                        </View>
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#fecaca' }}>
+                          <MaterialCommunityIcons name="alert-circle-outline" size={14} color="#ef4444" />
+                          <Text style={{ fontSize: 9, color: '#ef4444', fontWeight: '800', marginLeft: 2 }}>SIN APTO</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>

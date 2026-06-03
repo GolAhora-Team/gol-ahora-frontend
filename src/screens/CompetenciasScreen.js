@@ -46,9 +46,13 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [successTitle, setSuccessTitle] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Delete confirm modal
+  // Delete confirm modal (Equipo)
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [equipoToDelete, setEquipoToDelete] = useState(null);
+
+  // Delete confirm modal (Competicion)
+  const [deleteCompeticionConfirmVisible, setDeleteCompeticionConfirmVisible] = useState(false);
+  const [competicionToDelete, setCompeticionToDelete] = useState(null);
 
   // Jugadores modals
   const [addJugadoresVisible, setAddJugadoresVisible] = useState(false);
@@ -162,6 +166,24 @@ export default function CompetenciasScreen({ route, navigation }) {
   const handleVerFixture = (item) => {
     setSelectedCompeticion(item);
     setFixtureModalVisible(true);
+  };
+
+  const askDeleteCompeticion = (item) => {
+    setCompeticionToDelete(item);
+    setDeleteCompeticionConfirmVisible(true);
+  };
+
+  const handleDeleteCompeticion = async () => {
+    if (!competicionToDelete) return;
+    try {
+      await competicionService.delete(competicionToDelete.id);
+      setCompetencias(prev => prev.filter(c => c.id !== competicionToDelete.id));
+      showSuccess('Competición Eliminada', `La competición ${competicionToDelete.nombre} ha sido eliminada.`);
+      setDeleteCompeticionConfirmVisible(false);
+      setCompeticionToDelete(null);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
+    }
   };
 
   // ── Equipo handlers ──
@@ -319,14 +341,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                 yaInscripto={misInscripciones.includes(item.id)}
                 onInscribir={() => handleInscripcion(item)}
                 onVerFixture={() => handleVerFixture(item)}
-                onDelete={async () => {
-                  try {
-                    await competicionService.delete(item.id);
-                    setCompetencias(prev => prev.filter(c => c.id !== item.id));
-                  } catch (error) {
-                    Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
-                  }
-                }}
+                onDelete={() => askDeleteCompeticion(item)}
               />
             ))}
           </ScrollView>
@@ -391,6 +406,18 @@ export default function CompetenciasScreen({ route, navigation }) {
         color="#ef4444"
       />
 
+      <ConfirmModal
+        visible={deleteCompeticionConfirmVisible}
+        onClose={() => setDeleteCompeticionConfirmVisible(false)}
+        onConfirm={handleDeleteCompeticion}
+        title="Eliminar Competición"
+        message={`¿Está seguro que desea eliminar la competición "${competicionToDelete?.nombre}"?`}
+        confirmText="ELIMINAR"
+        cancelText="Cancelar"
+        icon="alert-circle-outline"
+        color="#ef4444"
+      />
+
       <AddJugadoresModal
         visible={addJugadoresVisible}
         onClose={() => setAddJugadoresVisible(false)}
@@ -430,7 +457,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         visible={fixtureModalVisible}
         onClose={() => setFixtureModalVisible(false)}
         competicion={selectedCompeticion}
-        isStaff={isStaffCheck}
+        isStaff={isStaff}
       />
 
       <EnrollTeamModal
