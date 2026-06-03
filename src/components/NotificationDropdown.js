@@ -73,7 +73,15 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
         </View>
         <View style={styles.textContainer}>
           <Text style={[styles.message, isNew && styles.newMessage]}>{item.mensaje}</Text>
-          <Text style={styles.date}>{new Date(item.fechaCreacion.endsWith('Z') ? item.fechaCreacion : item.fechaCreacion + 'Z').toLocaleString()}</Text>
+          <Text style={styles.date}>{new Date(item.fechaCreacion.endsWith('Z') ? item.fechaCreacion : item.fechaCreacion + 'Z').toLocaleString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          })}</Text>
         </View>
         {isNew && <View style={styles.newBadge} />}
       </View>
