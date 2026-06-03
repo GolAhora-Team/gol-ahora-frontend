@@ -531,91 +531,89 @@ export default function Dashboard({ route, navigation }) {
                   </View>
 
                    <InfoCarousel />
-                </View>
-              </View>
 
-              {(role === 'ADMIN' || role === 'PERSONAL') && (
-                <View style={styles.statsOuterContainer}>
-                  <StatCards />
-                </View>
-              )}
+                  {(role === 'ADMIN' || role === 'PERSONAL') && (
+                    <View style={styles.statsOuterContainer}>
+                      <StatCards />
+                    </View>
+                  )}
 
-              {/* WIDGET MUNDIAL 2026 - Responsive Horizontal Cards */}
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 10, alignItems: 'stretch' }}
-                style={{ marginTop: 15, marginBottom: 15, flexDirection: 'row' }}
-              >
-                {/* Title Card */}
-                <View style={[styles.worldCupCard, styles.worldCupTitleCard, isMobile && styles.worldCupCardMobile]}>
-                  <View style={styles.worldCupBarIcon}>
-                    <MaterialCommunityIcons name="trophy" size={isMobile ? 20 : 24} color="#ffb300" />
-                  </View>
-                  <View style={styles.worldCupBarTitleContainer}>
-                    <Text style={[styles.worldCupBarTitle, isMobile && styles.worldCupBarTitleMobile]} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
-                    <Text style={styles.worldCupBarSubtitle} selectable={false}>PRÓXIMOS PARTIDOS DE LA SCALONETA</Text>
-                  </View>
-                </View>
-
-                {loadingWorldCup ? (
-                  <ActivityIndicator size="small" color="#ffb300" style={{ marginHorizontal: 30 }} />
-                ) : worldCupMatches.length === 0 ? (
-                  <Text style={styles.worldCupBarNoMatches}>No hay partidos programados.</Text>
-                ) : (
-                  worldCupMatches.map((match, idx) => (
-                    <View key={idx} style={[styles.worldCupCard, styles.worldCupMatchCard, isMobile && styles.worldCupCardMobile]}>
-                      <View style={styles.worldCupBarMatchHeader}>
-                        <Text style={styles.worldCupBarMatchday}>MATCHDAY {match.matchday || idx + 1}</Text>
-                        <Text style={styles.worldCupBarMatchday}>{match.ground || ''}</Text>
+                  {/* WIDGET MUNDIAL 2026 - Responsive Horizontal Cards */}
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 5, gap: 10, alignItems: 'stretch' }}
+                    style={{ marginTop: 15, marginBottom: 15, flexDirection: 'row' }}
+                  >
+                    {/* Title Card */}
+                    <View style={[styles.worldCupCard, styles.worldCupTitleCard, isMobile && styles.worldCupCardMobile]}>
+                      <View style={styles.worldCupBarIcon}>
+                        <MaterialCommunityIcons name="trophy" size={isMobile ? 20 : 24} color="#ffb300" />
                       </View>
-                      <View style={styles.worldCupBarTeamsRow}>
-                        <View style={styles.teamContainer}>
-                          <Image 
-                            source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team1)}.png` }} 
-                            style={styles.flagIcon} 
-                            resizeMode="contain" 
-                          />
-                          <Text style={[styles.worldCupBarTeamLeft, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
-                            {match.team1}
-                          </Text>
-                        </View>
-                        <View style={styles.worldCupBarVsBadge}>
-                          <Text style={styles.worldCupBarVsText}>VS</Text>
-                        </View>
-                        <View style={styles.teamContainer}>
-                          <Text style={[styles.worldCupBarTeamRight, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
-                            {match.team2}
-                          </Text>
-                          <Image 
-                            source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team2)}.png` }} 
-                            style={styles.flagIcon} 
-                            resizeMode="contain" 
-                          />
-                        </View>
-                      </View>
-                      <View style={styles.worldCupBarTimeRow}>
-                        <MaterialCommunityIcons name="clock-outline" size={11} color="#475569" />
-                        <Text style={styles.worldCupBarMatchday}>
-                          {match.date} a las {convertToArgentinaTime(match.time)}
-                        </Text>
+                      <View style={styles.worldCupBarTitleContainer}>
+                        <Text style={[styles.worldCupBarTitle, isMobile && styles.worldCupBarTitleMobile]} selectable={false}>MUNDIAL DE LA FIFA 2026</Text>
+                        <Text style={styles.worldCupBarSubtitle} selectable={false}>PRÓXIMOS PARTIDOS DE LA SCALONETA</Text>
                       </View>
                     </View>
-                  ))
-                )}
 
-                {/* Logo FIFA Card */}
-                <View style={[styles.worldCupCard, { justifyContent: 'center', paddingHorizontal: 20 }, isMobile && styles.worldCupCardMobile]}>
-                  <Image 
-                    source={{ uri: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f6/2026_FIFA_World_Cup_logo.svg/256px-2026_FIFA_World_Cup_logo.svg.png' }} 
-                    style={{ width: 45, height: 60 }} 
-                    resizeMode="contain" 
-                  />
+                    {loadingWorldCup ? (
+                      <ActivityIndicator size="small" color="#ffb300" style={{ marginHorizontal: 30 }} />
+                    ) : worldCupMatches.length === 0 ? (
+                      <Text style={styles.worldCupBarNoMatches}>No hay partidos programados.</Text>
+                    ) : (
+                      worldCupMatches.map((match, idx) => (
+                        <View key={idx} style={[styles.worldCupCard, styles.worldCupMatchCard, isMobile && styles.worldCupCardMobile]}>
+                          <View style={styles.worldCupBarMatchHeader}>
+                            <Text style={styles.worldCupBarMatchday}>MATCHDAY {match.matchday || idx + 1}</Text>
+                            <Text style={styles.worldCupBarMatchday}>{match.ground || ''}</Text>
+                          </View>
+                          <View style={styles.worldCupBarTeamsRow}>
+                            <View style={styles.teamContainer}>
+                              <Image 
+                                source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team1)}.png` }} 
+                                style={styles.flagIcon} 
+                                resizeMode="contain" 
+                              />
+                              <Text style={[styles.worldCupBarTeamLeft, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
+                                {match.team1}
+                              </Text>
+                            </View>
+                            <View style={styles.worldCupBarVsBadge}>
+                              <Text style={styles.worldCupBarVsText}>VS</Text>
+                            </View>
+                            <View style={styles.teamContainer}>
+                              <Text style={[styles.worldCupBarTeamRight, isMobile && styles.worldCupBarTeamMobile]} numberOfLines={1}>
+                                {match.team2}
+                              </Text>
+                              <Image 
+                                source={{ uri: `https://flagcdn.com/w40/${getFlagUrl(match.team2)}.png` }} 
+                                style={styles.flagIcon} 
+                                resizeMode="contain" 
+                              />
+                            </View>
+                          </View>
+                          <View style={styles.worldCupBarTimeRow}>
+                            <MaterialCommunityIcons name="clock-outline" size={11} color="#475569" />
+                            <Text style={styles.worldCupBarMatchday}>
+                              {match.date} a las {convertToArgentinaTime(match.time)}
+                            </Text>
+                          </View>
+                        </View>
+                      ))
+                    )}
+
+                    {/* Logo FIFA Card */}
+                    <View style={[styles.worldCupCard, { justifyContent: 'center', paddingHorizontal: 20 }, isMobile && styles.worldCupCardMobile]}>
+                      <Image 
+                        source={{ uri: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f6/2026_FIFA_World_Cup_logo.svg/256px-2026_FIFA_World_Cup_logo.svg.png' }} 
+                        style={{ width: 45, height: 60 }} 
+                        resizeMode="contain" 
+                      />
+                    </View>
+                  </ScrollView>
+
                 </View>
-              </ScrollView>
-
-            </View>
-          </View>
+              </View>
           <Footer />
         </ScrollView>
       </SafeAreaView>

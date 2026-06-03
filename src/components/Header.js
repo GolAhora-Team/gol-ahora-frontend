@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18, 
     backgroundColor: 'rgba(255,255,255,0.12)',
-    marginHorizontal: 15,
+    marginHorizontal: 17.5,
     borderRadius: 24,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.18)',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   headerMobile: {
     paddingHorizontal: 15,
     paddingVertical: 12,
-    marginHorizontal: 10,
+    marginHorizontal: 17.5,
     borderRadius: 20,
   },
   headerWeb: { 
