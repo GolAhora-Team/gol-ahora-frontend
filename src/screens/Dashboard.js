@@ -605,7 +605,7 @@ export default function Dashboard({ route, navigation }) {
                     {/* Logo FIFA Card */}
                     <View style={[styles.worldCupCard, { justifyContent: 'center', paddingHorizontal: 20 }, isMobile && styles.worldCupCardMobile]}>
                       <Image 
-                        source={{ uri: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f6/2026_FIFA_World_Cup_logo.svg/256px-2026_FIFA_World_Cup_logo.svg.png' }} 
+                        source={require('../../assets/logo-mundial.png')} 
                         style={{ width: 45, height: 60 }} 
                         resizeMode="contain" 
                       />
