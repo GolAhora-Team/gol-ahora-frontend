@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import CompetenciaCard from '../components/CompetenciaCard';
@@ -24,6 +24,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState('COMPETENCIAS');
   const [competencias, setCompetencias] = useState([]);
   const [equipos, setEquipos] = useState([]);
+  const [searchEquipo, setSearchEquipo] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
@@ -366,8 +367,22 @@ export default function CompetenciasScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
           </View>
+
+          <View style={styles.searchRow}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#64748b" />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder="Buscar equipo por nombre..."
+              value={searchEquipo}
+              onChangeText={setSearchEquipo}
+              placeholderTextColor="#64748b"
+            />
+          </View>
+
           <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
-            {equipos.map(item => (
+            {equipos
+              .filter(item => (item.nombre || '').toLowerCase().includes(searchEquipo.toLowerCase()))
+              .map(item => (
               <EquipoCard 
                 key={item.id} 
                 item={item} 
@@ -491,7 +506,9 @@ const styles = StyleSheet.create({
   tabText: { fontWeight: '700', color: '#64748b' },
   tabTextActive: { color: '#009b3a', fontWeight: '900' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  mainTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#1e293b' },
+  mainTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 6, color: '#fff' },
 });
