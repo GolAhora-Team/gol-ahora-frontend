@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function CompetenciaCard({ item, canModify, yaInscripto, onInscribir, onDelete, onVerFixture }) {
+export default function CompetenciaCard({ item, canModify, yaInscripto, onInscribir, onDelete, onVerFixture, onVerDetalle }) {
   return (
     <View style={styles.card}>
       <View style={styles.infoSide}>
@@ -16,6 +16,9 @@ export default function CompetenciaCard({ item, canModify, yaInscripto, onInscri
 
       <View style={styles.actions}>
         <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.verFixtureBtn} onPress={onVerDetalle}>
+            <Text style={styles.verFixtureText}>VER</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.verFixtureBtn} onPress={onVerFixture}>
             <Text style={styles.verFixtureText}>VER FIXTURE</Text>
           </TouchableOpacity>

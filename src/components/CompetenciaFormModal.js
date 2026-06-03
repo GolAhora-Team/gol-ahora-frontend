@@ -63,6 +63,21 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
               placeholder="DD/MM/YYYY"
             />
 
+            <Text style={styles.label}>Tipo de Cancha</Text>
+            <View style={styles.selectorRow}>
+              {[5, 7, 11].map((cancha) => (
+                <TouchableOpacity
+                  key={cancha}
+                  style={[styles.selectorBtn, formData.tipoCancha === cancha && styles.selectorActive]}
+                  onPress={() => setFormData({...formData, tipoCancha: cancha})}
+                >
+                  <Text style={[styles.selectorText, formData.tipoCancha === cancha && styles.textActive]}>
+                    Cancha de {cancha}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text style={styles.label}>Cantidad de Equipos</Text>
             <View style={styles.selectorRow}>
               {(formData.tipo === 'LIGA' ? ['10', '20'] : ['4', '8', '16']).map((num) => (

@@ -14,6 +14,7 @@ import VerJugadoresModal from '../components/VerJugadoresModal';
 import FormacionModal from '../components/FormacionModal';
 import TorneoFixtureModal from '../components/TorneoFixtureModal';
 import EnrollTeamModal from '../components/EnrollTeamModal';
+import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
@@ -29,13 +30,14 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '15/06/2026', descripcion: '' };
+  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '15/06/2026', descripcion: '', tipoCancha: 5 };
   const [formData, setFormData] = useState(initialForm);
 
   // Fixture / Enroll modals
   const [selectedCompeticion, setSelectedCompeticion] = useState(null);
   const [fixtureModalVisible, setFixtureModalVisible] = useState(false);
   const [enrollModalVisible, setEnrollModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
   const [competicionToEnroll, setCompeticionToEnroll] = useState(null);
 
   // Equipo modals
@@ -110,7 +112,8 @@ export default function CompetenciasScreen({ route, navigation }) {
       Nombre: formData.nombre,
       Tipo: formData.tipo === 'LIGA' ? 1 : 2,
       Descripcion: formData.descripcion || '',
-      CantidadEquipos: parseInt(formData.maxEquipos, 10)
+      CantidadEquipos: parseInt(formData.maxEquipos, 10),
+      TipoCancha: formData.tipoCancha
     };
 
     try {
@@ -124,7 +127,8 @@ export default function CompetenciasScreen({ route, navigation }) {
         inscriptos: result?.cantInscriptos || 0,
         estado: result?.estado === 1 ? 'inscripcion' : (result?.estado === 2 ? 'en_juego' : 'finalizada'),
         fechaInicio: formData.fechaInicio || '15/06/2026',
-        premio: formData.premio || 'Trofeo'
+        premio: formData.premio || 'Trofeo',
+        tipoCancha: result?.tipoCancha || formData.tipoCancha
       };
       setCompetencias(prev => [...prev, nueva]);
       setFormData(initialForm);
@@ -171,6 +175,11 @@ export default function CompetenciasScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerDetalle = (item) => {
+    setSelectedCompeticion(item);
+    setViewModalVisible(true);
   };
 
   const handleVerFixture = (item) => {
@@ -350,6 +359,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                 canModify={isStaff}
                 yaInscripto={misInscripciones.includes(item.id)}
                 onInscribir={() => handleInscripcion(item)}
+                onVerDetalle={() => handleVerDetalle(item)}
                 onVerFixture={() => handleVerFixture(item)}
                 onDelete={() => askDeleteCompeticion(item)}
               />
@@ -484,11 +494,17 @@ export default function CompetenciasScreen({ route, navigation }) {
         isStaff={isStaff}
       />
 
-      <EnrollTeamModal
+      <EnrollTeamModal 
         visible={enrollModalVisible}
         onClose={() => { setEnrollModalVisible(false); setCompeticionToEnroll(null); }}
         availableEquipos={equipos.filter(e => !e.competicionId)}
         onSelectEquipo={handleSelectEquiposParaInscribir}
+      />
+
+      <ViewCompetenciaModal
+        visible={viewModalVisible}
+        onClose={() => setViewModalVisible(false)}
+        competicion={selectedCompeticion}
       />
     </ScreenTemplate>
   );
