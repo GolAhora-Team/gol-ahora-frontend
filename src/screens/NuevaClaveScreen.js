@@ -48,6 +48,15 @@ const NuevaClaveScreen = () => {
       return;
     }
 
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>_+\-\[\]\\\/]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      Alert.alert(
+        'Error',
+        'La contraseña debe tener como mínimo 8 caracteres, al menos una letra mayúscula y al menos un carácter especial.'
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       await userService.resetPassword(token, newPassword);
