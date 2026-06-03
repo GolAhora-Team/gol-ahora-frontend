@@ -6,6 +6,7 @@ import * as FileSystem from 'expo-file-system';
 import { facturaService } from '../services/facturaService';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
+import CobroMembresiaModal from './CobroMembresiaModal';
 
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -15,6 +16,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const [calendarCertFinVisible, setCalendarCertFinVisible] = useState(false);
   const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
+  const [cobroModalVisible, setCobroModalVisible] = useState(false);
 
   const topObrasSociales = [
     "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
@@ -88,18 +90,23 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
     return false;
   };
 
-  const handleCobrarMembresia = async () => {
+  const handleCobroBoton = () => {
     if (!formData.id) {
       alert("Debes crear el usuario primero antes de cobrar la membresía.");
       return;
     }
+    setCobroModalVisible(true);
+  };
+
+  const handleCobrarMembresia = async (metodoPago) => {
+    setCobroModalVisible(false);
     try {
       const payload = {
         fechaEmision: new Date().toISOString(),
         total: 2000,
-        estado: 1, // Pagado
-        tipo: 1,   // Ingreso
-        descripcion: "Suscripción Socio Activo - Presencial",
+        estado: 1,
+        tipo: 1,
+        descripcion: `Suscripción Socio Activo - Presencial (${metodoPago})`,
         clienteId: formData.id
       };
       await facturaService.create(payload);
@@ -258,12 +265,12 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   </TouchableOpacity>
                 </View>
 
-                {(!formData.esSocioActivo && isEditing) && (
-                  <TouchableOpacity style={styles.payBtn} onPress={handleCobrarMembresia}>
-                    <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
-                    <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
-                  </TouchableOpacity>
-                )}
+                  {(!formData.esSocioActivo && isEditing) && (
+                    <TouchableOpacity style={styles.payBtn} onPress={handleCobroBoton}>
+                      <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
+                      <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
+                    </TouchableOpacity>
+                  )}
 
                 {formData.aptoFisico && (
                   <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
@@ -444,6 +451,12 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         onClose={() => setCalendarCertFinVisible(false)}
         onSelect={(date) => setFormData({...formData, certFechaFin: date})}
         initialDate={formData.certFechaFin}
+      />
+      <CobroMembresiaModal 
+        visible={cobroModalVisible} 
+        onClose={() => setCobroModalVisible(false)} 
+        onSuccess={handleCobrarMembresia} 
+        precioBase={2000} 
       />
     </Modal>
   );
