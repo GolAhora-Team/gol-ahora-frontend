@@ -78,16 +78,26 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     
     setSaving(true);
     try {
-      const horario = buildHorarioString();
-      const payload = {
-        nombre: formData.nombre,
-        horario: horario,
-        maxAlumnos: parseInt(formData.maxAlumnos) || 20,
-        capacidad: parseInt(formData.maxAlumnos) || 20,
-        profesorId: formData.profesorId,
-        precio: parseFloat(formData.precio) || 5000,
-        clientes: []
-      };
+      let payload;
+      if (type === 'CLASE') {
+        payload = {
+          nombre: formData.nombre,
+          descripcion: buildHorarioString(),
+          capacidadMax: parseInt(formData.maxAlumnos) || 20,
+          fecha: new Date().toISOString().split('T')[0],
+          horaInicio: formData.horaInicio.length === 5 ? formData.horaInicio + ':00' : formData.horaInicio,
+          horaFin: formData.horaFin.length === 5 ? formData.horaFin + ':00' : formData.horaFin,
+          precioInscripcion: parseFloat(formData.precio) || 5000,
+          profesorId: formData.profesorId || 1 // Backend requires a valid ProfesorId
+        };
+      } else {
+        payload = {
+          nombre: formData.nombre,
+          fecha: new Date().toISOString().split('T')[0],
+          cupoMaximo: parseInt(formData.maxAlumnos) || 20,
+          profesorId: formData.profesorId || 1
+        };
+      }
       
       await onSave(payload, type);
       onClose();
