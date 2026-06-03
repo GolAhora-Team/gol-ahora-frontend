@@ -30,7 +30,7 @@ export default function StaffScreen({ route, navigation }) {
   const [createType, setCreateType] = useState('CLASE');
 
   useEffect(() => {
-    loadClases();
+    loadData();
   }, []);
 
   const loadData = async () => {
