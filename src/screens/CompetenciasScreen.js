@@ -473,7 +473,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         visible={enrollModalVisible}
         onClose={() => { setEnrollModalVisible(false); setCompeticionToEnroll(null); }}
         availableEquipos={equipos.filter(e => !e.competicionId)}
-        onSelectEquipo={handleSelectEquipoParaInscribir}
+        onSelectEquipo={handleSelectEquiposParaInscribir}
       />
     </ScreenTemplate>
   );
