@@ -8,7 +8,7 @@ import ScreenTemplate from './ScreenTemplate';
 import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { claseService } from '../services/claseService';
-import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
 import { reservaService } from '../services/reservaService';
 import { asistenciaStorage } from '../components/AsistenciaModal';
 
@@ -74,18 +74,18 @@ export default function ReportesScreen({ route, navigation }) {
 
   const loadRealIngresos = async () => {
     try {
-      const facturas = await facturaService.getAll();
-      const list = facturas || [];
-      const total = list.reduce((sum, f) => sum + (f.monto || 0), 0);
+      const pagos = await pagoService.getAll();
+      const list = (pagos || []).filter(p => p.estado === 2 || p.estado === 'Pagado' || p.estado === 'Aprobado' || p.estado === 'Completado');
+      const total = list.reduce((sum, p) => sum + (p.monto || 0), 0);
       
-      // Calcular desglose semanal real por día de la semana de la fecha de emisión
+      // Calcular desglose semanal real por día de la semana de la fecha de pago
       const datosSemanales = [0, 0, 0, 0, 0, 0, 0]; // Lunes=0, ..., Domingo=6
-      list.forEach(f => {
-        if (f.fechaEmision) {
-          const date = new Date(f.fechaEmision);
+      list.forEach(p => {
+        if (p.fechaPago) {
+          const date = new Date(p.fechaPago);
           let day = date.getDay(); // 0 = Domingo, 1 = Lunes, ...
           let index = day === 0 ? 6 : day - 1; // Mapear a L=0, M=1, M=2, J=3, V=4, S=5, D=6
-          datosSemanales[index] += f.monto || 0;
+          datosSemanales[index] += p.monto || 0;
         }
       });
 
