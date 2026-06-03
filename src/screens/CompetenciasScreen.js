@@ -146,7 +146,7 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const handleInscripcion = (item) => {
     if (item.inscriptos >= parseInt(item.maxEquipos)) {
-      return Alert.alert("Cupo Lleno", "Ya no quedan lugares disponibles.");
+      return Alert.alert("Cupo Lleno", "La competición ya tiene el máximo de equipos permitidos.");
     }
     const availableEquipos = equipos.filter(e => !e.competicionId);
     if (availableEquipos.length === 0) {
@@ -159,7 +159,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   const handleEliminarEquipos = (item) => {
     const inscriptos = equipos.filter(e => e.competicionId?.toString() === item.id?.toString());
     if (inscriptos.length === 0) {
-      return Alert.alert("Sin equipos", "No hay equipos inscriptos en esta competición.");
+      return Alert.alert("Sin equipos", "No hay equipos inscriptos en la competición.");
     }
     setCompeticionToRemoveFrom(item);
     setRemoveEquiposModalVisible(true);
