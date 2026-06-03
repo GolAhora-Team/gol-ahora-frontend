@@ -18,11 +18,21 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
               placeholder="Ej: Liga de los Martes"
             />
 
+            <Text style={styles.label}>Descripción</Text>
+            <TextInput 
+              style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]} 
+              value={formData.descripcion} 
+              onChangeText={(t) => setFormData({...formData, descripcion: t})}
+              placeholder="Ej: Torneo nocturno de fin de año..."
+              multiline={true}
+              numberOfLines={3}
+            />
+
             <Text style={styles.label}>Tipo de Competencia</Text>
             <View style={styles.selectorRow}>
               <TouchableOpacity 
                 style={[styles.selectorBtn, formData.tipo === 'LIGA' && styles.selectorActive]} 
-                onPress={() => setFormData({...formData, tipo: 'LIGA'})}
+                onPress={() => setFormData({...formData, tipo: 'LIGA', maxEquipos: '8'})}
               >
                 <MaterialCommunityIcons 
                   name="format-list-numbered" 
@@ -34,7 +44,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
 
               <TouchableOpacity 
                 style={[styles.selectorBtn, formData.tipo === 'TORNEO' && styles.selectorActive]} 
-                onPress={() => setFormData({...formData, tipo: 'TORNEO'})}
+                onPress={() => setFormData({...formData, tipo: 'TORNEO', maxEquipos: '8'})}
               >
                 <MaterialCommunityIcons 
                   name="tournament" 
@@ -53,13 +63,20 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
               placeholder="DD/MM/YYYY"
             />
 
-            <Text style={styles.label}>Máximo de Equipos</Text>
-            <TextInput 
-              style={styles.input} 
-              value={formData.maxEquipos} 
-              keyboardType="numeric"
-              onChangeText={(t) => setFormData({...formData, maxEquipos: t})}
-            />
+            <Text style={styles.label}>Cantidad de Equipos</Text>
+            <View style={styles.selectorRow}>
+              {['4', '8', formData.tipo === 'LIGA' ? '20' : '16'].map((num) => (
+                <TouchableOpacity
+                  key={num}
+                  style={[styles.selectorBtn, formData.maxEquipos === num && styles.selectorActive]}
+                  onPress={() => setFormData({...formData, maxEquipos: num})}
+                >
+                  <Text style={[styles.selectorText, formData.maxEquipos === num && styles.textActive]}>
+                    {num} equipos
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </ScrollView>
 
           <View style={styles.btnRow}>

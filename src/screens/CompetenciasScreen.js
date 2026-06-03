@@ -26,7 +26,7 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '' };
+  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '15/06/2026', descripcion: '' };
   const [formData, setFormData] = useState(initialForm);
 
   // Equipo modals
@@ -63,13 +63,24 @@ export default function CompetenciasScreen({ route, navigation }) {
     try {
       setLoading(true);
       const data = await competicionService.getAll();
-      const mapped = (data || []).map(c => ({ ...c, id: c.id?.toString() }));
+      const mapped = (data || []).map(c => ({
+        id: c.id?.toString(),
+        nombre: c.nombre,
+        tipo: c.tipo === 1 ? 'LIGA' : 'TORNEO',
+        descripcion: c.descripcion || '',
+        maxEquipos: c.cantidadEquipos?.toString() || (c.tipo === 1 ? '20' : '16'),
+        inscriptos: c.cantInscriptos || 0,
+        estado: c.estado === 1 ? 'inscripcion' : (c.estado === 2 ? 'en_juego' : 'finalizada'),
+        fechaInicio: '15/06/2026',
+        premio: 'Trofeo + Medallas'
+      }));
       setCompetencias(mapped);
 
       const eqData = await equipoService.getAll();
       const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
       setEquipos(mappedEq);
     } catch (error) {
+      console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
@@ -78,12 +89,30 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   // ── Competencia handlers ──
   const handleCreate = async () => {
-    if (!formData.nombre || !formData.fechaInicio) {
-      return Alert.alert("Atención", "El nombre y la fecha de inicio son obligatorios");
+    if (!formData.nombre) {
+      return Alert.alert("Atención", "El nombre es obligatorio");
     }
+
+    const backendData = {
+      Nombre: formData.nombre,
+      Tipo: formData.tipo === 'LIGA' ? 1 : 2,
+      Descripcion: formData.descripcion || '',
+      CantidadEquipos: parseInt(formData.maxEquipos, 10)
+    };
+
     try {
-      const result = await competicionService.create(formData);
-      const nueva = { ...formData, id: result?.id?.toString() || Date.now().toString(), estado: 'inscripcion', inscriptos: 0 };
+      const result = await competicionService.create(backendData);
+      const nueva = { 
+        id: result?.id?.toString() || Date.now().toString(),
+        nombre: result?.nombre || formData.nombre,
+        tipo: result?.tipo === 1 ? 'LIGA' : 'TORNEO',
+        descripcion: result?.descripcion || formData.descripcion,
+        maxEquipos: result?.cantidadEquipos?.toString() || formData.maxEquipos,
+        inscriptos: result?.cantInscriptos || 0,
+        estado: result?.estado === 1 ? 'inscripcion' : (result?.estado === 2 ? 'en_juego' : 'finalizada'),
+        fechaInicio: formData.fechaInicio || '15/06/2026',
+        premio: formData.premio || 'Trofeo'
+      };
       setCompetencias(prev => [...prev, nueva]);
       setFormData(initialForm);
       setModalVisible(false);
