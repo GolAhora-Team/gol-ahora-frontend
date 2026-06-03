@@ -449,7 +449,7 @@ export default function UserScreen({ route, navigation }) {
       <UserFormModal 
         visible={modalVisible} onClose={() => setModalVisible(false)} 
         isEditing={isEditing} formData={formData} setFormData={setFormData} 
-        onSave={handleSave} currentUserRole={currentUserRole} rolesIcons={rolesIcons} 
+        onSave={handleSave} onRefresh={loadUsers} currentUserRole={currentUserRole} rolesIcons={rolesIcons} 
         errorMessage={formError} originalRole={originalRole}
       />
 

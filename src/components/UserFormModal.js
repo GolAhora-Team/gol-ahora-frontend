@@ -4,12 +4,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { facturaService } from '../services/facturaService';
+import { clienteService } from '../services/clienteService';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 import CobroMembresiaModal from './CobroMembresiaModal';
 import SuccessModal from './SuccessModal';
 
-export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, currentUserRole, rolesIcons, errorMessage, originalRole }) {
+export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, onRefresh, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarAptoInicioVisible, setCalendarAptoInicioVisible] = useState(false);
   const [calendarAptoFinVisible, setCalendarAptoFinVisible] = useState(false);
@@ -112,7 +113,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         clienteId: formData.id
       };
       await facturaService.create(payload);
-      setFormData({ ...formData, esSocioActivo: true });
+      
+      const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
+      const updatedPayload = { ...formData, fechaNacimiento: dateStr, esSocioActivo: true };
+      await clienteService.update(formData.id, updatedPayload);
+
+      setFormData(updatedPayload);
+      if (onRefresh) onRefresh();
       setSuccessMessage("Factura generada correctamente. El cliente ahora es Socio Activo.");
     } catch (e) {
       console.error(e);
