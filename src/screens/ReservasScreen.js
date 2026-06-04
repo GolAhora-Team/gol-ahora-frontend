@@ -37,6 +37,8 @@ export default function ReservaScreen({ route, navigation }) {
   // Cancel detail modal
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [reservaToCancel, setReservaToCancel] = useState(null);
+  const [cancelInfo, setCancelInfo] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   // View detail modal
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -407,9 +409,18 @@ export default function ReservaScreen({ route, navigation }) {
           setEditingReserva(res);
           setModalVisible(true);
         }}
-        onDelete={(res) => {
+        onDelete={async (res) => {
+          setCancelLoading(true);
           setReservaToCancel(res);
           setCancelModalVisible(true);
+          try {
+            const info = await reservaService.getCancelacionInfo(res.id);
+            setCancelInfo(info);
+          } catch (err) {
+            setCancelInfo(null);
+          } finally {
+            setCancelLoading(false);
+          }
         }} 
       />
     ));
@@ -544,32 +555,129 @@ export default function ReservaScreen({ route, navigation }) {
         isError={errorMode}
       />
 
-      {/* Modal Confirmar Cancelación */}
-      <ConfirmModal
-        visible={cancelModalVisible}
-        onClose={() => { setCancelModalVisible(false); setReservaToCancel(null); }}
-        onConfirm={async () => {
-          if (!reservaToCancel) return;
-          try {
-            await reservaService.cancelar(reservaToCancel.id);
-            setReservas(prev => prev.map(r => r.id === reservaToCancel.id ? { ...r, estado: 'Cancelada' } : r));
-            setSuccessMessage("La reserva ha sido cancelada correctamente.");
-            setSuccessVisible(true);
-          } catch (error) {
-            Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
-          }
-        }}
-        title="Cancelar Reserva"
-        message={reservaToCancel 
-          ? currentUserRole === 'CLIENTE'
-            ? `¿Estás seguro que querés cancelar tu reserva en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?`
-            : `¿Estás seguro que querés cancelar la reserva de ${reservaToCancel.clienteNombre} en ${reservaToCancel.canchaNombre} el día ${formatFecha(reservaToCancel.fecha)} a las ${reservaToCancel.horaInicio}?`
-          : ""}
-        confirmText="Sí, cancelar"
-        cancelText="No, volver"
-        icon="cancel"
-        color="#ef4444"
-      />
+      {/* Modal Confirmar Cancelación con Info de Penalización */}
+      <Modal visible={cancelModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.viewOverlay}>
+          <View style={[styles.viewContainer, { maxWidth: 450 }]}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>Cancelar Reserva</Text>
+              <TouchableOpacity onPress={() => { setCancelModalVisible(false); setReservaToCancel(null); setCancelInfo(null); }}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+
+            {cancelLoading ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#009b3a" />
+                <Text style={{ marginTop: 10, color: '#64748b', fontWeight: '700' }}>Calculando penalización...</Text>
+              </View>
+            ) : reservaToCancel && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Detalles de la reserva */}
+                <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 15, marginBottom: 15 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <MaterialCommunityIcons name="soccer-field" size={20} color="#009b3a" />
+                    <Text style={{ marginLeft: 8, fontWeight: '800', color: '#1e293b', fontSize: 15 }}>{reservaToCancel.canchaNombre}</Text>
+                  </View>
+                  <Text style={{ color: '#64748b', fontWeight: '600' }}>
+                    {formatFecha(reservaToCancel.fecha)} • {reservaToCancel.horaInicio}
+                  </Text>
+                  {currentUserRole !== 'CLIENTE' && (
+                    <Text style={{ color: '#64748b', fontWeight: '600', marginTop: 4 }}>
+                      Cliente: {reservaToCancel.clienteNombre}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Info de penalización */}
+                {cancelInfo && (
+                  <View style={{ marginBottom: 15 }}>
+                    {/* Estado del plazo */}
+                    <View style={[
+                      { padding: 12, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
+                      cancelInfo.dentroDePlazo 
+                        ? { backgroundColor: '#f0fdf4' }
+                        : { backgroundColor: '#fef2f2' }
+                    ]}>
+                      <MaterialCommunityIcons 
+                        name={cancelInfo.dentroDePlazo ? "check-circle" : "alert-circle"} 
+                        size={22} 
+                        color={cancelInfo.dentroDePlazo ? "#16a34a" : "#ef4444"} 
+                      />
+                      <View style={{ marginLeft: 10, flex: 1 }}>
+                        <Text style={{ fontWeight: '800', color: cancelInfo.dentroDePlazo ? '#16a34a' : '#ef4444', fontSize: 13 }}>
+                          {cancelInfo.dentroDePlazo ? 'DENTRO DEL PLAZO' : 'FUERA DEL PLAZO'}
+                        </Text>
+                        <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '600', marginTop: 2 }}>
+                          Faltan {cancelInfo.horasRestantes}hs para el turno (mínimo: {cancelInfo.horasAntelacionMinima}hs)
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Desglose financiero */}
+                    <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 15 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ color: '#64748b', fontWeight: '700' }}>Monto original</Text>
+                        <Text style={{ color: '#1e293b', fontWeight: '800' }}>${cancelInfo.montoOriginal?.toLocaleString('es-AR')}</Text>
+                      </View>
+                      {!cancelInfo.dentroDePlazo && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <Text style={{ color: '#ef4444', fontWeight: '700' }}>Penalización ({cancelInfo.porcentajePenalizacion}%)</Text>
+                          <Text style={{ color: '#ef4444', fontWeight: '800' }}>-${cancelInfo.montoPenalizacion?.toLocaleString('es-AR')}</Text>
+                        </View>
+                      )}
+                      <View style={{ borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ color: '#009b3a', fontWeight: '900', fontSize: 15 }}>Reintegro</Text>
+                        <Text style={{ color: '#009b3a', fontWeight: '900', fontSize: 15 }}>${cancelInfo.montoReintegro?.toLocaleString('es-AR')}</Text>
+                      </View>
+                    </View>
+
+                    {!cancelInfo.dentroDePlazo && (
+                      <View style={{ backgroundColor: '#fffbeb', padding: 12, borderRadius: 10, marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="alert" size={18} color="#f59e0b" />
+                        <Text style={{ marginLeft: 8, color: '#92400e', fontSize: 11, fontWeight: '700', flex: 1 }}>
+                          La cancelación fuera de plazo implica una penalización del {cancelInfo.porcentajePenalizacion}%. ¿Desea continuar?
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Botones */}
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#f1f5f9', padding: 14, borderRadius: 12, alignItems: 'center' }}
+                    onPress={() => { setCancelModalVisible(false); setReservaToCancel(null); setCancelInfo(null); }}
+                  >
+                    <Text style={{ fontWeight: '800', color: '#64748b' }}>No, volver</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#ef4444', padding: 14, borderRadius: 12, alignItems: 'center' }}
+                    onPress={async () => {
+                      if (!reservaToCancel) return;
+                      try {
+                        await reservaService.cancelar(reservaToCancel.id);
+                        setReservas(prev => prev.map(r => r.id === reservaToCancel.id ? { ...r, estado: 'Cancelada' } : r));
+                        setCancelModalVisible(false);
+                        setCancelInfo(null);
+                        setReservaToCancel(null);
+                        setSuccessMessage('La reserva ha sido cancelada correctamente.' + 
+                          (cancelInfo?.montoReintegro > 0 ? ` Se generó un reintegro de $${cancelInfo.montoReintegro?.toLocaleString('es-AR')}.` : '')
+                        );
+                        setSuccessVisible(true);
+                      } catch (error) {
+                        Alert.alert('Error', error.message || 'No se pudo cancelar la reserva.');
+                      }
+                    }}
+                  >
+                    <Text style={{ fontWeight: '800', color: '#fff' }}>Sí, cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal Ver Detalle Reserva */}
       <Modal visible={viewModalVisible} animationType="fade" transparent={true}>

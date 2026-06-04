@@ -313,16 +313,21 @@ export default function ReportesScreen({ route, navigation }) {
 
   const downloadPdf = async (pdfData) => {
     if (Platform.OS === 'web') {
-      const html2pdf = require('html2pdf.js');
-      const element = document.createElement('div');
-      element.innerHTML = pdfData.html;
-      html2pdf().from(element).set({
-        margin: 10,
-        filename: (pdfData.fileName || 'Reporte') + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).save();
+      try {
+        const module = await import('html2pdf.js');
+        const html2pdf = module.default || module;
+        const element = document.createElement('div');
+        element.innerHTML = pdfData.html;
+        html2pdf().from(element).set({
+          margin: 10,
+          filename: (pdfData.fileName || 'Reporte') + '.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).save();
+      } catch (err) {
+        console.error("Error cargando html2pdf.js", err);
+      }
     } else {
       const { uri } = await Print.printToFileAsync({ html: pdfData.html });
       await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
