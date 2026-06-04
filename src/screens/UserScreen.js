@@ -54,7 +54,7 @@ export default function UserScreen({ route, navigation }) {
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
     fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
-    certificadoFile: null, certificadoBase64: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false,
+    certificadoFile: null, certificadoBase64: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false, certificacion: '',
     aptoMedicoFileName: null, aptoMedicoBase64: null, aptoFechaInicio: '', aptoFechaFin: ''
   };
 
@@ -142,6 +142,7 @@ export default function UserScreen({ route, navigation }) {
         certFechaInicio: certInicio,
         certFechaFin: certFin,
         sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaVencimiento && user.tieneCertificado,
+        certificacion: user.certificacion || '',
         certificadoFile: user.tieneCertificado ? (user.certificadoNombreArchivo || 'Certificado Guardado') : null,
         aptoFechaInicio: aptoInicio,
         aptoFechaFin: aptoFin,
@@ -235,7 +236,7 @@ export default function UserScreen({ route, navigation }) {
           formPayload.append('Email', formData.email);
           formPayload.append('Especialidad', formData.especializacion || 'General');
           formPayload.append('ObraSocial', formData.obraSocial || 'Ninguna');
-          formPayload.append('Certificacion', formData.certificadoFile !== 'Certificado Guardado' ? (formData.certificadoFile || 'Ninguna') : 'Ninguna');
+          formPayload.append('Certificacion', formData.certificacion || 'Ninguna');
           
           const certFechaInicio = formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null;
           const certFechaFin = formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null);
@@ -265,7 +266,7 @@ export default function UserScreen({ route, navigation }) {
           ...payloadToSave, 
           dni: Number(formData.dni),
           especialidad: formData.especializacion || 'General',
-          certificacion: formData.certificadoFile || 'Ninguna',
+          certificacion: formData.certificacion || 'Ninguna',
           certificadoBase64: formData.certificadoBase64,
           certificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
           certificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),

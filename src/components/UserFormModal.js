@@ -58,9 +58,10 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           return;
         }
         const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+        const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'documento.pdf');
         setFormData(prev => ({ 
           ...prev, 
-          certificadoFile: file.name, 
+          certificadoFile: fileName, 
           certificadoBase64: base64,
           fileUri: file.uri,
           fileMimeType: file.mimeType || 'application/pdf'
@@ -85,7 +86,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           return;
         }
         const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
-        setFormData(prev => ({ ...prev, aptoMedicoFileName: file.name, aptoMedicoBase64: base64, aptoFisico: true }));
+        const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'apto_medico.pdf');
+        setFormData(prev => ({ ...prev, aptoMedicoFileName: fileName, aptoMedicoBase64: base64, aptoFisico: true }));
       }
     } catch (err) {
       console.error("Error picking apto medico: ", err);
@@ -335,6 +337,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {formData.role === 'PROFE' && (
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS PROFESOR</Text>
+                <CustomInput label="CERTIFICACIÓN / TÍTULO" placeholder="Ej: Profesorado Educación Física" value={formData.certificacion} onChangeText={v => setFormData({...formData, certificacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 
                 <Text style={styles.greenLabelBold}>CERTIFICADO PROFESIONAL (PDF, MÁX 4MB)</Text>
