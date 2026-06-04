@@ -75,9 +75,23 @@ export default function UserScreen({ route, navigation }) {
       let profesores = [];
       try {
         const profData = await profesorService.getAll();
-        profesores = (profData || []).map(p => ({
-          ...p, id: p.id?.toString(), role: 'PROFE'
-        }));
+        profesores = (profData || []).map(p => {
+          let certEstado = null;
+          let tieneCert = false;
+          if (p.certificados && p.certificados.length > 0) {
+            tieneCert = true;
+            const now = new Date();
+            const hasValid = p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
+            certEstado = hasValid ? 'Certificado válido' : 'Certificado vencido';
+          }
+          return {
+            ...p, 
+            id: p.id?.toString(), 
+            role: 'PROFE',
+            tieneCertificado: tieneCert,
+            certificadoEstado: certEstado
+          };
+        });
       } catch (e) { /* profesores endpoint puede no existir aún */ }
 
       let administradores = [];
