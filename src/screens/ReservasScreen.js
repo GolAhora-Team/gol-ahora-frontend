@@ -297,7 +297,8 @@ export default function ReservaScreen({ route, navigation }) {
           } else if (now >= inicio && now < fin) {
             return 'En Juego';
           } else {
-            return 'Pendiente';
+            // Si falta para que empiece, mostrar el estado real de la BD (Confirmada o Pendiente)
+            return r.estado && r.estado.toLowerCase() === 'confirmada' ? 'Confirmada' : 'Pendiente';
           }
         } catch {
           return r.estado || 'Pendiente';
