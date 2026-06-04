@@ -1,126 +1,203 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Modal, View, Text, StyleSheet, TouchableOpacity,
+  Alert, ActivityIndicator, ScrollView, Platform
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { asistenciaService } from '../services/asistenciaService';
 import { claseService } from '../services/claseService';
 
-// Helper para guardar/leer asistencia en localStorage
-const asistenciaStorage = {
-  getKey: (claseId, fecha) => `asistencia_${claseId}_${fecha}`,
-  save: (claseId, fecha, registros) => {
-    if (Platform.OS === 'web') {
-      const key = asistenciaStorage.getKey(claseId, fecha);
-      localStorage.setItem(key, JSON.stringify(registros));
-      // También guardar índice de fechas por clase
-      const indexKey = `asistencia_index_${claseId}`;
-      const existingIndex = JSON.parse(localStorage.getItem(indexKey) || '[]');
-      if (!existingIndex.includes(fecha)) {
-        existingIndex.push(fecha);
-        localStorage.setItem(indexKey, JSON.stringify(existingIndex));
-      }
-    }
-  },
-  get: (claseId, fecha) => {
-    if (Platform.OS === 'web') {
-      const key = asistenciaStorage.getKey(claseId, fecha);
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
-    }
-    return null;
-  },
-  getAllDates: (claseId) => {
-    if (Platform.OS === 'web') {
-      const indexKey = `asistencia_index_${claseId}`;
-      return JSON.parse(localStorage.getItem(indexKey) || '[]');
-    }
-    return [];
-  },
-  getAll: (claseId) => {
-    const dates = asistenciaStorage.getAllDates(claseId);
-    const all = {};
-    dates.forEach(fecha => {
-      const data = asistenciaStorage.get(claseId, fecha);
-      if (data) all[fecha] = data;
-    });
-    return all;
+// ────────────────────────────────────────────────────────────
+//  Helper: abre/descarga un Blob PDF en web o mobile
+// ────────────────────────────────────────────────────────────
+const abrirPdfBlob = (blob, filename) => {
+  if (Platform.OS === 'web') {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    Alert.alert('PDF', 'Descarga de PDF disponible solo en la versión web.');
   }
 };
 
-export { asistenciaStorage };
-
-export default function AsistenciaModal({ visible, onClose, claseId, claseNombre }) {
+// ────────────────────────────────────────────────────────────
+//  Componente principal: modal de asistencia mejorado
+// ────────────────────────────────────────────────────────────
+export default function AsistenciaModal({ visible, onClose, claseId, claseNombre, esEntrenamiento = false }) {
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'barcode'
+  
+  // Estado para escaneo manual de código
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanMessage, setScanMessage] = useState(null); // { type: 'success'|'error', text }
+  const [scanHistory, setScanHistory] = useState([]);
+  
+  // Estado cámara (solo web con BarcodeDetector API)
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
+
   const fechaHoy = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (visible && claseId) {
       loadAlumnos();
+      setScanHistory([]);
+      setScanMessage(null);
+      setActiveTab('manual');
     }
+    return () => stopCamera();
   }, [visible, claseId]);
 
+  // ── Carga alumnos ──────────────────────────────────────────
   const loadAlumnos = async () => {
     setLoading(true);
     try {
       const clase = await claseService.getById(claseId);
-      const clientesRaw = clase?.clientes || clase?.alumnos || [];
-      
-      // Check if there's already saved attendance for today
-      const saved = asistenciaStorage.get(claseId, fechaHoy);
-      
-      const mapped = clientesRaw.map(c => {
-        const savedState = saved ? saved.find(s => s.id === c.id) : null;
-        return {
-          id: c.id,
-          nombre: `${c.nombre} ${c.apellido || ''}`.trim(),
-          estado: savedState ? savedState.estado : null
-        };
-      });
-      setAlumnos(mapped);
+      const clientesRaw = clase?.alumnos || clase?.clientes || [];
+      const asistenciasHoy = await asistenciaService.getAsistenciasPorClaseYFecha(claseId, fechaHoy).catch(() => []);
+      const idsPresentes = new Set((asistenciasHoy || []).filter(a => a.presente).map(a => a.clienteId));
+
+      setAlumnos(clientesRaw.map(c => ({
+        id: c.id,
+        clienteId: c.id,
+        nombre: `${c.nombre || ''} ${c.apellido || ''}`.trim(),
+        codigoBarras: c.codigoBarras || null,
+        presente: idsPresentes.has(c.id),
+      })));
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los alumnos.');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleAsistencia = (id, valor) => {
-    setAlumnos(alumnos.map(a => a.id === id ? { ...a, estado: valor } : a));
-  };
-
-  const guardarAsistencia = () => {
-    const sinMarcar = alumnos.filter(a => a.estado === null);
-    if (sinMarcar.length > 0) {
-      Alert.alert('Atención', `Hay ${sinMarcar.length} alumno(s) sin marcar. ¿Desea guardar igual?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Guardar', onPress: () => ejecutarGuardado() }
-      ]);
+  // ── Marcar / desmarcar asistencia manual ──────────────────
+  const togglePresente = async (alumno) => {
+    if (alumno.presente) {
+      Alert.alert('Info', 'La asistencia ya fue registrada. No se puede desmarcar desde aquí.');
       return;
     }
-    ejecutarGuardado();
+    setSaving(true);
+    try {
+      await asistenciaService.registrarManual(claseId, alumno.clienteId, !esEntrenamiento);
+      setAlumnos(prev => prev.map(a => a.id === alumno.id ? { ...a, presente: true } : a));
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo registrar la asistencia.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const ejecutarGuardado = () => {
-    const registros = alumnos.map(a => ({
-      id: a.id,
-      nombre: a.nombre,
-      estado: a.estado // true = presente, false = ausente, null = sin marcar
-    }));
-    asistenciaStorage.save(claseId, fechaHoy, registros);
-    Alert.alert("Éxito", "Asistencia registrada correctamente.");
-    onClose();
+  // ── Descargar pulsera PDF ──────────────────────────────────
+  const descargarPulsera = async (alumno) => {
+    try {
+      const blob = esEntrenamiento
+        ? await (await import('../services/entrenamientoService')).entrenamientoService.descargarPulsera(claseId, alumno.clienteId)
+        : await claseService.descargarPulsera(claseId, alumno.clienteId);
+      abrirPdfBlob(blob, `Pulsera_${alumno.nombre.replace(' ', '_')}.pdf`);
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo generar la pulsera.');
+    }
   };
 
-  const presentes = alumnos.filter(a => a.estado === true).length;
-  const ausentes = alumnos.filter(a => a.estado === false).length;
+  // ── ESCANEO: input manual de código ───────────────────────
+  const registrarPorCodigo = async (codigo) => {
+    const cod = (codigo || barcodeInput).trim();
+    if (!cod) return;
+    setScanLoading(true);
+    setScanMessage(null);
+    try {
+      await asistenciaService.registrarCodigoBarras(cod, claseId, !esEntrenamiento);
+      const alumnoNombre = alumnos.find(a => a.codigoBarras === cod)?.nombre || cod;
+      setScanMessage({ type: 'success', text: `✅ Asistencia registrada: ${alumnoNombre}` });
+      setScanHistory(prev => [{ codigo: cod, nombre: alumnoNombre, hora: new Date().toLocaleTimeString('es-AR') }, ...prev.slice(0, 9)]);
+      setBarcodeInput('');
+      // Actualizar estado local del alumno
+      setAlumnos(prev => prev.map(a => a.codigoBarras === cod ? { ...a, presente: true } : a));
+    } catch (e) {
+      setScanMessage({ type: 'error', text: `❌ ${e.message || 'Código no encontrado.'}` });
+    } finally {
+      setScanLoading(false);
+    }
+  };
 
+  // ── Cámara (BarcodeDetector API - Chrome/Edge web) ────────
+  const startCamera = async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Escáner', 'El escaneo por cámara está disponible solo en la versión web (Chrome/Edge).');
+      return;
+    }
+    if (!('BarcodeDetector' in window)) {
+      Alert.alert('No soportado', 'Tu navegador no soporta el escáner de cámara. Usá Chrome o Edge.\nPodés ingresar el código manualmente.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setCameraActive(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          startBarcodeDetection();
+        }
+      }, 300);
+    } catch (err) {
+      Alert.alert('Error', 'No se pudo acceder a la cámara: ' + err.message);
+    }
+  };
+
+  const startBarcodeDetection = () => {
+    if (!('BarcodeDetector' in window)) return;
+    const detector = new window.BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code'] });
+    let running = true;
+    
+    const detect = async () => {
+      if (!running || !videoRef.current) return;
+      try {
+        const barcodes = await detector.detect(videoRef.current);
+        if (barcodes.length > 0) {
+          const codigo = barcodes[0].rawValue;
+          stopCamera();
+          await registrarPorCodigo(codigo);
+          return;
+        }
+      } catch (_) {}
+      if (running) scannerRef.current = setTimeout(detect, 200);
+    };
+    
+    scannerRef.current = setTimeout(detect, 500);
+    return () => { running = false; };
+  };
+
+  const stopCamera = () => {
+    clearTimeout(scannerRef.current);
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  // ── Stats ──────────────────────────────────────────────────
+  const presentes = alumnos.filter(a => a.presente).length;
+  const ausentes = alumnos.length - presentes;
+
+  // ── Render ─────────────────────────────────────────────────
   return (
-    <Modal visible={visible} animationType="fade" transparent={true}>
+    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          
+
+          {/* Header */}
           <View style={styles.header}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>Tomar Asistencia</Text>
               <Text style={styles.subTitle}>{claseNombre}</Text>
               <Text style={styles.dateText}>{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</Text>
@@ -130,7 +207,7 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
             </TouchableOpacity>
           </View>
 
-          {/* Resumen rápido */}
+          {/* Stats */}
           <View style={styles.summaryRow}>
             <View style={[styles.summaryItem, { backgroundColor: '#f0fdf4' }]}>
               <Text style={[styles.summaryCount, { color: '#16a34a' }]}>{presentes}</Text>
@@ -146,52 +223,160 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
             </View>
           </View>
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
-          ) : alumnos.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <MaterialCommunityIcons name="account-group-outline" size={40} color="#cbd5e1" />
-              <Text style={styles.emptyText}>No hay alumnos inscriptos en esta clase.</Text>
-            </View>
-          ) : (
-            <ScrollView style={styles.list} showsVerticalScrollIndicator={true}>
-              {alumnos.map((alumno, idx) => (
-                <View key={alumno.id || idx} style={styles.row}>
-                  <View style={styles.alumnoLeft}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{idx + 1}</Text>
-                    </View>
-                    <Text style={styles.alumnoName}>{alumno.nombre}</Text>
-                  </View>
-                  <View style={styles.actions}>
-                    <TouchableOpacity 
-                      onPress={() => toggleAsistencia(alumno.id, true)}
-                      style={[styles.actionBtn, alumno.estado === true && {backgroundColor: '#009b3a'}]}
+          {/* Tabs */}
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'manual' && styles.tabActive]}
+              onPress={() => { setActiveTab('manual'); stopCamera(); }}
+            >
+              <MaterialCommunityIcons name="account-check" size={16} color={activeTab === 'manual' ? '#fff' : '#64748b'} />
+              <Text style={[styles.tabText, activeTab === 'manual' && styles.tabTextActive]}>Lista</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'barcode' && styles.tabActive]}
+              onPress={() => { setActiveTab('barcode'); }}
+            >
+              <MaterialCommunityIcons name="barcode-scan" size={16} color={activeTab === 'barcode' ? '#fff' : '#64748b'} />
+              <Text style={[styles.tabText, activeTab === 'barcode' && styles.tabTextActive]}>Escaneo</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── TAB: LISTA MANUAL ─────────────────────────── */}
+          {activeTab === 'manual' && (
+            loading ? (
+              <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
+            ) : alumnos.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <MaterialCommunityIcons name="account-group-outline" size={40} color="#cbd5e1" />
+                <Text style={styles.emptyText}>No hay alumnos inscriptos.</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.list} showsVerticalScrollIndicator>
+                {alumnos.map((alumno, idx) => (
+                  <View key={alumno.id || idx} style={styles.row}>
+                    <TouchableOpacity
+                      style={styles.alumnoLeft}
+                      onPress={() => togglePresente(alumno)}
+                      activeOpacity={0.7}
                     >
-                      <MaterialCommunityIcons name="check" size={18} color={alumno.estado === true ? "#fff" : "#009b3a"} />
+                      <View style={[styles.checkCircle, alumno.presente && styles.checkCircleActive]}>
+                        {alumno.presente && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
+                      </View>
+                      <View>
+                        <Text style={[styles.alumnoName, alumno.presente && { color: '#16a34a' }]}>
+                          {alumno.nombre}
+                        </Text>
+                        {alumno.presente && (
+                          <Text style={styles.presenteLabel}>✓ Presente</Text>
+                        )}
+                      </View>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      onPress={() => toggleAsistencia(alumno.id, false)}
-                      style={[styles.actionBtn, alumno.estado === false && {backgroundColor: '#ef4444'}]}
+                    <TouchableOpacity
+                      style={styles.pulseraBtn}
+                      onPress={() => descargarPulsera(alumno)}
                     >
-                      <MaterialCommunityIcons name="close" size={18} color={alumno.estado === false ? "#fff" : "#ef4444"} />
+                      <MaterialCommunityIcons name="download" size={14} color="#6366f1" />
+                      <Text style={styles.pulseraBtnText}>Pulsera</Text>
                     </TouchableOpacity>
                   </View>
+                ))}
+              </ScrollView>
+            )
+          )}
+
+          {/* ── TAB: ESCANEO ─────────────────────────────── */}
+          {activeTab === 'barcode' && (
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator>
+              {/* Input código manual */}
+              <View style={styles.barcodeSection}>
+                <Text style={styles.sectionLabel}>Ingresar código manualmente</Text>
+                <View style={styles.barcodeInputRow}>
+                  <View style={styles.barcodeInputWrap}>
+                    {Platform.OS === 'web' ? (
+                      <input
+                        type="text"
+                        placeholder="Ej: 12345678 2025"
+                        value={barcodeInput}
+                        onChange={e => setBarcodeInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && registrarPorCodigo()}
+                        style={{
+                          width: '100%', padding: 10, border: '1.5px solid #e2e8f0',
+                          borderRadius: 10, fontSize: 14, fontFamily: 'monospace',
+                          outline: 'none', boxSizing: 'border-box'
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <Text style={{ color: '#64748b', padding: 10 }}>Escáner disponible en web</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.scanBtn, scanLoading && { opacity: 0.6 }]}
+                    onPress={() => registrarPorCodigo()}
+                    disabled={scanLoading}
+                  >
+                    {scanLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <MaterialCommunityIcons name="send" size={18} color="#fff" />
+                    }
+                  </TouchableOpacity>
                 </View>
-              ))}
+
+                {/* Botón cámara */}
+                <TouchableOpacity
+                  style={[styles.cameraBtn, cameraActive && { backgroundColor: '#ef4444' }]}
+                  onPress={cameraActive ? stopCamera : startCamera}
+                >
+                  <MaterialCommunityIcons
+                    name={cameraActive ? 'camera-off' : 'camera'}
+                    size={18} color="#fff"
+                  />
+                  <Text style={styles.cameraBtnText}>
+                    {cameraActive ? 'Detener Cámara' : 'Escanear con Cámara'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Video de cámara */}
+                {cameraActive && Platform.OS === 'web' && (
+                  <View style={styles.cameraContainer}>
+                    <video
+                      ref={videoRef}
+                      style={{ width: '100%', borderRadius: 12, maxHeight: 180 }}
+                      playsInline
+                      muted
+                    />
+                    <Text style={styles.cameraHint}>Apuntá el código de barras a la cámara</Text>
+                  </View>
+                )}
+
+                {/* Mensaje de resultado */}
+                {scanMessage && (
+                  <View style={[styles.scanMsg, scanMessage.type === 'success' ? styles.scanMsgOk : styles.scanMsgErr]}>
+                    <Text style={styles.scanMsgText}>{scanMessage.text}</Text>
+                  </View>
+                )}
+
+                {/* Historial de escaneos */}
+                {scanHistory.length > 0 && (
+                  <View style={styles.historyBox}>
+                    <Text style={styles.historyTitle}>Últimos registros de hoy</Text>
+                    {scanHistory.map((s, i) => (
+                      <View key={i} style={styles.historyRow}>
+                        <MaterialCommunityIcons name="check-circle" size={16} color="#16a34a" />
+                        <Text style={styles.historyName}>{s.nombre}</Text>
+                        <Text style={styles.historyHora}>{s.hora}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
             </ScrollView>
           )}
 
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.saveBtn} onPress={guardarAsistencia} disabled={alumnos.length === 0}>
-              <MaterialCommunityIcons name="content-save-check" size={20} color="#fff" />
-              <Text style={styles.saveText}>GUARDAR ASISTENCIA</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeText}>CANCELAR</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Footer */}
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <Text style={styles.closeText}>CERRAR</Text>
+          </TouchableOpacity>
 
         </View>
       </View>
@@ -200,40 +385,76 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-  modalContainer: { 
-    backgroundColor: '#fff', width: '90%', maxWidth: 450,
-    borderRadius: 25, padding: 25, maxHeight: '85%', 
-    elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 15
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'center', alignItems: 'center' },
+  modalContainer: {
+    backgroundColor: '#fff', width: '93%', maxWidth: 480,
+    borderRadius: 28, padding: 24, maxHeight: '92%',
+    elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 16
   },
-  header: { marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  header: { marginBottom: 16, flexDirection: 'row', alignItems: 'flex-start' },
   title: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
-  subTitle: { fontSize: 13, color: '#009b3a', fontWeight: '800', marginTop: 4 },
+  subTitle: { fontSize: 13, color: '#009b3a', fontWeight: '800', marginTop: 3 },
   dateText: { fontSize: 11, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
-  summaryRow: { flexDirection: 'row', gap: 8, marginBottom: 15 },
+
+  summaryRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   summaryItem: { flex: 1, padding: 10, borderRadius: 12, alignItems: 'center' },
   summaryCount: { fontSize: 20, fontWeight: '900' },
   summaryLabel: { fontSize: 10, fontWeight: '700', color: '#64748b', marginTop: 2 },
-  emptyBox: { alignItems: 'center', paddingVertical: 30 },
-  emptyText: { color: '#94a3b8', fontWeight: '600', marginTop: 10 },
-  list: { marginBottom: 15 },
-  row: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' 
+
+  tabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginBottom: 14, gap: 4 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 8, gap: 5 },
+  tabActive: { backgroundColor: '#009b3a' },
+  tabText: { fontSize: 13, fontWeight: '800', color: '#64748b' },
+  tabTextActive: { color: '#fff' },
+
+  list: { maxHeight: 280, marginBottom: 12 },
+  row: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#f1f5f9'
   },
   alumnoLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  avatarText: { fontSize: 12, fontWeight: '800', color: '#64748b' },
-  alumnoName: { fontSize: 14, fontWeight: '700', color: '#334155', flex: 1 },
-  actions: { flexDirection: 'row', gap: 10 },
-  actionBtn: { 
-    width: 38, height: 38, borderRadius: 12, 
-    borderWidth: 2, borderColor: '#f1f5f9', 
-    justifyContent: 'center', alignItems: 'center' 
+  checkCircle: {
+    width: 26, height: 26, borderRadius: 13,
+    borderWidth: 2, borderColor: '#cbd5e1',
+    justifyContent: 'center', alignItems: 'center', marginRight: 10
   },
-  footer: { gap: 10 },
-  saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 15, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  saveText: { color: '#fff', fontWeight: '900', letterSpacing: 1 },
-  closeBtn: { padding: 10, alignItems: 'center' },
-  closeText: { color: '#64748b', fontWeight: '700' }
+  checkCircleActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
+  alumnoName: { fontSize: 14, fontWeight: '700', color: '#334155' },
+  presenteLabel: { fontSize: 10, color: '#16a34a', fontWeight: '700', marginTop: 1 },
+  pulseraBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#ede9fe', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8
+  },
+  pulseraBtnText: { fontSize: 11, fontWeight: '800', color: '#6366f1' },
+
+  emptyBox: { alignItems: 'center', paddingVertical: 30 },
+  emptyText: { color: '#94a3b8', fontWeight: '600', marginTop: 10 },
+
+  barcodeSection: { paddingBottom: 10 },
+  sectionLabel: { fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 8 },
+  barcodeInputRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  barcodeInputWrap: { flex: 1 },
+  scanBtn: {
+    backgroundColor: '#009b3a', paddingHorizontal: 14, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center'
+  },
+  cameraBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#6366f1', borderRadius: 10, padding: 11, gap: 8, marginBottom: 10
+  },
+  cameraBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  cameraContainer: { marginBottom: 10 },
+  cameraHint: { textAlign: 'center', color: '#64748b', fontSize: 11, marginTop: 4, fontStyle: 'italic' },
+  scanMsg: { borderRadius: 10, padding: 12, marginBottom: 10 },
+  scanMsgOk: { backgroundColor: '#f0fdf4' },
+  scanMsgErr: { backgroundColor: '#fef2f2' },
+  scanMsgText: { fontWeight: '700', fontSize: 13, color: '#1e293b' },
+  historyBox: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12 },
+  historyTitle: { fontSize: 11, fontWeight: '800', color: '#64748b', marginBottom: 8 },
+  historyRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, gap: 6 },
+  historyName: { flex: 1, fontSize: 13, fontWeight: '600', color: '#334155' },
+  historyHora: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+
+  closeBtn: { backgroundColor: '#f1f5f9', padding: 13, borderRadius: 14, alignItems: 'center', marginTop: 10 },
+  closeText: { color: '#475569', fontWeight: '900', letterSpacing: 0.5 },
 });

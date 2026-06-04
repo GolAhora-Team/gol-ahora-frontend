@@ -88,4 +88,20 @@ export const entrenamientoService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Entrenamientos/{entrenamientoId}/cliente/{clienteId}/pulsera
+   * Descarga el PDF de la pulsera con código de barras del alumno.
+   */
+  descargarPulsera: async (entrenamientoId, clienteId) => {
+    const response = await fetch(
+      `${URL}/${entrenamientoId}/cliente/${clienteId}/pulsera`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Error al generar la pulsera');
+    }
+    return await response.blob();
+  },
 };

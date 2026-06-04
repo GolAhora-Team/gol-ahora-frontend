@@ -1,11 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { claseService } from '../services/claseService';
 
-export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre }) {
+const abrirPdfBlob = (blob, filename) => {
+  if (Platform.OS === 'web') {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    Alert.alert('PDF', 'Descarga disponible solo en versión web.');
+  }
+};
+
+export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre, esEntrenamiento = false }) {
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     if (visible && claseId) {
@@ -17,18 +31,34 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
     setLoading(true);
     try {
       const clase = await claseService.getById(claseId);
-      // Asumimos que la clase tiene un array 'clientes' o 'alumnos'
       setAlumnos(clase?.clientes || clase?.alumnos || []);
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los alumnos.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDescargarPulsera = async (alumno) => {
+    setDownloadingId(alumno.id);
+    try {
+      let blob;
+      if (esEntrenamiento) {
+        const { entrenamientoService } = await import('../services/entrenamientoService');
+        blob = await entrenamientoService.descargarPulsera(claseId, alumno.id);
+      } else {
+        blob = await claseService.descargarPulsera(claseId, alumno.id);
+      }
+      abrirPdfBlob(blob, `Pulsera_${alumno.nombre}_${alumno.apellido}.pdf`);
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo generar la pulsera.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
@@ -68,6 +98,17 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
                         <Text style={styles.socioText}>SOCIO</Text>
                       </View>
                     )}
+                    {/* ── Botón descarga pulsera PDF ── */}
+                    <TouchableOpacity
+                      style={[styles.pulseraBtn, downloadingId === alumno.id && { opacity: 0.5 }]}
+                      onPress={() => handleDescargarPulsera(alumno)}
+                      disabled={downloadingId === alumno.id}
+                    >
+                      {downloadingId === alumno.id
+                        ? <ActivityIndicator size="small" color="#6366f1" />
+                        : <MaterialCommunityIcons name="download" size={18} color="#6366f1" />
+                      }
+                    </TouchableOpacity>
                   </View>
                 ))
               )}
@@ -89,16 +130,24 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
   subtitle: { fontSize: 14, fontWeight: '700', color: '#009b3a', marginTop: 2 },
-  alumnoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#009b3a', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  alumnoCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#f8fafc', padding: 13, borderRadius: 16, marginBottom: 10,
+    borderWidth: 1, borderColor: '#e2e8f0'
+  },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#009b3a', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   avatarText: { color: '#fff', fontWeight: '900', fontSize: 14 },
   alumnoInfo: { flex: 1 },
   alumnoName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
   alumnoDni: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  socioBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffb300', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  socioBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffb300', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: 8 },
   socioText: { fontSize: 10, fontWeight: '900', color: '#fff', marginLeft: 2 },
+  pulseraBtn: {
+    backgroundColor: '#ede9fe', width: 34, height: 34, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center'
+  },
   emptyContainer: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { color: '#94a3b8', marginTop: 10, fontWeight: '600' },
   closeBtn: { backgroundColor: '#f1f5f9', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
-  closeBtnText: { color: '#64748b', fontWeight: '900', fontSize: 14 }
+  closeBtnText: { color: '#64748b', fontWeight: '900', fontSize: 14 },
 });

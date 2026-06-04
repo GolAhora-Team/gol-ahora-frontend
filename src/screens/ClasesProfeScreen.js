@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import { http, API_BASE_URL } from '../services/apiConfig';
 import { asistenciaService } from '../services/asistenciaService';
+import { claseService } from '../services/claseService';
 
 export default function ClasesProfeScreen({ route, navigation }) {
   const { role, idPersona, nombreUsuario } = route.params || { role: "PROFE", idPersona: null, nombreUsuario: "" };
@@ -68,18 +69,36 @@ export default function ClasesProfeScreen({ route, navigation }) {
   };
 
   const saveAsistencia = async () => {
+    if (!selectedClase) return;
     try {
-      const payload = {
-        claseId: selectedClase.id,
-        fecha: `${asistenciaDate}T00:00:00.000Z`,
-        clientesPresentesIds: presentesIds
-      };
-      await asistenciaService.marcarAsistencia(payload);
+      // Registrar manualmente la asistencia de cada presente
+      const promises = presentesIds.map(clienteId =>
+        asistenciaService.registrarManual(selectedClase.id, clienteId, true)
+          .catch(() => null) // ignorar duplicados del mismo día
+      );
+      await Promise.all(promises);
       Alert.alert('Éxito', 'La asistencia fue registrada correctamente.');
       setAsistenciaModalVisible(false);
     } catch (e) {
       Alert.alert('Error', 'Hubo un error al guardar la asistencia.');
-      console.error(e);
+    }
+  };
+
+  const handleDescargarPulsera = async (clase, alumno) => {
+    try {
+      const blob = await claseService.descargarPulsera(clase.id, alumno.id);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Pulsera_${alumno.nombre}_${alumno.apellido}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert('Pulsera', 'Descarga disponible solo en la versión web.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo generar la pulsera.');
     }
   };
 
@@ -156,7 +175,13 @@ export default function ClasesProfeScreen({ route, navigation }) {
                         alumnos.map((alumno, index) => (
                           <View key={alumno.id || index} style={styles.alumnoRow}>
                             <MaterialCommunityIcons name="account" size={20} color="#009b3a" />
-                            <Text style={styles.alumnoName}>{alumno.nombre} {alumno.apellido}</Text>
+                            <Text style={[styles.alumnoName, { flex: 1 }]}>{alumno.nombre} {alumno.apellido}</Text>
+                            <TouchableOpacity
+                              style={styles.pulseraSmallBtn}
+                              onPress={() => handleDescargarPulsera(clase, alumno)}
+                            >
+                              <MaterialCommunityIcons name="download" size={14} color="#6366f1" />
+                            </TouchableOpacity>
                           </View>
                         ))
                       )}
@@ -241,6 +266,7 @@ const styles = StyleSheet.create({
   emptyAlumnosText: { color: '#94a3b8', fontStyle: 'italic', fontSize: 14 },
   alumnoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   alumnoName: { fontSize: 15, color: '#1e293b', marginLeft: 10, fontWeight: '500' },
+  pulseraSmallBtn: { backgroundColor: '#ede9fe', width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   takeAsistenciaBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   takeAsistenciaBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12, marginLeft: 6 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },

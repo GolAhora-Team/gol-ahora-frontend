@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator 
+  StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform 
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
@@ -10,6 +10,7 @@ import VerAlumnosModal from '../components/VerAlumnosModal';
 import CreateActivityModal from '../components/CreateActivityModal';
 import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
+import { profesorService } from '../services/profesorService';
 import { userService } from '../services/userService';
 
 export default function StaffScreen({ route, navigation }) {
@@ -28,6 +29,7 @@ export default function StaffScreen({ route, navigation }) {
   const [claseParaAlumnos, setClaseParaAlumnos] = useState(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createType, setCreateType] = useState('CLASE');
+  const [downloadingReporteId, setDownloadingReporteId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -107,6 +109,27 @@ export default function StaffScreen({ route, navigation }) {
   const abrirVerAlumnos = (clase) => {
     setClaseParaAlumnos(clase);
     setAlumnosModalVisible(true);
+  };
+
+  const handleDescargarReporteProfesor = async (profesorId, profesorNombre) => {
+    setDownloadingReporteId(profesorId);
+    try {
+      const blob = await profesorService.descargarReporte(profesorId);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Profesor_${profesorNombre || profesorId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert('Reporte', 'Descarga disponible solo en la versión web.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo generar el reporte.');
+    } finally {
+      setDownloadingReporteId(null);
+    }
   };
 
   if (loading) {
@@ -205,9 +228,23 @@ export default function StaffScreen({ route, navigation }) {
                   style={styles.asistenciaBtn} 
                   onPress={() => abrirAsistencia(item)}
                 >
+                  <MaterialCommunityIcons name="barcode-scan" size={14} color="#fff" />
                   <Text style={styles.btnText}>ASISTENCIA</Text>
                 </TouchableOpacity>
               </View>
+              {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && item.profesorId && (
+                <TouchableOpacity
+                  style={[styles.reporteBtn, downloadingReporteId === item.profesorId && { opacity: 0.5 }]}
+                  onPress={() => handleDescargarReporteProfesor(item.profesorId, item.profe)}
+                  disabled={downloadingReporteId === item.profesorId}
+                >
+                  {downloadingReporteId === item.profesorId
+                    ? <ActivityIndicator size="small" color="#f59e0b" />
+                    : <MaterialCommunityIcons name="file-account" size={14} color="#f59e0b" />
+                  }
+                  <Text style={styles.reporteBtnText}>REPORTE PROFE</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ))}
@@ -223,7 +260,8 @@ export default function StaffScreen({ route, navigation }) {
         visible={asistenciaModalVisible} 
         onClose={() => setAsistenciaModalVisible(false)} 
         claseId={claseSeleccionada?.id}
-        claseNombre={claseSeleccionada?.nombre || claseSeleccionada} 
+        claseNombre={claseSeleccionada?.nombre || claseSeleccionada}
+        esEntrenamiento={activeTab === 'ENTRENAMIENTOS'}
       />
 
       <AssignClassModal
@@ -237,6 +275,7 @@ export default function StaffScreen({ route, navigation }) {
         onClose={() => setAlumnosModalVisible(false)}
         claseId={claseParaAlumnos?.id}
         claseNombre={claseParaAlumnos?.nombre}
+        esEntrenamiento={activeTab === 'ENTRENAMIENTOS'}
       />
 
       <CreateActivityModal
@@ -268,11 +307,13 @@ const styles = StyleSheet.create({
   badgeContainer: { alignItems: 'flex-end' },
   alumnosBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 8 },
   badgeText: { fontSize: 11, fontWeight: '800', color: '#009b3a' },
-  btnRow: { flexDirection: 'row', gap: 8 },
-  asistenciaBtn: { backgroundColor: '#009b3a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  btnRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
+  asistenciaBtn: { backgroundColor: '#009b3a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 },
   verAlumnosBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1' },
   btnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
   btnTextInfo: { color: '#64748b', fontSize: 11, fontWeight: '900' },
+  reporteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fffbeb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', marginTop: 4 },
+  reporteBtnText: { color: '#f59e0b', fontSize: 10, fontWeight: '900' },
   emptyContainer: { marginTop: 50, alignItems: 'center' },
   emptyText: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.8 },
   tabsContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 4, marginBottom: 20 },

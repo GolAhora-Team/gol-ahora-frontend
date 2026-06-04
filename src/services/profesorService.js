@@ -51,4 +51,36 @@ export const profesorService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Profesor/{id}/reporte
+   * Descarga el PDF con el reporte/ficha del profesor.
+   */
+  descargarReporte: async (id) => {
+    const response = await fetch(
+      `${URL}/${id}/reporte`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Error al generar el reporte');
+    }
+    return await response.blob();
+  },
+
+  /**
+   * GET /api/Profesor/{id}/certificado/descargar
+   * Descarga el certificado del profesor.
+   */
+  descargarCertificado: async (id) => {
+    const response = await fetch(
+      `${URL}/${id}/certificado/descargar`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Error al descargar el certificado');
+    }
+    return await response.blob();
+  },
 };
