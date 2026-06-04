@@ -85,6 +85,8 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
       await partidoService.cargarResultado(editingMatch.id, {
         golesLocal: gl,
         golesVisitante: gv,
+        penalesLocal: (gl === gv && competicion?.tipo === 'TORNEO') ? penalesLocal : null,
+        penalesVisitante: (gl === gv && competicion?.tipo === 'TORNEO') ? penalesVisitante : null,
         ganadorId: ganadorId
       });
       
@@ -177,8 +179,8 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
               setEditingMatch(match);
               setGolesLocal(Number(match.golesLocal) || 0);
               setGolesVisitante(Number(match.golesVisitante) || 0);
-              setPenalesLocal(0);
-              setPenalesVisitante(0);
+              setPenalesLocal(match.penalesLocal != null ? Number(match.penalesLocal) : 0);
+              setPenalesVisitante(match.penalesVisitante != null ? Number(match.penalesVisitante) : 0);
             }}>
               <MaterialCommunityIcons name="pencil" size={16} color="#009b3a" />
             </TouchableOpacity>
@@ -188,7 +190,12 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         <View style={styles.teamRow}>
           <TeamShield primario={match.equipoLocalColorPrimario} secundario={match.equipoLocalColorSecundario} fallbackName={match.equipoLocalNombre} />
           <Text style={[styles.teamName, localWinner && styles.winnerName]}>{match.equipoLocalNombre || `Local ${match.equipoLocalId}`}</Text>
-          <Text style={[styles.scoreText, localWinner && styles.winnerScore]}>{isFinished ? match.golesLocal : '-'}</Text>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.scoreText, localWinner && styles.winnerScore]}>{isFinished ? match.golesLocal : '-'}</Text>
+            {isFinished && match.golesLocal === match.golesVisitante && match.penalesLocal != null && (
+              <Text style={{ fontSize: 10, color: '#009b3a', fontWeight: 'bold' }}>({match.penalesLocal})</Text>
+            )}
+          </View>
         </View>
         
         <View style={styles.divider} />
@@ -196,7 +203,12 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         <View style={styles.teamRow}>
           <TeamShield primario={match.equipoVisitanteColorPrimario} secundario={match.equipoVisitanteColorSecundario} fallbackName={match.equipoVisitanteNombre} />
           <Text style={[styles.teamName, visitWinner && styles.winnerName]}>{match.equipoVisitanteNombre || `Visitante ${match.equipoVisitanteId}`}</Text>
-          <Text style={[styles.scoreText, visitWinner && styles.winnerScore]}>{isFinished ? match.golesVisitante : '-'}</Text>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.scoreText, visitWinner && styles.winnerScore]}>{isFinished ? match.golesVisitante : '-'}</Text>
+            {isFinished && match.golesLocal === match.golesVisitante && match.penalesVisitante != null && (
+              <Text style={{ fontSize: 10, color: '#009b3a', fontWeight: 'bold' }}>({match.penalesVisitante})</Text>
+            )}
+          </View>
         </View>
       </View>
     );
