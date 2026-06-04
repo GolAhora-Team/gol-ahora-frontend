@@ -227,7 +227,8 @@ export default function UserScreen({ route, navigation }) {
             certificadoFechaVencimiento: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),
             especialidad: formData.especializacion || 'General',
             obraSocial: formData.obraSocial || 'Ninguna',
-            certificacion: formData.certificacion || 'Ninguna'
+            certificacion: formData.certificacion || 'Ninguna',
+            eliminarCertificado: formData.eliminarCertificado || false
           };
           await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
