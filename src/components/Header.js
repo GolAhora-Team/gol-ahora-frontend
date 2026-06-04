@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native'; 
+import { clearAuthToken } from '../services/apiConfig';
 import SettingsModal from './SettingsModal';
 import ConfirmModal from './ConfirmModal';
 import NotificationDropdown from './NotificationDropdown';
@@ -57,9 +58,16 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
 
     const checkToken = async () => {
       try {
-        const storedToken = Platform.OS === 'web' 
-          ? localStorage.getItem('GOL_AHORA_SESSION') 
-          : await AsyncStorage.getItem('userToken');
+        let storedToken = null;
+        if (Platform.OS === 'web') {
+          const session = localStorage.getItem('GOL_AHORA_SESSION');
+          if (session) {
+            const parsed = JSON.parse(session);
+            storedToken = parsed.token;
+          }
+        } else {
+          storedToken = await AsyncStorage.getItem('GOL_AHORA_TOKEN');
+        }
         if (storedToken) {
           setToken(storedToken);
           fetchUnreadCount(storedToken);
@@ -79,11 +87,12 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
     if (token) fetchUnreadCount();
   }, [token, isFocused]);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = async (tokenParam) => {
     try {
-      if (token && isFocused) {
+      const activeToken = tokenParam || token;
+      if (activeToken && isFocused) {
         fetch(`${API_BASE_URL}/Notificacion`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${activeToken}` }
         })
         .then(res => res.json())
         .then(data => {
@@ -111,6 +120,7 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
 
   const executeLogout = () => {
     setIsLoggingOut(true);
+    clearAuthToken();
     if (Platform.OS === 'web') {
       localStorage.removeItem('GOL_AHORA_SESSION');
     }

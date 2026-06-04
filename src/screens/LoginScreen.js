@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
+import { setAuthToken } from '../services/apiConfig';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   SafeAreaView, ScrollView, Dimensions, Platform,
@@ -138,6 +139,11 @@ const LoginScreen = ({ navigation, route }) => {
         password: password,
       });
 
+      // Guardar el token JWT para las peticiones autenticadas
+      if (response.token) {
+        await setAuthToken(response.token);
+      }
+
       // El backend retorna tipoUsuario como número (1: Cliente, 2: Profesor, 3: Administrador)
       let role = 'CLIENTE';
       if (response.tipoUsuario === 3) {
@@ -157,7 +163,8 @@ const LoginScreen = ({ navigation, route }) => {
         role: role.toUpperCase(),
         nombreUsuario,
         idPersona: response.idPersona,
-        idUsuario: response.idUsuario
+        idUsuario: response.idUsuario,
+        token: response.token
       };
 
       if (Platform.OS === 'web') {
