@@ -12,11 +12,10 @@ import { clienteService } from '../services/clienteService';
 
 export default function FacturacionScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
-  const [pagos, setPagos] = useState([]);
   const [comprobantesReservas, setComprobantesReservas] = useState([]);
   const [comprobantesMembresias, setComprobantesMembresias] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('RECIBOS');
+  const [activeTab, setActiveTab] = useState('COMPROBANTES');
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingComprobante, setViewingComprobante] = useState(null);
   const [sortDesc, setSortDesc] = useState(true);
@@ -28,51 +27,7 @@ export default function FacturacionScreen({ route, navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      let items = [];
 
-      try {
-        const facturas = await facturaService.getAll();
-        items = [...items, ...(facturas || []).map(f => ({
-          ...f, 
-          id: f.id?.toString(),
-          concepto: f.concepto || 'Factura',
-          monto: f.total || 0,
-          fecha: f.fechaEmision ? new Date(f.fechaEmision).toLocaleDateString() : '-',
-          metodo: '-',
-          estado: 'EMITIDA'
-        }))];
-      } catch (e) { /* facturas endpoint puede fallar */ }
-
-      try {
-        const pagosData = await pagoService.getAll();
-        
-        const getMetodo = (m) => {
-          if (m === 1 || m === 'Efectivo') return 'Efectivo';
-          if (m === 2 || m === 'Tarjeta') return 'Tarjeta';
-          if (m === 3 || m === 'Transferencia') return 'Transferencia';
-          return 'Otro';
-        };
-
-        const getEstado = (e) => {
-          if (e === 1 || e === 'Pendiente') return 'PENDIENTE';
-          if (e === 2 || e === 'Pagado') return 'PAGADO';
-          if (e === 3 || e === 'Cancelado') return 'CANCELADO';
-          if (e === 4 || e === 'Reintegro') return 'REINTEGRO';
-          return 'DESCONOCIDO';
-        };
-
-        items = [...items, ...(pagosData || []).map(p => ({
-          ...p, 
-          id: p.id?.toString(),
-          concepto: 'Pago de Reserva',
-          monto: p.monto || 0,
-          fecha: p.fechaPago ? new Date(p.fechaPago).toLocaleDateString() : '-',
-          metodo: getMetodo(p.metodo),
-          estado: getEstado(p.estado)
-        }))];
-      } catch (e) { /* pagos endpoint puede fallar */ }
-
-      setPagos(items);
 
       // Cargar comprobantes de reservas
       try {
@@ -245,13 +200,6 @@ export default function FacturacionScreen({ route, navigation }) {
       {/* Tabs */}
       <View style={styles.tabRow}>
         <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'RECIBOS' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('RECIBOS')}
-        >
-          <MaterialCommunityIcons name="cash-register" size={18} color={activeTab === 'RECIBOS' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'RECIBOS' && { color: '#fff' }]}>Recibos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'COMPROBANTES' && styles.tabBtnActive]}
           onPress={() => setActiveTab('COMPROBANTES')}
         >
@@ -268,49 +216,7 @@ export default function FacturacionScreen({ route, navigation }) {
       </View>
       
       <ScrollView showsVerticalScrollIndicator={true}>
-        {activeTab === 'RECIBOS' ? (
-          <>
-            {pagos.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="cash-remove" size={50} color="#94a3b8" />
-                <Text style={styles.emptyText}>No hay recibos registrados.</Text>
-              </View>
-            ) : (
-              pagos.map(pago => (
-                <View key={pago.id} style={styles.pagoCard}>
-                  <View style={styles.pagoInfo}>
-                    <Text style={styles.pagoConcepto}>{pago.concepto}</Text>
-                    <Text style={styles.pagoMeta}>{pago.fecha} • {pago.metodo}</Text>
-                    <Text style={[styles.pagoEstado, { color: pago.estado === 'PAGADO' ? '#009b3a' : '#ffb300' }]}>
-                      {pago.estado}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.pagoAction}>
-                    <Text style={styles.pagoMonto}>${pago.monto}</Text>
-                    
-                    <TouchableOpacity 
-                      style={styles.printButton}
-                      onPress={async () => {
-                        // Descargar el PDF del recibo usando expo-sharing o Linking si es web
-                        const reciboUrl = `http://localhost:5031/api/Recibo/GenerarPdf/${pago.id}`; // O la URL de tu backend
-                        if (Platform.OS === 'web') {
-                          window.open(reciboUrl, '_blank');
-                        } else {
-                          // TODO: Usar expo-file-system para descargar y compartir si es en móvil
-                          Alert.alert('Recibo', 'La URL del recibo es: ' + reciboUrl);
-                        }
-                      }}
-                    >
-                      <MaterialCommunityIcons name="file-pdf-box" size={26} color="#009b3a" />
-                      <Text style={styles.printLabel}>RECIBO PDF</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-          </>
-        ) : activeTab === 'COMPROBANTES' ? (
+        {activeTab === 'COMPROBANTES' ? (
           <>
             {comprobantesReservas.length > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
