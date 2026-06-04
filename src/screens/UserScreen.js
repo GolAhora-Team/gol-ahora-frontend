@@ -17,6 +17,17 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from '../services/apiConfig';
 
+// Helper: convierte un blob URI a un File real para web FormData
+const uriToFile = async (uri, name, mimeType) => {
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new File([blob], name, { type: mimeType });
+  }
+  // En React Native, el objeto {uri, name, type} funciona directamente
+  return { uri, name, type: mimeType };
+};
+
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
 
@@ -127,6 +138,7 @@ export default function UserScreen({ route, navigation }) {
         ...user, 
         fechaNacimiento: fecha, 
         tieneObraSocial: hasObraSocial,
+        especializacion: user.especialidad || user.especializacion || '',
         certFechaInicio: certInicio,
         certFechaFin: certFin,
         sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaVencimiento && user.tieneCertificado,
@@ -222,6 +234,7 @@ export default function UserScreen({ route, navigation }) {
           formPayload.append('ContactoEmergencia', formData.contactoEmergencia);
           formPayload.append('Email', formData.email);
           formPayload.append('Especialidad', formData.especializacion || 'General');
+          formPayload.append('ObraSocial', formData.obraSocial || 'Ninguna');
           formPayload.append('Certificacion', formData.certificadoFile !== 'Certificado Guardado' ? (formData.certificadoFile || 'Ninguna') : 'Ninguna');
           
           const certFechaInicio = formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null;
@@ -231,11 +244,8 @@ export default function UserScreen({ route, navigation }) {
           if (certFechaFin) formPayload.append('CertificadoFechaVencimiento', certFechaFin);
 
           if (formData.fileUri) {
-            formPayload.append('CertificadoArchivo', {
-              uri: formData.fileUri,
-              name: formData.certificadoFile,
-              type: formData.fileMimeType || 'application/pdf'
-            });
+            const fileObj = await uriToFile(formData.fileUri, formData.certificadoFile, formData.fileMimeType || 'application/pdf');
+            formPayload.append('CertificadoArchivo', fileObj);
           }
 
           await profesorService.updateSimple(formData.id, formPayload);
@@ -295,11 +305,8 @@ export default function UserScreen({ route, navigation }) {
           if (mappedData.certificadoFechaFin) formPayload.append('CertificadoFechaVencimiento', mappedData.certificadoFechaFin);
 
           if (formData.fileUri) {
-            formPayload.append('CertificadoArchivo', {
-              uri: formData.fileUri,
-              name: formData.certificadoFile,
-              type: formData.fileMimeType || 'application/pdf'
-            });
+            const fileObj = await uriToFile(formData.fileUri, formData.certificadoFile, formData.fileMimeType || 'application/pdf');
+            formPayload.append('CertificadoArchivo', fileObj);
           }
 
           await userService.createUsuarioProfesor(formPayload);

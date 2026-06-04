@@ -345,7 +345,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                       {formData.certificadoFile ? formData.certificadoFile : "Seleccionar Archivo"}
                     </Text>
                   </TouchableOpacity>
-                  {(formData.tieneCertificado || formData.id) && formData.certificadoFile === 'Certificado Guardado' && (
+                  {formData.tieneCertificado && !formData.fileUri && (
                     <TouchableOpacity 
                       style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
                       onPress={() => window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/descargar`, '_blank')}
