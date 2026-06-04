@@ -9,6 +9,7 @@ import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
 import ConfirmModal from '../components/ConfirmModal';
 import DescuentosModal from '../components/DescuentosModal';
+import PreciosModal from '../components/PreciosModal';
 import { canchaService } from '../services/canchaService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -33,6 +34,7 @@ export default function CanchaScreen({ route, navigation }) {
   const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
   const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
   const [descuentosModalVisible, setDescuentosModalVisible] = useState(false);
+  const [preciosModalVisible, setPreciosModalVisible] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -295,6 +297,10 @@ export default function CanchaScreen({ route, navigation }) {
             )}
             {canModify && (
                 <>
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center' }]} onPress={() => setPreciosModalVisible(true)}>
+                      <MaterialCommunityIcons name="cash-multiple" size={24} color="#fff" />
+                      <Text style={{ fontWeight: '900', color: '#fff', marginLeft: 5 }}>PRECIOS</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={[styles.reportButton, { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center' }]} onPress={() => setDescuentosModalVisible(true)}>
                       <MaterialCommunityIcons name="percent" size={24} color="#fff" />
                       <Text style={{ fontWeight: '900', color: '#fff', marginLeft: 5 }}>DESCUENTOS</Text>
@@ -367,6 +373,12 @@ export default function CanchaScreen({ route, navigation }) {
       <DescuentosModal
         visible={descuentosModalVisible}
         onClose={() => setDescuentosModalVisible(false)}
+      />
+
+      <PreciosModal
+        visible={preciosModalVisible}
+        onClose={() => setPreciosModalVisible(false)}
+        onPreciosUpdated={loadCanchas}
       />
     </ScreenTemplate>
   );
