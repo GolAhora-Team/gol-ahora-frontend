@@ -25,8 +25,10 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
 
   // Edit match result state
   const [editingMatch, setEditingMatch] = useState(null);
-  const [golesLocal, setGolesLocal] = useState('');
-  const [golesVisitante, setGolesVisitante] = useState('');
+  const [golesLocal, setGolesLocal] = useState(0);
+  const [golesVisitante, setGolesVisitante] = useState(0);
+  const [penalesLocal, setPenalesLocal] = useState(0);
+  const [penalesVisitante, setPenalesVisitante] = useState(0);
 
   useEffect(() => {
     if (visible && competicion) {
@@ -69,13 +71,16 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
   const handleSaveResult = async () => {
     if (!editingMatch) return;
     try {
-      const gl = parseInt(golesLocal) || 0;
-      const gv = parseInt(golesVisitante) || 0;
+      const gl = golesLocal;
+      const gv = golesVisitante;
       let ganadorId = null;
+      
       if (gl > gv) ganadorId = editingMatch.equipoLocalId;
       else if (gv > gl) ganadorId = editingMatch.equipoVisitanteId;
-      // Si es empate en torneo, habría penales (asumiremos que cargan los goles de penales o definen ganador). 
-      // Por ahora, dejamos ganadorId null si empatan en Liga.
+      else if (competicion?.tipo === 'TORNEO') {
+        if (penalesLocal > penalesVisitante) ganadorId = editingMatch.equipoLocalId;
+        else if (penalesVisitante > penalesLocal) ganadorId = editingMatch.equipoVisitanteId;
+      }
 
       await partidoService.cargarResultado(editingMatch.id, {
         golesLocal: gl,
@@ -98,6 +103,28 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
     if (max === '8') return [2, 3, 4];
     return [3, 4];
   };
+
+  const getTeamColor = (name) => {
+    if (!name || name.startsWith('Local') || name.startsWith('Visit') || name === 'Por definir') return '#1e293b';
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+  };
+
+  const renderCounter = (value, setValue) => (
+    <View style={styles.counterContainer}>
+      <TouchableOpacity onPress={() => value > 0 && setValue(value - 1)} style={styles.counterBtn}>
+        <MaterialCommunityIcons name="minus" size={20} color="#64748b" />
+      </TouchableOpacity>
+      <Text style={styles.counterText}>{value}</Text>
+      <TouchableOpacity onPress={() => setValue(value + 1)} style={styles.counterBtn}>
+        <MaterialCommunityIcons name="plus" size={20} color="#64748b" />
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderMatchCard = (match, index, faseId) => {
     const isMock = !match || match.isMock;
@@ -139,7 +166,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         </View>
 
         <View style={styles.teamRow}>
-          <MaterialCommunityIcons name="shield" size={20} color="#1e293b" />
+          <MaterialCommunityIcons name="shield" size={20} color={getTeamColor(match.equipoLocalNombre)} />
           <Text style={[styles.teamName, localWinner && styles.winnerName]}>{match.equipoLocalNombre || `Local ${match.equipoLocalId}`}</Text>
           <Text style={[styles.scoreText, localWinner && styles.winnerScore]}>{isFinished ? match.golesLocal : '-'}</Text>
         </View>
@@ -147,7 +174,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         <View style={styles.divider} />
         
         <View style={styles.teamRow}>
-          <MaterialCommunityIcons name="shield" size={20} color="#1e293b" />
+          <MaterialCommunityIcons name="shield" size={20} color={getTeamColor(match.equipoVisitanteNombre)} />
           <Text style={[styles.teamName, visitWinner && styles.winnerName]}>{match.equipoVisitanteNombre || `Visitante ${match.equipoVisitanteId}`}</Text>
           <Text style={[styles.scoreText, visitWinner && styles.winnerScore]}>{isFinished ? match.golesVisitante : '-'}</Text>
         </View>
@@ -170,18 +197,35 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
             displayMatches.push(matches[i] || null);
           }
 
+          const matchPairs = [];
+          for (let i = 0; i < expected; i += 2) {
+            matchPairs.push([displayMatches[i], displayMatches[i+1]]);
+          }
+
           return (
             <View key={`col-${faseId}`} style={styles.bracketColumn}>
               <View style={styles.colHeader}>
                 <Text style={styles.colTitle}>{FASE_NAMES[faseId]}</Text>
               </View>
               <View style={styles.colMatches}>
-                {displayMatches.map((m, idx) => (
-                  <View key={`wrap-${faseId}-${idx}`} style={styles.matchWrapper}>
-                    {renderMatchCard(m, idx, faseId)}
-                    {/* Visual Connector Line if not final */}
-                    {faseId !== 4 && (
-                      <View style={styles.connector} />
+                {matchPairs.map((pair, pIdx) => (
+                  <View key={`pair-${faseId}-${pIdx}`} style={styles.matchPairContainer}>
+                    <View style={styles.matchWrapper}>
+                      {renderMatchCard(pair[0], pIdx * 2, faseId)}
+                    </View>
+                    {pair[1] && (
+                      <View style={styles.matchWrapper}>
+                        {renderMatchCard(pair[1], pIdx * 2 + 1, faseId)}
+                      </View>
+                    )}
+                    {faseId !== 4 && pair[1] && (
+                      <View style={styles.connectorBracket} />
+                    )}
+                    {faseId !== 4 && pair[1] && (
+                      <View style={styles.connectorToNext} />
+                    )}
+                    {faseId !== 4 && !pair[1] && (
+                      <View style={styles.connectorStraight} />
                     )}
                   </View>
                 ))}
@@ -325,23 +369,27 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
                 
                 <View style={styles.editRow}>
                   <Text style={styles.editTeam}>{editingMatch.equipoLocalNombre || 'Local'}</Text>
-                  <TextInput 
-                    style={styles.scoreInput}
-                    value={golesLocal}
-                    onChangeText={setGolesLocal}
-                    keyboardType="numeric"
-                  />
+                  {renderCounter(golesLocal, setGolesLocal)}
                 </View>
 
                 <View style={styles.editRow}>
                   <Text style={styles.editTeam}>{editingMatch.equipoVisitanteNombre || 'Visitante'}</Text>
-                  <TextInput 
-                    style={styles.scoreInput}
-                    value={golesVisitante}
-                    onChangeText={setGolesVisitante}
-                    keyboardType="numeric"
-                  />
+                  {renderCounter(golesVisitante, setGolesVisitante)}
                 </View>
+
+                {golesLocal === golesVisitante && competicion?.tipo === 'TORNEO' && (
+                  <View style={styles.penalesContainer}>
+                    <Text style={styles.penalesTitle}>Penales</Text>
+                    <View style={styles.editRow}>
+                      <Text style={styles.editTeam}>{editingMatch.equipoLocalNombre || 'Local'}</Text>
+                      {renderCounter(penalesLocal, setPenalesLocal)}
+                    </View>
+                    <View style={styles.editRow}>
+                      <Text style={styles.editTeam}>{editingMatch.equipoVisitanteNombre || 'Visitante'}</Text>
+                      {renderCounter(penalesVisitante, setPenalesVisitante)}
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.editActions}>
                   <TouchableOpacity style={[styles.editBtn, { backgroundColor: '#cbd5e1' }]} onPress={() => setEditingMatch(null)}>
@@ -420,17 +468,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-around',
   },
+  matchPairContainer: {
+    justifyContent: 'space-around',
+    flex: 1,
+    position: 'relative'
+  },
   matchWrapper: {
     position: 'relative',
     marginVertical: 10,
+    zIndex: 2,
   },
-  connector: {
+  connectorBracket: {
+    position: 'absolute',
+    right: -15,
+    top: '25%',
+    bottom: '25%',
+    width: 15,
+    borderRightWidth: 2,
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: '#cbd5e1',
+    borderLeftWidth: 0,
+    zIndex: 1,
+  },
+  connectorToNext: {
+    position: 'absolute',
+    right: -30,
+    top: '50%',
+    width: 15,
+    height: 2,
+    backgroundColor: '#cbd5e1',
+    zIndex: 1,
+  },
+  connectorStraight: {
     position: 'absolute',
     right: -30,
     top: '50%',
     width: 30,
     height: 2,
     backgroundColor: '#cbd5e1',
+    zIndex: 1,
   },
   
   // Match Card
@@ -486,7 +563,11 @@ const styles = StyleSheet.create({
   editTitle: { fontSize: 18, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
   editRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 },
   editTeam: { fontSize: 15, fontWeight: '700', color: '#1e293b', flex: 1 },
-  scoreInput: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, width: 60, textAlign: 'center', fontSize: 18, fontWeight: '800', padding: 5 },
+  counterContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  counterBtn: { padding: 8 },
+  counterText: { width: 30, textAlign: 'center', fontSize: 18, fontWeight: '800', color: '#1e293b' },
+  penalesContainer: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  penalesTitle: { fontSize: 14, fontWeight: '800', color: '#009b3a', marginBottom: 10, textAlign: 'center', textTransform: 'uppercase' },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 10 },
   editBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   acceptBtn: { backgroundColor: '#009b3a', margin: 20, padding: 15, borderRadius: 12, alignItems: 'center' },
