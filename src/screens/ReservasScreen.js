@@ -96,7 +96,32 @@ export default function ReservaScreen({ route, navigation }) {
               if (extRef) {
                 try {
                   const { mercadoPagoService } = await import('../services/mercadoPagoService');
-                  await mercadoPagoService.checkPaymentStatus(extRef);
+                  const isApproved = await mercadoPagoService.checkPaymentStatus(extRef);
+                  
+                  if (isApproved) {
+                    const { reservaService } = await import('../services/reservaService');
+                    const { pagoService } = await import('../services/pagoService');
+                    
+                    if (pending.reservaId) {
+                       try {
+                          const reservas = await reservaService.getAll();
+                          const r = reservas.find(x => x.id?.toString() === pending.reservaId?.toString() || x.Id?.toString() === pending.reservaId?.toString());
+                          if (r) {
+                              await reservaService.update(r.id || r.Id, { ...r, estado: 'Confirmada', Estado: 1 });
+                          }
+                       } catch(e) { console.log('Error update res', e); }
+                    }
+                    
+                    if (pending.pagoId) {
+                       try {
+                          const pagos = await pagoService.getAll();
+                          const p = pagos.find(x => x.id?.toString() === pending.pagoId?.toString() || x.Id?.toString() === pending.pagoId?.toString());
+                          if (p) {
+                              await pagoService.update(p.id || p.Id, { ...p, estado: 2 });
+                          }
+                       } catch(e) { console.log('Error update pago', e); }
+                    }
+                  }
                 } catch (err) {
                   console.log('Error manual check:', err);
                 }
