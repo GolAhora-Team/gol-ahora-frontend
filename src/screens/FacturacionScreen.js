@@ -189,8 +189,8 @@ export default function FacturacionScreen({ route, navigation }) {
           <div class="info-grid">
             <div class="row"><span class="label">N° Factura</span> <span class="value">#${factura.id}</span></div>
             <div class="row"><span class="label">Cliente</span> <span class="value">${nombreCliente}</span></div>
-            <div class="row"><span class="label">Fecha de Emisión</span> <span class="value">${fecha.toLocaleDateString('es-AR')}</span></div>
-            <div class="row"><span class="label">Hora</span> <span class="value">${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+            <div class="row"><span class="label">Fecha de Emisión</span> <span class="value">${fecha.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</span></div>
+            <div class="row"><span class="label">Hora</span> <span class="value">${fecha.toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false })} hs</span></div>
             <div class="row"><span class="label">Concepto</span> <span class="value">Suscripción Socio Activo</span></div>
             <div class="total-row">
               <span class="total-label">TOTAL ABONADO</span>
@@ -198,7 +198,7 @@ export default function FacturacionScreen({ route, navigation }) {
             </div>
           </div>
           <div class="footer">
-            Generado automáticamente por Gol Ahora - ${fecha.toLocaleDateString('es-AR')}
+            Generado automáticamente por Gol Ahora - ${fecha.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
           </div>
         </body>
       </html>
@@ -401,7 +401,7 @@ export default function FacturacionScreen({ route, navigation }) {
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={styles.comprobanteName}>{comp.fileName || 'Comprobante de Membresía'}</Text>
                       <Text style={styles.comprobanteFecha}>
-                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString()}
+                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
                       </Text>
                     </View>
                   </View>
