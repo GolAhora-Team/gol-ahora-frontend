@@ -14,7 +14,7 @@ export default function FacturacionScreen({ route, navigation }) {
   const [pagos, setPagos] = useState([]);
   const [comprobantesReservas, setComprobantesReservas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('PAGOS');
+  const [activeTab, setActiveTab] = useState('RECIBOS');
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingComprobante, setViewingComprobante] = useState(null);
   const [sortDesc, setSortDesc] = useState(true);
@@ -141,11 +141,11 @@ export default function FacturacionScreen({ route, navigation }) {
       {/* Tabs */}
       <View style={styles.tabRow}>
         <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'PAGOS' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('PAGOS')}
+          style={[styles.tabBtn, activeTab === 'RECIBOS' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('RECIBOS')}
         >
-          <MaterialCommunityIcons name="cash-register" size={18} color={activeTab === 'PAGOS' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'PAGOS' && { color: '#fff' }]}>Pagos</Text>
+          <MaterialCommunityIcons name="cash-register" size={18} color={activeTab === 'RECIBOS' ? '#fff' : '#009b3a'} />
+          <Text style={[styles.tabText, activeTab === 'RECIBOS' && { color: '#fff' }]}>Recibos</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'COMPROBANTES' && styles.tabBtnActive]}
@@ -157,12 +157,12 @@ export default function FacturacionScreen({ route, navigation }) {
       </View>
       
       <ScrollView showsVerticalScrollIndicator={true}>
-        {activeTab === 'PAGOS' ? (
+        {activeTab === 'RECIBOS' ? (
           <>
             {pagos.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="cash-remove" size={50} color="#94a3b8" />
-                <Text style={styles.emptyText}>No hay pagos registrados.</Text>
+                <Text style={styles.emptyText}>No hay recibos registrados.</Text>
               </View>
             ) : (
               pagos.map(pago => (
@@ -178,13 +178,21 @@ export default function FacturacionScreen({ route, navigation }) {
                   <View style={styles.pagoAction}>
                     <Text style={styles.pagoMonto}>${pago.monto}</Text>
                     
-                    {/* ✅ Llamamos a la función de impresión pasando el objeto del pago */}
                     <TouchableOpacity 
                       style={styles.printButton}
-                      onPress={() => GenerarImpresion(pago)}
+                      onPress={async () => {
+                        // Descargar el PDF del recibo usando expo-sharing o Linking si es web
+                        const reciboUrl = `http://localhost:5031/api/Recibo/GenerarPdf/${pago.id}`; // O la URL de tu backend
+                        if (Platform.OS === 'web') {
+                          window.open(reciboUrl, '_blank');
+                        } else {
+                          // TODO: Usar expo-file-system para descargar y compartir si es en móvil
+                          Alert.alert('Recibo', 'La URL del recibo es: ' + reciboUrl);
+                        }
+                      }}
                     >
-                      <MaterialCommunityIcons name="printer-pos-outline" size={26} color="#009b3a" />
-                      <Text style={styles.printLabel}>RECIBO</Text>
+                      <MaterialCommunityIcons name="file-pdf-box" size={26} color="#009b3a" />
+                      <Text style={styles.printLabel}>RECIBO PDF</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
