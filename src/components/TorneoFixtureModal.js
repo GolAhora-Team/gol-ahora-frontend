@@ -114,6 +114,24 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
     return '#' + '00000'.substring(0, 6 - c.length) + c;
   };
 
+  const TeamShield = ({ primario, secundario, fallbackName }) => {
+    let c1 = primario;
+    let c2 = secundario;
+    
+    if (!c1 || !c2) {
+      const fb = getTeamColor(fallbackName);
+      c1 = c1 || fb;
+      c2 = c2 || '#cbd5e1';
+    }
+
+    return (
+      <View style={{ width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+        <MaterialCommunityIcons name="shield" size={20} color={c2} style={{ position: 'absolute' }} />
+        <MaterialCommunityIcons name="shield-half-full" size={20} color={c1} style={{ position: 'absolute' }} />
+      </View>
+    );
+  };
+
   const renderCounter = (value, setValue) => (
     <View style={styles.counterContainer}>
       <TouchableOpacity onPress={() => value > 0 && setValue(value - 1)} style={styles.counterBtn}>
@@ -168,7 +186,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         </View>
 
         <View style={styles.teamRow}>
-          <MaterialCommunityIcons name="shield" size={20} color={getTeamColor(match.equipoLocalNombre)} />
+          <TeamShield primario={match.equipoLocalColorPrimario} secundario={match.equipoLocalColorSecundario} fallbackName={match.equipoLocalNombre} />
           <Text style={[styles.teamName, localWinner && styles.winnerName]}>{match.equipoLocalNombre || `Local ${match.equipoLocalId}`}</Text>
           <Text style={[styles.scoreText, localWinner && styles.winnerScore]}>{isFinished ? match.golesLocal : '-'}</Text>
         </View>
@@ -176,7 +194,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         <View style={styles.divider} />
         
         <View style={styles.teamRow}>
-          <MaterialCommunityIcons name="shield" size={20} color={getTeamColor(match.equipoVisitanteNombre)} />
+          <TeamShield primario={match.equipoVisitanteColorPrimario} secundario={match.equipoVisitanteColorSecundario} fallbackName={match.equipoVisitanteNombre} />
           <Text style={[styles.teamName, visitWinner && styles.winnerName]}>{match.equipoVisitanteNombre || `Visitante ${match.equipoVisitanteId}`}</Text>
           <Text style={[styles.scoreText, visitWinner && styles.winnerScore]}>{isFinished ? match.golesVisitante : '-'}</Text>
         </View>
@@ -189,9 +207,10 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
     const dataToUse = demoMode ? generateMockPartidosTorneo(columns) : partidos;
 
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.bracketContainer}>
-        {columns.map(faseId => {
-          const matches = dataToUse.filter(p => p.fase === faseId);
+      <ScrollView showsVerticalScrollIndicator={true} style={{flex: 1}}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.bracketContainer}>
+          {columns.map(faseId => {
+            const matches = dataToUse.filter(p => p.fase === faseId);
           const expected = FASE_MATCH_COUNT[faseId] || 1;
           const displayMatches = [];
           
@@ -233,8 +252,8 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
                 ))}
               </View>
             </View>
-          );
-        })}
+          })}
+        </ScrollView>
       </ScrollView>
     );
   };
