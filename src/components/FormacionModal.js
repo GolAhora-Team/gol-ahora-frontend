@@ -366,10 +366,8 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
   ]);
   const jugadoresDisponibles = jugadores.filter(j => !asignadosIds.has(j.id));
   
-  // Filtrar jugadores por posición estricta para el slot activo
-  const jugadoresFiltrados = slotActivo 
-    ? jugadoresDisponibles.filter(j => j.posicion === slotActivo.posNum)
-    : [];
+  // Ahora un jugador puede jugar en cualquier posición, no hay filtro estricto
+  const jugadoresFiltrados = slotActivo ? jugadoresDisponibles : [];
 
   const handleSlotPress = (slot) => {
     const yaAsignado = asignaciones[slot.id];
@@ -761,20 +759,20 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
                 Asignar a posición {slotActivo?.rol}
               </Text>
               <Text style={styles.pickerSub}>
-                Solo se muestran jugadores que juegan de {slotActivo?.rol}
+                Seleccioná un jugador disponible para esta posición
               </Text>
 
               {jugadoresFiltrados.length === 0 ? (
                 <View style={{ alignItems: 'center', paddingVertical: 20 }}>
                   <MaterialCommunityIcons name="account-off-outline" size={40} color="#cbd5e1" />
                   <Text style={{ color: '#94a3b8', marginTop: 10, fontWeight: '600', textAlign: 'center' }}>
-                    No hay jugadores disponibles para la posición {slotActivo?.rol}
+                    No hay jugadores disponibles para asignar
                   </Text>
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={true}>
                   {jugadoresFiltrados.map(j => {
-                    const posColor = POSICION_COLORS[POSICION_LABELS[j.posicion]] || '#94a3b8';
+                    const posColor = '#94a3b8';
                     return (
                       <TouchableOpacity
                         key={j.id}
