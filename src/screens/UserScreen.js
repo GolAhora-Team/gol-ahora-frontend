@@ -220,36 +220,16 @@ export default function UserScreen({ route, navigation }) {
             });
           }
         } else if (formData.role === 'PROFE') {
-          const formPayload = new FormData();
-          formPayload.append('Dni', formData.dni);
-          formPayload.append('Nombre', formData.nombre);
-          formPayload.append('Apellido', formData.apellido);
-          formPayload.append('Genero', formData.genero);
-          formPayload.append('FechaNacimiento', dateStr);
-          formPayload.append('Telefono', formData.telefono);
-          formPayload.append('Direccion', formData.direccion);
-          formPayload.append('Localidad', formData.localidad);
-          formPayload.append('CodigoPostal', formData.codigoPostal);
-          formPayload.append('Provincia', formData.provincia);
-          formPayload.append('Pais', formData.pais);
-          formPayload.append('ContactoEmergencia', formData.contactoEmergencia);
-          formPayload.append('Email', formData.email);
-          formPayload.append('Especialidad', formData.especializacion || 'General');
-          formPayload.append('ObraSocial', formData.obraSocial || 'Ninguna');
-          formPayload.append('Certificacion', formData.certificacion || 'Ninguna');
-          
-          const certFechaInicio = formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null;
-          const certFechaFin = formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null);
-
-          if (certFechaInicio) formPayload.append('CertificadoFechaInicio', certFechaInicio);
-          if (certFechaFin) formPayload.append('CertificadoFechaVencimiento', certFechaFin);
-
-          if (formData.fileUri) {
-            const fileObj = await uriToFile(formData.fileUri, formData.certificadoFile, formData.fileMimeType || 'application/pdf');
-            formPayload.append('CertificadoArchivo', fileObj);
-          }
-
-          await profesorService.updateSimple(formData.id, formPayload);
+          const payloadProfe = {
+            ...payloadToSave,
+            certificadoBase64: formData.certificadoBase64,
+            certificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
+            certificadoFechaVencimiento: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),
+            especialidad: formData.especializacion || 'General',
+            obraSocial: formData.obraSocial || 'Ninguna',
+            certificacion: formData.certificacion || 'Ninguna'
+          };
+          await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           await administradorService.updateSimple(formData.id, payloadToSave);
         }
@@ -283,34 +263,30 @@ export default function UserScreen({ route, navigation }) {
           payload.cliente = mappedData;
           await userService.createUsuarioCliente(payload);
         } else if (formData.role === 'PROFE') {
-          const formPayload = new FormData();
-          formPayload.append('Email', formData.dni.toString());
-          formPayload.append('Password', "1234");
-          formPayload.append('Username', formData.dni.toString());
-          formPayload.append('Dni', mappedData.dni);
-          formPayload.append('Nombre', mappedData.nombre);
-          formPayload.append('Apellido', mappedData.apellido);
-          formPayload.append('Genero', mappedData.genero);
-          formPayload.append('FechaNacimiento', mappedData.fechaNacimiento);
-          formPayload.append('Telefono', mappedData.telefono);
-          formPayload.append('Direccion', mappedData.direccion);
-          formPayload.append('Localidad', mappedData.localidad);
-          formPayload.append('CodigoPostal', mappedData.codigoPostal);
-          formPayload.append('Provincia', mappedData.provincia);
-          formPayload.append('Pais', mappedData.pais);
-          formPayload.append('ContactoEmergencia', mappedData.contactoEmergencia);
-          formPayload.append('Certificacion', mappedData.certificacion);
-          formPayload.append('Especialidad', mappedData.especialidad);
-          
-          if (mappedData.certificadoFechaInicio) formPayload.append('CertificadoFechaInicio', mappedData.certificadoFechaInicio);
-          if (mappedData.certificadoFechaFin) formPayload.append('CertificadoFechaVencimiento', mappedData.certificadoFechaFin);
-
-          if (formData.fileUri) {
-            const fileObj = await uriToFile(formData.fileUri, formData.certificadoFile, formData.fileMimeType || 'application/pdf');
-            formPayload.append('CertificadoArchivo', fileObj);
-          }
-
-          await userService.createUsuarioProfesor(formPayload);
+          const payloadProfe = {
+            email: formData.dni.toString(),
+            password: "1234",
+            username: formData.dni.toString(),
+            dni: mappedData.dni,
+            nombre: mappedData.nombre,
+            apellido: mappedData.apellido,
+            genero: mappedData.genero,
+            fechaNacimiento: mappedData.fechaNacimiento,
+            telefono: mappedData.telefono,
+            direccion: mappedData.direccion,
+            localidad: mappedData.localidad,
+            codigoPostal: mappedData.codigoPostal,
+            provincia: mappedData.provincia,
+            pais: mappedData.pais,
+            contactoEmergencia: mappedData.contactoEmergencia,
+            especialidad: mappedData.especialidad,
+            obraSocial: mappedData.obraSocial,
+            certificacion: mappedData.certificacion,
+            certificadoBase64: formData.certificadoBase64,
+            certificadoFechaInicio: mappedData.certificadoFechaInicio,
+            certificadoFechaVencimiento: mappedData.certificadoFechaFin
+          };
+          await userService.createUsuarioProfesor(payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           mappedData.identificador = formData.role === 'ADMIN' ? 100 : 101;
           mappedData.puedeFacturar = true;
