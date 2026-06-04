@@ -7,14 +7,14 @@ import { equipoService } from '../services/equipoService';
 export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, idUsuario, onSuccess }) {
   const [username, setUsername] = useState('');
   const [searching, setSearching] = useState(false);
-  const [resultado, setResultado] = useState(null); // { existe, nombre, usuarioId, ... }
-  const [enviando, setEnviando] = useState(false);
+  const [resultados, setResultados] = useState([]);
+  const [enviandoId, setEnviandoId] = useState(null);
   const [enviado, setEnviado] = useState(false);
   const debounceRef = useRef(null);
 
   const handleChangeUsername = (text) => {
     setUsername(text);
-    setResultado(null);
+    setResultados([]);
     setEnviado(false);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -28,36 +28,37 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
     setSearching(true);
     try {
       const data = await userService.buscarPorUsername(uname);
-      setResultado(data);
+      setResultados(data.resultados || []);
     } catch (err) {
-      setResultado({ existe: false });
+      setResultados([]);
     } finally {
       setSearching(false);
     }
   };
 
-  const handleEnviarInvitacion = async () => {
-    if (!resultado?.existe || !equipo?.id) return;
-    setEnviando(true);
+  const handleEnviarInvitacion = async (res) => {
+    if (!res?.username || !equipo?.id) return;
+    setEnviandoId(res.usuarioId);
     try {
       await equipoService.invitarJugador(equipo.id, {
-        username: username.trim(),
+        username: res.username,
         invitadoPorUsuarioId: idUsuario
       });
       setEnviado(true);
-      Alert.alert('¡Éxito!', `Se envió la invitación a ${resultado.nombre} para unirse al equipo "${equipo.nombre}".`);
+      Alert.alert('¡Éxito!', `Se envió la invitación a ${res.nombre} para unirse al equipo "${equipo.nombre}".`);
       if (onSuccess) onSuccess();
     } catch (err) {
       const msg = err?.mensaje || err?.message || 'No se pudo enviar la invitación';
       Alert.alert('Error', msg);
     } finally {
-      setEnviando(false);
+      setEnviandoId(null);
     }
   };
 
   const handleClose = () => {
     setUsername('');
-    setResultado(null);
+    setResultados([]);
+    setEnviandoId(null);
     setEnviado(false);
     onClose();
   };
@@ -76,12 +77,12 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
             </TouchableOpacity>
           </View>
 
-          <Text style={s.label}>Nombre de usuario</Text>
+          <Text style={s.label}>Nombre de usuario o Nombre</Text>
           <View style={s.inputRow}>
             <MaterialCommunityIcons name="account-search" size={20} color="#94a3b8" />
             <TextInput
               style={s.input}
-              placeholder="Escribí el nombre de usuario..."
+              placeholder="Buscar por nombre, apellido o usuario..."
               placeholderTextColor="#94a3b8"
               value={username}
               onChangeText={handleChangeUsername}
@@ -91,45 +92,44 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
             {searching && <ActivityIndicator size="small" color="#009b3a" />}
           </View>
 
-          {/* Resultado de búsqueda */}
-          {resultado && !searching && (
-            <View style={[s.resultCard, resultado.existe ? s.resultOk : s.resultError]}>
-              <MaterialCommunityIcons 
-                name={resultado.existe ? "account-check" : "account-alert"} 
-                size={24} 
-                color={resultado.existe ? "#16a34a" : "#ef4444"} 
-              />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                {resultado.existe ? (
-                  <>
-                    <Text style={s.resultName}>{resultado.nombre}</Text>
-                    <Text style={s.resultUsername}>@{resultado.username}</Text>
-                  </>
-                ) : (
-                  <Text style={s.resultErrorText}>
-                    {resultado.mensaje || 'No se encontró un cliente con ese nombre de usuario'}
-                  </Text>
-                )}
-              </View>
+          {/* Resultados de búsqueda */}
+          {!searching && resultados.length > 0 && (
+            <View style={{ maxHeight: 240, marginBottom: 15 }}>
+              <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+                {resultados.map(res => (
+                  <View key={res.usuarioId} style={[s.resultCard, s.resultOk, { padding: 10, marginBottom: 8 }]}>
+                    <MaterialCommunityIcons name="account-circle" size={32} color="#15803d" />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={s.resultName}>{res.nombre}</Text>
+                      <Text style={s.resultUsername}>@{res.username}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={[s.sendBtn, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, gap: 5 }]}
+                      onPress={() => handleEnviarInvitacion(res)}
+                      disabled={enviandoId === res.usuarioId || enviado}
+                    >
+                      {enviandoId === res.usuarioId ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <MaterialCommunityIcons name="send" size={16} color="#fff" />
+                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>INVITAR</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           )}
 
-          {/* Botón de enviar */}
-          {resultado?.existe && !enviado && (
-            <TouchableOpacity 
-              style={s.sendBtn} 
-              onPress={handleEnviarInvitacion}
-              disabled={enviando}
-            >
-              {enviando ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="send" size={20} color="#fff" />
-                  <Text style={s.sendBtnText}>ENVIAR INVITACIÓN</Text>
-                </>
-              )}
-            </TouchableOpacity>
+          {!searching && username.trim().length >= 3 && resultados.length === 0 && (
+              <View style={[s.resultCard, s.resultError]}>
+                <MaterialCommunityIcons name="account-alert" size={24} color="#ef4444" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={s.resultErrorText}>No se encontraron clientes con esa búsqueda.</Text>
+                </View>
+              </View>
           )}
 
           {enviado && (
