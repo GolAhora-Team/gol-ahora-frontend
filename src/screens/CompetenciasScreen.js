@@ -34,7 +34,7 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '', fechaFin: '', descripcion: '', tipoCancha: 5 };
+  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '', fechaFin: '', descripcion: '', tipoCancha: 5 };
   const [formData, setFormData] = useState(initialForm);
 
   // Fixture / Enroll modals
@@ -134,12 +134,6 @@ export default function CompetenciasScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const showSuccess = (title, message) => {
-    setSuccessTitle(title);
-    setSuccessMessage(message);
-    setSuccessModalVisible(true);
   };
 
   // ── Competencia handlers ──
