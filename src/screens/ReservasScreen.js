@@ -169,13 +169,11 @@ export default function ReservaScreen({ route, navigation }) {
             window.localStorage.removeItem('pendingReservation');
             window.history.replaceState({}, document.title, window.location.pathname);
             
-            // Cancelar la reserva porque el pago no se completó
-            if (pending.reservaId) {
-              reservaService.cancelar(pending.reservaId).catch(e => console.error("Error cancelando reserva fallida", e));
-            }
+            // LA RESERVA QUEDA EN ESTADO PENDIENTE PARA QUE PUEDA PAGARLA LUEGO
+            // No la cancelamos.
 
             setTimeout(() => {
-              setSuccessMessage('Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
+              setSuccessMessage('El pago no se pudo completar. La reserva quedó en estado PENDIENTE, por favor intentá pagarla desde la opción "Pagar" en el detalle del turno.');
               setErrorMode(true);
               setSuccessVisible(true);
             }, 500);
@@ -426,6 +424,50 @@ export default function ReservaScreen({ route, navigation }) {
     );
   }
 
+  const handlePayPending = async (res) => {
+    try {
+      setLoading(true);
+      const canchaIdStr = res.cancha ? res.cancha.id : res.canchaId;
+      // Tratar de buscar el precio desde la lista de canchas del context
+      let montoFinal = 15000;
+      if (canchas && canchas.length > 0) {
+        const c = canchas.find(x => x.id == canchaIdStr);
+        if (c && c.precioPorHora) {
+          montoFinal = c.precioPorHora;
+        }
+      }
+
+      const title = `Pago Pendiente - Cancha ${res.canchaNombre || ''}`;
+      let baseUrl = 'https://golahora.runasp.net';
+      if (Platform.OS === 'web') {
+        baseUrl = window.location.href.split('?')[0]; 
+      }
+      const currentUrl = baseUrl + '?mp_return=true';
+      const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
+      
+      // Llamada a MP
+      const mpResponse = await mercadoPagoService.createPreference(
+        title, 
+        montoFinal, 
+        currentUrl, 
+        webhookUrl, 
+        res.id.toString()
+      );
+      
+      if (Platform.OS === 'web') {
+        window.location.href = mpResponse.initPoint;
+      } else {
+        const { Linking } = require('react-native');
+        Linking.openURL(mpResponse.initPoint);
+      }
+    } catch (error) {
+      console.error("Error al re-pagar:", error);
+      Alert.alert('Error', 'No se pudo iniciar el pago. Intente nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderReservaList = (list) => {
     return list.map(item => (
       <ReservaCard 
@@ -433,6 +475,7 @@ export default function ReservaScreen({ route, navigation }) {
         item={item} 
         canModify={puedeOperarTurno(item)}
         onView={handleViewReserva}
+        onPay={handlePayPending}
         onEdit={(res) => {
           setEditingReserva(res);
           setModalVisible(true);

@@ -789,6 +789,9 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     let createdFacturaId = null;
     let createdPagoId = null;
 
+    // Asignar el estado inicial basado en si está pagado o no
+    data.reservaPayload.Estado = estadoPago === 1 ? 1 : 2;
+
     if (data.isEdit) {
       await reservaService.update(reservaToEdit.id, data.reservaPayload);
       reservaId = reservaToEdit.id;

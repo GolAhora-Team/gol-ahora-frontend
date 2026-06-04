@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   cardFinalizado: { opacity: 0.6, backgroundColor: '#f8fafc', elevation: 1 },
   cardEnJuego: { borderWidth: 2, borderColor: '#10b981', backgroundColor: '#ecfdf5', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 8 },
   cardCancelada: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#fef2f2' },
-  cardCanceladaPast: { borderWidth: 1, borderColor: '#f87171', backgroundColor: '#fff1f2', opacity: 0.6, elevation: 1 },
+  cardCanceladaPast: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#f8fafc', opacity: 0.6, elevation: 1 },
   timeContainer: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#f1f5f9', width: 80 },
   timeText: { fontSize: 16, fontWeight: '900', color: '#009b3a' },
   timeDivider: { height: 2, width: 20, backgroundColor: '#ffb300', marginVertical: 4 },
