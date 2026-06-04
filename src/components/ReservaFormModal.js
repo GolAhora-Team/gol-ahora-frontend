@@ -961,7 +961,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
         const baseUrl = window.location.href.split('?')[0]; 
         const currentUrl = baseUrl + '?mp_return=true'; // El cliente vuelve a esta URL
-        const webhookUrl = `${window.location.protocol}//${window.location.host}/api/MercadoPago/webhook`; // O la URL pública de la API
+        const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
         
         const payloadMP = {
           title: title,
@@ -1009,7 +1009,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         const { reservaId, pagoId } = await createReservaCompleta(payloadBase, 1); // 1 = Pendiente
         
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
-        const webhookUrl = `${window.location.protocol}//${window.location.host}/api/MercadoPago/webhook`;
+        const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
         
         const mpResponse = await mercadoPagoService.createPreference(
           title, 
