@@ -29,11 +29,11 @@ export const profesorService = {
 
   /**
    * PUT /api/Profesor/{id}/simple
-   * Actualización simple de datos del profesor usando FormData.
+   * Actualización simple de datos del profesor.
    */
-  updateSimple: async (id, formData) => {
+  updateSimple: async (id, data) => {
     try {
-      return await http.putForm(`${URL}/${id}/simple`, formData);
+      return await http.put(`${URL}/${id}/simple`, data);
     } catch (error) {
       console.error(`Error updating profesor con id ${id}:`, error);
       throw error;
