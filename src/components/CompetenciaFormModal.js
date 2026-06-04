@@ -100,34 +100,32 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             </View>
 
             <Text style={styles.label}>Fecha de Inicio</Text>
-            <View style={styles.dateInputContainer}>
+            <TouchableOpacity onPress={() => openDatePicker('fechaInicio')} style={styles.dateInputContainer} activeOpacity={0.7}>
               <TextInput 
-                style={[styles.input, { flex: 1, borderWidth: 0 }]} 
+                style={[styles.input, { flex: 1, borderWidth: 0, color: '#1e293b' }]} 
                 value={formData.fechaInicio} 
-                onChangeText={(t) => handleDateChange('fechaInicio', t)}
                 placeholder="DD/MM/AAAA"
-                keyboardType="numeric"
-                maxLength={10}
+                editable={false}
+                pointerEvents="none"
               />
-              <TouchableOpacity onPress={() => openDatePicker('fechaInicio')} style={styles.calendarIconBtn}>
+              <View style={styles.calendarIconBtn}>
                 <MaterialCommunityIcons name="calendar-range" size={24} color="#009b3a" />
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
 
             <Text style={styles.label}>Fecha de Finalización</Text>
-            <View style={styles.dateInputContainer}>
+            <TouchableOpacity onPress={() => openDatePicker('fechaFin')} style={styles.dateInputContainer} activeOpacity={0.7}>
               <TextInput 
-                style={[styles.input, { flex: 1, borderWidth: 0 }]} 
+                style={[styles.input, { flex: 1, borderWidth: 0, color: '#1e293b' }]} 
                 value={formData.fechaFin} 
-                onChangeText={(t) => handleDateChange('fechaFin', t)}
                 placeholder="DD/MM/AAAA"
-                keyboardType="numeric"
-                maxLength={10}
+                editable={false}
+                pointerEvents="none"
               />
-              <TouchableOpacity onPress={() => openDatePicker('fechaFin')} style={styles.calendarIconBtn}>
+              <View style={styles.calendarIconBtn}>
                 <MaterialCommunityIcons name="calendar-range" size={24} color="#009b3a" />
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
 
             <Text style={styles.label}>Tipo de Cancha</Text>
             <View style={styles.selectorRow}>
