@@ -64,6 +64,18 @@ export const equipoService = {
   },
 
   /**
+   * PUT /api/Equipo/{id}/formacion
+   */
+  guardarFormacion: async (id, payload) => {
+    try {
+      return await http.put(`${URL}/${id}/formacion`, payload);
+    } catch (error) {
+      console.error(`Error guardando formacion del equipo con id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * GET /api/Equipo/por-cliente/{clienteId}
    */
   getByClienteId: async (clienteId) => {

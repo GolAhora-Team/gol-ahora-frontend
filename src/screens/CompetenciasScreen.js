@@ -18,6 +18,7 @@ import RemoveEquiposCompModal from '../components/RemoveEquiposCompModal';
 import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
 import ClienteInvitarJugadorModal from '../components/ClienteInvitarJugadorModal';
 import ClienteInscripcionCompModal from '../components/ClienteInscripcionCompModal';
+import SetPosicionModal from '../components/SetPosicionModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
@@ -33,6 +34,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
+  const [misJugadores, setMisJugadores] = useState([]); // Array of Jugador entities for the current user
   const [modalVisible, setModalVisible] = useState(false);
   const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '', fechaFin: '', descripcion: '', tipoCancha: 5 };
   const [formData, setFormData] = useState(initialForm);
@@ -88,6 +90,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [equipoParaInvitar, setEquipoParaInvitar] = useState(null);
   const [inscripcionCompVisible, setInscripcionCompVisible] = useState(false);
   const [competenciaParaInscripcion, setCompetenciaParaInscripcion] = useState(null);
+  
+  // Posicion Modal
+  const [posicionModalVisible, setPosicionModalVisible] = useState(false);
+  const [equipoParaPosicion, setEquipoParaPosicion] = useState(null);
 
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const isCliente = currentUserRole === 'CLIENTE';
@@ -123,6 +129,14 @@ export default function CompetenciasScreen({ route, navigation }) {
         const eqData = await equipoService.getByClienteId(idPersona);
         const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
         setEquipos(mappedEq);
+
+        try {
+          const jData = await jugadorService.getAll();
+          const misJugs = (jData || []).filter(j => String(j.clienteId) === String(idPersona));
+          setMisJugadores(misJugs);
+        } catch (e) {
+          console.error("Error fetching jugadores", e);
+        }
       } else {
         const eqData = await equipoService.getAll();
         const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
@@ -572,22 +586,31 @@ export default function CompetenciasScreen({ route, navigation }) {
             />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
             {equipos
               .filter(item => (item.nombre || '').toLowerCase().includes(searchEquipo.toLowerCase()))
-              .map(item => (
-              <EquipoCard 
-                key={item.id} 
-                item={item} 
-                canModify={isStaff || (isCliente && item.creadoPorClienteId == idPersona)}
-                onEdit={() => handleEditEquipo(item)}
-                onDelete={() => askDeleteEquipo(item)}
-                onAddJugadores={() => isCliente ? (function(){ setEquipoParaInvitar(item); setInvitarJugadorVisible(true); })() : openAddJugadores(item)}
-                onRemoveJugadores={() => openRemoveJugadores(item)}
-                onVerJugadores={() => openVerJugadores(item)}
-                onFormacion={() => openFormacion(item)}
-              />
-            ))}
+              .map(item => {
+                const myJugador = misJugadores.find(j => String(j.equipoId) === String(item.id));
+                const necesitaPosicion = isCliente && myJugador && (myJugador.posicion === 0 || myJugador.posicion === null);
+                const esMiembro = isCliente && !!myJugador;
+
+                return (
+                  <EquipoCard 
+                    key={item.id} 
+                    item={item} 
+                    canModify={isStaff || (isCliente && item.creadoPorClienteId == idPersona)}
+                    onEdit={() => handleEditEquipo(item)}
+                    onDelete={() => askDeleteEquipo(item)}
+                    onAddJugadores={() => isCliente ? (function(){ setEquipoParaInvitar(item); setInvitarJugadorVisible(true); })() : openAddJugadores(item)}
+                    onRemoveJugadores={() => openRemoveJugadores(item)}
+                    onVerJugadores={() => openVerJugadores(item)}
+                    onFormacion={() => openFormacion(item)}
+                    necesitaPosicion={necesitaPosicion}
+                    esMiembro={esMiembro}
+                    onDefinirPosicion={() => { setEquipoParaPosicion({ ...item, jugadorId: myJugador.id }); setPosicionModalVisible(true); }}
+                  />
+                );
+              })}
             {equipos.length === 0 && (
               <Text style={{color: '#94a3b8', textAlign: 'center', marginTop: 20}}>{isCliente ? 'No tenés equipos creados. ¡Creá uno!' : 'No hay equipos registrados.'}</Text>
             )}
@@ -738,6 +761,14 @@ export default function CompetenciasScreen({ route, navigation }) {
         idPersona={idPersona}
         idUsuario={idUsuario}
         onSuccess={() => loadData()}
+      />
+
+      <SetPosicionModal
+        visible={posicionModalVisible}
+        onClose={() => { setPosicionModalVisible(false); setEquipoParaPosicion(null); }}
+        jugadorId={equipoParaPosicion?.jugadorId}
+        equipoNombre={equipoParaPosicion?.nombre}
+        onSuccess={() => { setPosicionModalVisible(false); loadData(); }}
       />
     </ScreenTemplate>
   );

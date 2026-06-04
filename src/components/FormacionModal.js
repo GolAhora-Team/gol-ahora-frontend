@@ -285,6 +285,41 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
         apellido: cMap[j.clienteId]?.apellido || `#${j.clienteId}`,
       }));
       setJugadores(enriched);
+
+      // Reconstruir asignaciones existentes si hay tipo y formación guardados
+      if (equipo.tipoCancha && equipo.formacion) {
+        const tipo = TIPOS_CANCHA.find(t => t.key === equipo.tipoCancha);
+        const form = tipo?.formaciones.find(f => f.id === equipo.formacion);
+        if (form) {
+          const slots = generarSlots(form);
+          const POSICION_TO_LINEA = { 1: 'ARQ', 2: 'DEF', 3: 'MED', 4: 'DEL' };
+          const nuevasAsignaciones = {};
+          const nuevosSuplentes = [];
+          let nuevoCapitanSlotId = null;
+
+          // Separar titulares y suplentes
+          const titulares = enriched.filter(j => j.esTitular);
+          const supls = enriched.filter(j => !j.esTitular && j.posicion > 0);
+
+          // Asignar titulares a slots disponibles según su posición
+          const slotsUsados = new Set();
+          titulares.forEach(jugador => {
+            const linea = POSICION_TO_LINEA[jugador.posicion];
+            const slotDisponible = slots.find(s => s.linea === linea && !slotsUsados.has(s.id));
+            if (slotDisponible) {
+              nuevasAsignaciones[slotDisponible.id] = jugador;
+              slotsUsados.add(slotDisponible.id);
+              if (jugador.esCapitan) {
+                nuevoCapitanSlotId = slotDisponible.id;
+              }
+            }
+          });
+
+          setAsignaciones(nuevasAsignaciones);
+          setSuplentes(supls);
+          if (nuevoCapitanSlotId) setCapitanSlotId(nuevoCapitanSlotId);
+        }
+      }
     } catch (e) {
       console.error('Error cargando jugadores:', e);
     } finally {
@@ -345,18 +380,57 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
 
   const handleGuardar = async () => {
     if (!tipoSeleccionado || !formacionSeleccionada) return;
+    
+    // Preparar lista de jugadores
+    const jugadoresPayload = [];
+    
+    // Agregar titulares (asignan posicion segun el slot activo)
+    Object.keys(asignaciones).forEach(slotId => {
+      const jugador = asignaciones[slotId];
+      // El slot.id suele ser tipo "arq-0", "def-1". El slot object no lo tenemos aca directamente,
+      // pero podemos deducirlo del slotId o de la configuración
+      // En allSlots generados, rol era ARQ, DEF, MED, DEL.
+      let posEnum = 0;
+      if (slotId.startsWith('arq')) posEnum = 1;
+      else if (slotId.startsWith('def')) posEnum = 2;
+      else if (slotId.startsWith('med')) posEnum = 3;
+      else if (slotId.startsWith('del')) posEnum = 4;
+      
+      jugadoresPayload.push({
+        jugadorId: jugador.id,
+        posicion: posEnum,
+        esTitular: true
+      });
+    });
+
+    // Agregar suplentes (mantienen su posicion pero esTitular = false)
+    suplentes.forEach(jugador => {
+      jugadoresPayload.push({
+        jugadorId: jugador.id,
+        posicion: jugador.posicion, // mantienen la suya
+        esTitular: false
+      });
+    });
+
     const payload = {
-      ...equipo,
       tipoCancha: tipoSeleccionado.key,
-      formacion: formacionSeleccionada.id,
-      capitan: capitanSlotId ? asignaciones[capitanSlotId]?.id : null,
+      formacionDefecto: formacionSeleccionada.id,
+      capitanId: capitanSlotId ? asignaciones[capitanSlotId]?.id : null,
+      jugadores: jugadoresPayload
     };
+    
     try {
       setSaving(true);
-      await equipoService.update(equipo.id, payload);
-      if (onSaved) onSaved(payload);
+      await equipoService.guardarFormacion(equipo.id, payload);
+      if (onSaved) onSaved({
+        ...equipo,
+        tipoCancha: tipoSeleccionado.key,
+        formacion: formacionSeleccionada.id,
+        capitan: payload.capitanId,
+      });
       Alert.alert('¡Guardado!', 'La formación fue guardada correctamente.', [{ text: 'OK', onPress: handleClose }]);
     } catch (e) {
+      console.error(e);
       Alert.alert('Error', 'No se pudo guardar la formación. Verificá la conexión con el servidor.');
     } finally {
       setSaving(false);

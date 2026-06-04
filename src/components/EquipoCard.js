@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 const TIPO_COLORS = { F5: '#10b981', F7: '#3b82f6', F11: '#f59e0b' };
 const TIPO_LABELS = { F5: 'Fútbol 5', F7: 'Fútbol 7', F11: 'Fútbol 11' };
 
-export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJugadores, onRemoveJugadores, onVerJugadores, onFormacion }) {
+export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJugadores, onRemoveJugadores, onVerJugadores, onFormacion, onDefinirPosicion, necesitaPosicion, esMiembro }) {
   const tipoColor = item.tipoCancha ? TIPO_COLORS[item.tipoCancha] : null;
 
   const colorPrimario = item.colorPrimario || '#ffffff';
@@ -72,14 +72,27 @@ export default function EquipoCard({ item, canModify, onEdit, onDelete, onAddJug
             <View style={styles.btnTextBg}><Text style={[styles.actionText, { color: '#1e293b' }]}>Eliminar jugadores</Text></View>
           </TouchableOpacity>
         </View>
+        
+        {necesitaPosicion && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity onPress={onDefinirPosicion} style={[styles.actionBtn, { backgroundColor: '#fef3c7', borderColor: '#f59e0b', borderWidth: 1 }]}>
+              <MaterialCommunityIcons name="run-fast" size={20} color="#d97706" />
+              <View style={styles.btnTextBg}><Text style={[styles.actionText, { color: '#d97706', fontWeight: '900' }]}>¡Definir mi posición!</Text></View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {(canModify || esMiembro) && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity onPress={onFormacion} style={styles.actionBtn}>
+              <MaterialCommunityIcons name="soccer-field" size={20} color="#1e293b" />
+              <View style={styles.btnTextBg}><Text style={[styles.actionText, { color: '#1e293b', fontWeight: '900' }]}>Formación</Text></View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {canModify && (
           <>
-            <View style={styles.actionRow}>
-              <TouchableOpacity onPress={onFormacion} style={styles.actionBtn}>
-                <MaterialCommunityIcons name="soccer-field" size={20} color="#1e293b" />
-                <View style={styles.btnTextBg}><Text style={[styles.actionText, { color: '#1e293b', fontWeight: '900' }]}>Formación</Text></View>
-              </TouchableOpacity>
-            </View>
             <View style={styles.iconRow}>
               <TouchableOpacity onPress={onEdit} style={styles.iconBtn}>
                 <MaterialCommunityIcons name="pencil" size={22} color="#1e293b" />
