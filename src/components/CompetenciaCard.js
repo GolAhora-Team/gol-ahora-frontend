@@ -62,11 +62,11 @@ export default function CompetenciaCard({ item, canModify, onInscribir, onElimin
         {/* Row 2: INSCRIBIR EQUIPOS + ELIMINAR EQUIPOS */}
         <View style={styles.actionRow}>
           <TouchableOpacity 
-            style={[styles.inscribirBtn, item.estado === 'en_juego' && styles.disabledBtn]} 
-            onPress={item.estado !== 'en_juego' ? onInscribir : null}
-            disabled={item.estado === 'en_juego'}
+            style={[styles.inscribirBtn, (item.estado === 'en_juego' || cupoCompleto) && styles.disabledBtn]} 
+            onPress={(item.estado !== 'en_juego' && !cupoCompleto) ? onInscribir : null}
+            disabled={item.estado === 'en_juego' || cupoCompleto}
           >
-            <Text style={[styles.inscribirText, item.estado === 'en_juego' && styles.disabledText]}>INSCRIBIR EQUIPOS</Text>
+            <Text style={[styles.inscribirText, (item.estado === 'en_juego' || cupoCompleto) && styles.disabledText]}>INSCRIBIR EQUIPOS</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.eliminarBtn, item.estado === 'en_juego' && styles.disabledBtn]} 

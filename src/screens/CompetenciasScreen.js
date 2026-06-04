@@ -534,15 +534,16 @@ export default function CompetenciasScreen({ route, navigation }) {
                     <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
                       <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
                     </TouchableOpacity>
-                    {!cupoCompleto && item.estado === 'inscripcion' ? (
+                    {item.estado === 'inscripcion' && (
                       <TouchableOpacity 
-                        style={styles.clienteInscribirBtn}
-                        onPress={() => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); }}
+                        style={[styles.clienteInscribirBtn, cupoCompleto && { backgroundColor: '#e2e8f0' }]}
+                        onPress={!cupoCompleto ? () => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); } : null}
+                        disabled={cupoCompleto}
                       >
-                        <MaterialCommunityIcons name="trophy" size={16} color="#fff" />
-                        <Text style={styles.clienteInscribirText}>INSCRIBIR MI EQUIPO</Text>
+                        <MaterialCommunityIcons name="trophy" size={16} color={cupoCompleto ? '#94a3b8' : '#fff'} />
+                        <Text style={[styles.clienteInscribirText, cupoCompleto && { color: '#94a3b8' }]}>INSCRIBIR MI EQUIPO</Text>
                       </TouchableOpacity>
-                    ) : null}
+                    )}
                   </View>
                 </View>
               ) : (
