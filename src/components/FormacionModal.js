@@ -428,7 +428,7 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
     suplentes.forEach(jugador => {
       jugadoresPayload.push({
         jugadorId: jugador.id,
-        posicion: jugador.posicion, // mantienen la suya
+        posicion: jugador.posicion || 0, // mantienen la suya o 0 por defecto
         esTitular: false
       });
     });
