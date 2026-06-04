@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet } from 'react-native';
+import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -57,6 +57,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           alert('El archivo excede el límite de 4MB.');
           return;
         }
+<<<<<<< HEAD
         const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
         const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'documento.pdf');
         setFormData(prev => ({ 
@@ -66,6 +67,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           fileUri: file.uri,
           fileMimeType: file.mimeType || 'application/pdf'
         }));
+=======
+
+        if (Platform.OS === 'web') {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Data = reader.result.split(',')[1];
+            setFormData(prev => ({ ...prev, certificadoFile: file.name, certificadoBase64: base64Data }));
+          };
+          reader.readAsDataURL(file.file);
+        } else {
+          const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+          setFormData(prev => ({ ...prev, certificadoFile: file.name, certificadoBase64: base64 }));
+        }
+>>>>>>> a67615b (feat: implement UserFormModal component with document upload and membership handling capabilities)
       }
     } catch (err) {
       console.error("Error picking document: ", err);
@@ -85,9 +100,24 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           alert('El archivo del apto médico excede el límite de 2MB.');
           return;
         }
+<<<<<<< HEAD
         const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
         const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'apto_medico.pdf');
         setFormData(prev => ({ ...prev, aptoMedicoFileName: fileName, aptoMedicoBase64: base64, aptoFisico: true }));
+=======
+
+        if (Platform.OS === 'web') {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Data = reader.result.split(',')[1];
+            setFormData(prev => ({ ...prev, aptoMedicoFileName: file.name, aptoMedicoBase64: base64Data, aptoFisico: true }));
+          };
+          reader.readAsDataURL(file.file);
+        } else {
+          const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+          setFormData(prev => ({ ...prev, aptoMedicoFileName: file.name, aptoMedicoBase64: base64, aptoFisico: true }));
+        }
+>>>>>>> a67615b (feat: implement UserFormModal component with document upload and membership handling capabilities)
       }
     } catch (err) {
       console.error("Error picking apto medico: ", err);

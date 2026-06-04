@@ -298,22 +298,35 @@ export default function Dashboard({ route, navigation }) {
           alert('El archivo excede el límite de 2MB.');
           return;
         }
-        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
-        
-        // Asignar fechas por defecto: hoy y en 1 año
-        const hoy = new Date();
-        const unAnio = new Date();
-        unAnio.setFullYear(hoy.getFullYear() + 1);
 
-        await userService.uploadAptoMedico({
-          clienteId: idPersona,
-          archivoBase64: base64,
-          fechaInicio: hoy.toISOString(),
-          fechaFin: unAnio.toISOString()
-        });
+        const proceedUpload = async (base64) => {
+          // Asignar fechas por defecto: hoy y en 1 año
+          const hoy = new Date();
+          const unAnio = new Date();
+          unAnio.setFullYear(hoy.getFullYear() + 1);
 
-        alert("Apto médico subido correctamente.");
-        loadCliente();
+          await userService.uploadAptoMedico({
+            clienteId: idPersona,
+            archivoBase64: base64,
+            fechaInicio: hoy.toISOString(),
+            fechaFin: unAnio.toISOString()
+          });
+
+          alert("Apto médico subido correctamente.");
+          loadCliente();
+        };
+
+        if (Platform.OS === 'web') {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const base64 = reader.result.split(',')[1];
+            await proceedUpload(base64);
+          };
+          reader.readAsDataURL(file.file);
+        } else {
+          const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+          await proceedUpload(base64);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -334,31 +347,44 @@ export default function Dashboard({ route, navigation }) {
           alert('El archivo excede el límite de 4MB.');
           return;
         }
-        const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
-        
-        // Asignar fechas por defecto: hoy y en 1 año
-        const hoy = new Date();
-        const unAnio = new Date();
-        unAnio.setFullYear(hoy.getFullYear() + 1);
 
-        // Llamar a profesorService.updateSimple para actualizar el certificado
-        const currentData = currentProfesor || {};
-        await profesorService.updateSimple(idPersona, {
-          telefono: currentData.telefono || "",
-          direccion: currentData.direccion || "",
-          localidad: currentData.localidad || "",
-          codigoPostal: currentData.codigoPostal || "",
-          provincia: currentData.provincia || "",
-          pais: currentData.pais || "",
-          contactoEmergencia: currentData.contactoEmergencia || "",
-          email: currentData.email || "",
-          certificadoBase64: base64,
-          certificadoFechaInicio: hoy.toISOString(),
-          certificadoFechaFin: unAnio.toISOString()
-        });
+        const proceedUpload = async (base64) => {
+          // Asignar fechas por defecto: hoy y en 1 año
+          const hoy = new Date();
+          const unAnio = new Date();
+          unAnio.setFullYear(hoy.getFullYear() + 1);
 
-        alert("Certificado profesional subido correctamente.");
-        loadProfesor();
+          // Llamar a profesorService.updateSimple para actualizar el certificado
+          const currentData = currentProfesor || {};
+          await profesorService.updateSimple(idPersona, {
+            telefono: currentData.telefono || "",
+            direccion: currentData.direccion || "",
+            localidad: currentData.localidad || "",
+            codigoPostal: currentData.codigoPostal || "",
+            provincia: currentData.provincia || "",
+            pais: currentData.pais || "",
+            contactoEmergencia: currentData.contactoEmergencia || "",
+            email: currentData.email || "",
+            certificadoBase64: base64,
+            certificadoFechaInicio: hoy.toISOString(),
+            certificadoFechaFin: unAnio.toISOString()
+          });
+
+          alert("Certificado profesional subido correctamente.");
+          loadProfesor();
+        };
+
+        if (Platform.OS === 'web') {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const base64 = reader.result.split(',')[1];
+            await proceedUpload(base64);
+          };
+          reader.readAsDataURL(file.file);
+        } else {
+          const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+          await proceedUpload(base64);
+        }
       }
     } catch (e) {
       console.error(e);
