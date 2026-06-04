@@ -396,10 +396,10 @@ export default function Dashboard({ route, navigation }) {
   const getVisibleModules = () => {
     switch (role) {
       case 'ADMIN':
-        return ALL_MODULES.filter(m => m.id !== 'clases-profe');
+        return ALL_MODULES.filter(m => m.id !== 'clases-profe' && m.id !== 'mis-recibos');
 
       case 'PERSONAL':
-        return ALL_MODULES.filter(m => m.id !== 'clases-profe').map(m => {
+        return ALL_MODULES.filter(m => m.id !== 'clases-profe' && m.id !== 'mis-recibos').map(m => {
           if (m.id === 'usuarios') return { ...m, title: "Usuarios", desc: "Alta de Profesores y Clientes" };
           return m;
         });

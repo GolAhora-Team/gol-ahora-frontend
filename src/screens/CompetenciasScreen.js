@@ -136,6 +136,12 @@ export default function CompetenciasScreen({ route, navigation }) {
     }
   };
 
+  const showSuccess = (title, message) => {
+    setSuccessTitle(title);
+    setSuccessMessage(message);
+    setSuccessModalVisible(true);
+  };
+
   // ── Competencia handlers ──
   const handleCreate = async () => {
     if (!formData.nombre) {
