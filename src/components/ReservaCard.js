@@ -23,6 +23,20 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     }
   } catch (e) {}
 
+  let isPast = false;
+  try {
+    if (item.fecha && item.horaFin) {
+      const now = new Date();
+      const dateStr = item.fecha.includes('T') ? item.fecha.split('T')[0] : item.fecha;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [hFin, mFin] = (item.horaFin || '00:00').split(':').map(Number);
+      const endTime = new Date(year, month - 1, day, hFin, mFin, 0);
+      if (now >= endTime) {
+        isPast = true;
+      }
+    }
+  } catch (e) {}
+
   // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas
   const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada;
 
@@ -65,21 +79,22 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
   return (
     <View style={[
       styles.card, 
-      isFinalizado && styles.cardFinalizado, 
+      (isFinalizado || (isCancelada && isPast)) && styles.cardFinalizado, 
       isEnJuego && styles.cardEnJuego,
-      isCancelada && styles.cardCancelada
+      isCancelada && !isPast && styles.cardCancelada,
+      isCancelada && isPast && styles.cardCanceladaPast
     ]}>
       <View style={styles.timeContainer}>
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaInicio}</Text>
-        <View style={[styles.timeDivider, isFinalizado && { backgroundColor: '#cbd5e1' }, isCancelada && { backgroundColor: '#fca5a5' }]} />
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isFinalizado && { color: '#94a3b8' }, isCancelada && { color: '#ef4444' }]}>{item.horaFin}</Text>
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, (isFinalizado || (isCancelada && isPast)) && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaInicio}</Text>
+        <View style={[styles.timeDivider, (isFinalizado || (isCancelada && isPast)) && { backgroundColor: '#cbd5e1' }, (isCancelada && !isPast) && { backgroundColor: '#fca5a5' }]} />
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, (isFinalizado || (isCancelada && isPast)) && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaFin}</Text>
         {item.fecha && (
           <Text style={styles.dateText}>{formatFecha(item.fecha)}</Text>
         )}
       </View>
 
       <View style={styles.infoSide}>
-        <Text style={[styles.canchaName, isFinalizado && { color: '#64748b' }]}>{item.canchaNombre}</Text>
+        <Text style={[styles.canchaName, (isFinalizado || (isCancelada && isPast)) && { color: '#64748b' }]}>{item.canchaNombre}</Text>
         <Text style={styles.clienteName}>
           {item.clienteNombre} {item.clienteEdad ? `(${item.clienteEdad} años)` : ''}
         </Text>
@@ -90,14 +105,16 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
             isEnJuego && { backgroundColor: '#10b981' },
             isPendiente && { backgroundColor: '#fef08a' },
             isFinalizado && { backgroundColor: '#bae6fd' },
-            isCancelada && { backgroundColor: '#fca5a5' }
+            isCancelada && !isPast && { backgroundColor: '#fca5a5' },
+            isCancelada && isPast && { backgroundColor: '#fee2e2' }
           ]}>
             <Text style={[
               styles.statusText, 
               isEnJuego && { color: '#fff' },
               isPendiente && { color: '#854d0e' },
               isFinalizado && { color: '#0369a1' },
-              isCancelada && { color: '#7f1d1d' }
+              isCancelada && !isPast && { color: '#7f1d1d' },
+              isCancelada && isPast && { color: '#991b1b' }
             ]}>
               {(item.estado || '').toUpperCase()}
             </Text>
@@ -140,6 +157,7 @@ const styles = StyleSheet.create({
   cardFinalizado: { opacity: 0.6, backgroundColor: '#f8fafc', elevation: 1 },
   cardEnJuego: { borderWidth: 2, borderColor: '#10b981', backgroundColor: '#ecfdf5', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 8 },
   cardCancelada: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#fef2f2' },
+  cardCanceladaPast: { borderWidth: 1, borderColor: '#f87171', backgroundColor: '#fff1f2', opacity: 0.6, elevation: 1 },
   timeContainer: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#f1f5f9', width: 80 },
   timeText: { fontSize: 16, fontWeight: '900', color: '#009b3a' },
   timeDivider: { height: 2, width: 20, backgroundColor: '#ffb300', marginVertical: 4 },
