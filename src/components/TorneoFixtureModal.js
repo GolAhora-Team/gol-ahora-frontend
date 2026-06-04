@@ -252,7 +252,8 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
                 ))}
               </View>
             </View>
-          })}
+          );
+        })}
         </ScrollView>
       </ScrollView>
     );
