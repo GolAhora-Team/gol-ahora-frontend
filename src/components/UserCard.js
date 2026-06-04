@@ -22,18 +22,14 @@ export default function UserCard({ item, onEdit, onDelete, onReport, onDownloadC
   const edad = calcularEdad(item.fechaNacimiento);
 
   const getCertificadoStatus = () => {
-    if (!item.certificadoFile) return { text: 'Sin Certificado', color: '#ef4444', bg: '#fee2e2', icon: 'certificate-outline' };
+    if (!item.tieneCertificado) return { text: 'Sin Certificado', color: '#ef4444', bg: '#fee2e2', icon: 'certificate-outline' };
     
-    if (item.sinCaducidad) return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
+    // Check if the certificate doesn't expire or has no end date but is valid
+    if (item.sinCaducidad || !item.certificadoFechaFin) return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
     
-    if (item.certFechaFin) {
-      const parts = item.certFechaFin.split('/');
-      let endDate;
-      if (parts.length === 3) {
-        endDate = new Date(parts[2], parts[1] - 1, parts[0]);
-      } else {
-        endDate = new Date(item.certFechaFin);
-      }
+    if (item.certificadoFechaFin) {
+      // Backend returns ISO string e.g. "2024-12-31T00:00:00", or date only
+      const endDate = new Date(item.certificadoFechaFin);
       
       if (!isNaN(endDate) && endDate < new Date()) {
         return { text: 'Certificado Vencido', color: '#ef4444', bg: '#fee2e2', icon: 'certificate' };

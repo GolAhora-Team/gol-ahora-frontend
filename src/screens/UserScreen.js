@@ -130,7 +130,7 @@ export default function UserScreen({ route, navigation }) {
         certFechaInicio: certInicio,
         certFechaFin: certFin,
         sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaFin && user.tieneCertificado,
-        certificadoFile: user.tieneCertificado ? 'Certificado Guardado' : null,
+        certificadoFile: user.tieneCertificado ? (user.certificacion || 'Certificado Guardado') : null,
         aptoFechaInicio: aptoInicio,
         aptoFechaFin: aptoFin,
         aptoMedicoFileName: user.tieneAptoMedicoArchivo ? 'Apto Médico Guardado' : null
