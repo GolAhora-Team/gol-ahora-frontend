@@ -13,6 +13,7 @@ import { reservaService } from '../services/reservaService';
 import { facturaService } from '../services/facturaService';
 import { clienteService } from '../services/clienteService';
 import { asistenciaStorage } from '../components/AsistenciaModal';
+import { BarChart, LineChart, StackedBarChart } from 'react-native-chart-kit';
 
 export default function ReportesScreen({ route, navigation }) {
   const { width } = useWindowDimensions();
@@ -31,6 +32,10 @@ export default function ReportesScreen({ route, navigation }) {
   
   const [realIngresos, setRealIngresos] = useState(null);
   const [realReservas, setRealReservas] = useState(null);
+  const [timeFilter, setTimeFilter] = useState("Semana"); // 'Semana', 'Mes', 'Año'
+  const [tooltip, setTooltip] = useState(null);
+
+  const chartWidth = isMobile ? width - 80 : Math.min(width - 340, 800);
 
   // Membresías
   const [membresiasData, setMembresiasData] = useState([]);
@@ -39,21 +44,23 @@ export default function ReportesScreen({ route, navigation }) {
 
   const estadisticas = getEstadisticas();
   
-  // Sobrescribir estadisticas si hay datos reales cargados
   if (realIngresos) {
     estadisticas.Ingresos = {
       ...estadisticas.Ingresos,
-      total: `$${realIngresos.total.toLocaleString()}`,
+      total: `$${realIngresos.total.toLocaleString('es-AR')}`,
+      labels: realIngresos.labels,
       datosSemanales: realIngresos.datosSemanales,
-      detalle: `Recaudación Total Activa`
+      detalle: `Recaudación (${timeFilter})`
     };
   }
   if (realReservas) {
     estadisticas.Reservas = {
       ...estadisticas.Reservas,
       total: `${realReservas.total}`,
-      datosSemanales: realReservas.datosSemanales,
-      detalle: `Total de reservas registradas`
+      labels: realReservas.labels,
+      data: realReservas.data,
+      legend: realReservas.legend,
+      detalle: `Total de reservas (${timeFilter})`
     };
   }
 
@@ -80,7 +87,8 @@ export default function ReportesScreen({ route, navigation }) {
     if (reporteActivo === 'Membresías') {
       loadMembresiasData();
     }
-  }, [reporteActivo]);
+    setTooltip(null);
+  }, [reporteActivo, timeFilter]);
 
   const loadRealIngresos = async () => {
     try {
@@ -88,25 +96,42 @@ export default function ReportesScreen({ route, navigation }) {
       const list = (pagos || []).filter(p => p.estado === 2 || p.estado === 'Pagado' || p.estado === 'Aprobado' || p.estado === 'Completado');
       const total = list.reduce((sum, p) => sum + (p.monto || 0), 0);
       
-      // Calcular desglose semanal real por día de la semana de la fecha de pago
-      const datosSemanales = [0, 0, 0, 0, 0, 0, 0]; // Lunes=0, ..., Domingo=6
-      list.forEach(p => {
-        if (p.fechaPago) {
-          const date = new Date(p.fechaPago);
-          let day = date.getDay(); // 0 = Domingo, 1 = Lunes, ...
-          let index = day === 0 ? 6 : day - 1; // Mapear a L=0, M=1, M=2, J=3, V=4, S=5, D=6
-          datosSemanales[index] += p.monto || 0;
-        }
-      });
+      let labels = [];
+      let datos = [];
 
-      // Escalar datos para la gráfica (altura máx 100px para representarlos visualmente de manera equilibrada)
-      const maxVal = Math.max(...datosSemanales) || 1;
-      const scaledSemanales = datosSemanales.map(v => Math.round((v / maxVal) * 90) + 10);
-
-      setRealIngresos({ total, datosSemanales: scaledSemanales });
-    } catch (e) {
-      console.error("Error loading real ingresos:", e);
-    }
+      if (timeFilter === 'Semana') {
+        labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+        datos = [0,0,0,0,0,0,0];
+        list.forEach(p => {
+          if (p.fechaPago) {
+            const date = new Date(p.fechaPago);
+            let day = date.getDay();
+            let index = day === 0 ? 6 : day - 1;
+            datos[index] += p.monto || 0;
+          }
+        });
+      } else if (timeFilter === 'Mes') {
+        labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+        datos = [0,0,0,0];
+        list.forEach(p => {
+          if (p.fechaPago) {
+            const date = new Date(p.fechaPago);
+            let week = Math.min(Math.floor(date.getDate() / 7), 3);
+            datos[week] += p.monto || 0;
+          }
+        });
+      } else {
+        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        datos = new Array(12).fill(0);
+        list.forEach(p => {
+          if (p.fechaPago) {
+            const date = new Date(p.fechaPago);
+            datos[date.getMonth()] += p.monto || 0;
+          }
+        });
+      }
+      setRealIngresos({ total, datosSemanales: datos, labels });
+    } catch (e) { console.error(e); }
   };
 
   const loadRealReservas = async () => {
@@ -114,26 +139,52 @@ export default function ReportesScreen({ route, navigation }) {
       const reservas = await reservaService.getAll();
       const list = reservas || [];
       const total = list.length;
+      
+      let labels = [];
+      const legend = ['F5', 'F7', 'F11'];
+      let data = [];
 
-      // Calcular desglose semanal real por día de la fecha del turno o creación
-      const datosSemanales = [0, 0, 0, 0, 0, 0, 0];
-      list.forEach(r => {
-        const dateStr = r.fechaTurno || r.fechaReserva;
-        if (dateStr) {
-          const date = new Date(dateStr);
-          let day = date.getDay();
-          let index = day === 0 ? 6 : day - 1;
-          datosSemanales[index] += 1;
-        }
-      });
-
-      const maxVal = Math.max(...datosSemanales) || 1;
-      const scaledSemanales = datosSemanales.map(v => Math.round((v / maxVal) * 90) + 10);
-
-      setRealReservas({ total, datosSemanales: scaledSemanales });
-    } catch (e) {
-      console.error("Error loading real reservas:", e);
-    }
+      if (timeFilter === 'Semana') {
+        labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+        data = Array.from({length: 7}, () => [0,0,0]);
+        list.forEach(r => {
+          const dateStr = r.fechaTurno || r.fechaReserva;
+          if (dateStr) {
+            const date = new Date(dateStr);
+            let day = date.getDay();
+            let index = day === 0 ? 6 : day - 1;
+            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
+            data[index][tipoIdx] += 1;
+          }
+        });
+      } else if (timeFilter === 'Mes') {
+        labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+        data = Array.from({length: 4}, () => [0,0,0]);
+        list.forEach(r => {
+          const dateStr = r.fechaTurno || r.fechaReserva;
+          if (dateStr) {
+            const date = new Date(dateStr);
+            let week = Math.min(Math.floor(date.getDate() / 7), 3);
+            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
+            data[week][tipoIdx] += 1;
+          }
+        });
+      } else {
+        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
+        data = Array.from({length: 6}, () => [0,0,0]);
+        list.forEach(r => {
+          const dateStr = r.fechaTurno || r.fechaReserva;
+          if (dateStr) {
+            const date = new Date(dateStr);
+            if(date.getMonth() < 6) {
+              let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
+              data[date.getMonth()][tipoIdx] += 1;
+            }
+          }
+        });
+      }
+      setRealReservas({ total, data, labels, legend });
+    } catch (e) { console.error(e); }
   };
 
   const loadAsistenciaData = async () => {
@@ -374,6 +425,78 @@ export default function ReportesScreen({ route, navigation }) {
     const dateB = new Date(b.fecha.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
     return ordenFecha === 'asc' ? dateA - dateB : dateB - dateA;
   });
+
+  const chartConfig = {
+    backgroundGradientFrom: "#fff",
+    backgroundGradientTo: "#fff",
+    color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+    strokeWidth: 2,
+    barPercentage: 0.6,
+    useShadowColorFromDataset: false,
+    propsForDots: { r: "5", strokeWidth: "2", stroke: "#ffb300" }
+  };
+
+  const renderChart = () => {
+    if (reporteActivo === 'Ingresos' && realIngresos) {
+      return (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Flujo de Ingresos ({timeFilter})</Text>
+          <BarChart
+            data={{ labels: realIngresos.labels, datasets: [{ data: realIngresos.datosSemanales }] }}
+            width={chartWidth}
+            height={250}
+            yAxisLabel="$"
+            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`}}
+            style={styles.chartStyle}
+            showValuesOnTopOfBars={true}
+          />
+        </View>
+      );
+    }
+    if (reporteActivo === 'Reservas' && realReservas) {
+      return (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Distribución de Reservas ({timeFilter})</Text>
+          <StackedBarChart
+            data={{
+              labels: realReservas.labels,
+              legend: realReservas.legend,
+              data: realReservas.data,
+              barColors: ["#10b981", "#ffb300", "#ec4899"]
+            }}
+            width={chartWidth}
+            height={250}
+            chartConfig={chartConfig}
+            style={styles.chartStyle}
+          />
+        </View>
+      );
+    }
+    if (reporteActivo === 'Asistencia') {
+      const asistData = asistenciaData.map(c => c.totalAlumnos > 0 ? (c.alumnosStats.filter(a => a.porcentaje > 50).length / c.totalAlumnos) * 100 : 0);
+      return (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Tendencia de Asistencia (%)</Text>
+          <LineChart
+            data={{ labels: asistenciaData.map(c => c.nombre.substring(0,5)), datasets: [{ data: asistData.length ? asistData : [0] }] }}
+            width={chartWidth}
+            height={250}
+            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(255, 179, 0, ${opacity})`}}
+            bezier
+            style={styles.chartStyle}
+            onDataPointClick={({ value, x, y }) => setTooltip({ x, y, value: `${Math.round(value)}%` })}
+          />
+          {tooltip && (
+            <View style={[styles.tooltip, { left: tooltip.x - 20, top: tooltip.y - 30 }]}>
+              <Text style={styles.tooltipText}>{tooltip.value}</Text>
+            </View>
+          )}
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -621,6 +744,15 @@ export default function ReportesScreen({ route, navigation }) {
           </ScrollView>
         ) : (
           <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
+            
+            <View style={styles.filterRow}>
+              {['Semana', 'Mes', 'Año'].map(f => (
+                <TouchableOpacity key={f} style={[styles.filterBtn, timeFilter === f && styles.filterBtnActive]} onPress={() => setTimeFilter(f)}>
+                  <Text style={[styles.filterText, timeFilter === f && styles.filterTextActive]}>{f}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <View style={styles.kpiCard}>
               <MaterialCommunityIcons name={dataActual.icon} size={32} color={dataActual.color} />
               <View style={{ marginLeft: 15 }}>
@@ -630,15 +762,7 @@ export default function ReportesScreen({ route, navigation }) {
               </View>
             </View>
 
-            <Text style={styles.chartTitle}>Flujo Semanal</Text>
-            <View style={styles.barChart}>
-              {dataActual.datosSemanales.map((val, i) => (
-                <View key={i} style={styles.barWrapper}>
-                  <View style={[styles.bar, { height: val, backgroundColor: dataActual.color }]} />
-                  <Text style={styles.barDay}>{['L','M','M','J','V','S','D'][i]}</Text>
-                </View>
-              ))}
-            </View>
+            {renderChart()}
             
             <Text style={styles.description}>{dataActual.descripcion}</Text>
             <View style={{ height: 100 }} /> 
@@ -704,16 +828,21 @@ const styles = StyleSheet.create({
   selBtnMobile: { flexBasis: '47%', marginBottom: 8, flex: 0 },
   selText: { fontSize: 10, fontWeight: '800', color: '#1e293b', marginTop: 5 },
   mainVisualArea: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 25, padding: 20, position: 'relative', overflow: 'hidden' },
-  kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 15, borderRadius: 18, alignItems: 'center', marginBottom: 20 },
+  kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 20, borderRadius: 20, alignItems: 'center', marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 5 },
   kpiLabel: { fontSize: 10, fontWeight: '900', color: '#64748b' },
   kpiValue: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
   kpiSub: { fontSize: 11, color: '#009b3a', fontWeight: '700' },
-  chartTitle: { color: '#fff', fontWeight: '800', marginBottom: 15, fontSize: 14 },
-  barChart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 120, marginBottom: 10 },
-  barWrapper: { alignItems: 'center' },
-  bar: { width: 12, borderRadius: 6 },
-  barDay: { color: '#94a3b8', fontSize: 10, marginTop: 8, fontWeight: '800' },
-  description: { color: '#cbd5e1', fontSize: 12, marginTop: 20, fontStyle: 'italic', textAlign: 'center' },
+  filterRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15, gap: 8 },
+  filterBtn: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', elevation: 2 },
+  filterBtnActive: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
+  filterText: { color: '#64748b', fontSize: 12, fontWeight: '800' },
+  filterTextActive: { color: '#fff' },
+  chartCard: { backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
+  chartTitle: { color: '#1e293b', fontWeight: '900', marginBottom: 15, fontSize: 15 },
+  chartStyle: { borderRadius: 16, marginTop: 10 },
+  tooltip: { position: 'absolute', backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, elevation: 5 },
+  tooltipText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  description: { color: '#cbd5e1', fontSize: 12, marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
 
   recuadroRojoAcciones: {
     position: 'absolute',

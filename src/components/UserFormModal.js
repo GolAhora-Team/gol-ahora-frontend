@@ -11,6 +11,12 @@ import DatePickerModal from './DatePickerModal';
 import CobroMembresiaModal from './CobroMembresiaModal';
 import SuccessModal from './SuccessModal';
 
+const formatDateDisplay = (dateStr) => {
+  if (!dateStr || !dateStr.includes('-')) return dateStr;
+  const [y, m, d] = dateStr.split('T')[0].split('-');
+  return `${d}-${m}-${y}`;
+};
+
 export default function UserFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, onRefresh, currentUserRole, rolesIcons, errorMessage, originalRole }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarAptoInicioVisible, setCalendarAptoInicioVisible] = useState(false);
@@ -129,10 +135,10 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
         if (file.size > 2 * 1024 * 1024) {
-          alert('El archivo del apto médico excede el límite de 2MB.');
+          alert('El archivo del apto físico excede el límite de 2MB.');
           return;
         }
-        const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'apto_medico.pdf');
+        const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'apto_fisico.pdf');
 
         if (Platform.OS === 'web') {
           const reader = new FileReader();
@@ -233,7 +239,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 >
                   <MaterialCommunityIcons name="calendar" size={20} color="#009b3a" style={{marginRight: 10}} />
                   <Text style={{ color: formData.fechaNacimiento ? '#009b3a' : '#94a3b8', fontSize: 16, fontWeight: '900', flex: 1 }}>
-                    {formData.fechaNacimiento ? formData.fechaNacimiento : "Seleccionar fecha"}
+                    {formData.fechaNacimiento ? formatDateDisplay(formData.fechaNacimiento) : "DD-MM-YYYY"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -352,12 +358,12 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
 
                 {formData.aptoFisico && (
                   <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
-                    <Text style={styles.greenLabelBold}>CERTIFICADO MÉDICO (PDF/IMG, MÁX 2MB)</Text>
+                    <Text style={styles.greenLabelBold}>APTO FÍSICO (PDF/IMG, MÁX 2MB)</Text>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                       <TouchableOpacity style={[styles.fileBtn, { flex: 1 }]} onPress={handlePickAptoMedico}>
                         <MaterialCommunityIcons name="file-document-outline" size={24} color="#009b3a" />
                         <Text style={styles.fileBtnText}>
-                          {formData.aptoMedicoFileName ? formData.aptoMedicoFileName : (formData.tieneAptoMedicoArchivo ? "Certificado Guardado" : "Seleccionar Archivo")}
+                          {formData.aptoMedicoFileName ? formData.aptoMedicoFileName : (formData.tieneAptoMedicoArchivo ? "Apto Guardado" : "Seleccionar Archivo")}
                         </Text>
                       </TouchableOpacity>
                       {(formData.tieneAptoMedicoArchivo || formData.id) && formData.aptoMedicoFileName === 'Apto Médico Guardado' && (
@@ -375,14 +381,14 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                       <View style={{ flex: 1 }}>
                         <Text style={styles.greenLabelBold}>FECHA EMISIÓN</Text>
                         <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarAptoInicioVisible(true)}>
-                          <Text style={{ color: formData.aptoFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaInicio || "YYYY-MM-DD"}</Text>
+                          <Text style={{ color: formData.aptoFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaInicio ? formatDateDisplay(formData.aptoFechaInicio) : "DD-MM-YYYY"}</Text>
                         </TouchableOpacity>
                       </View>
                       <View style={{ width: 10 }} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.greenLabelBold}>FECHA VENCIMIENTO</Text>
                         <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarAptoFinVisible(true)}>
-                          <Text style={{ color: formData.aptoFechaFin ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaFin || "YYYY-MM-DD"}</Text>
+                          <Text style={{ color: formData.aptoFechaFin ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.aptoFechaFin ? formatDateDisplay(formData.aptoFechaFin) : "DD-MM-YYYY"}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -453,7 +459,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                             setCalendarCertData({ index: realIndex, field: 'certFechaInicio' });
                             setCalendarCertVisible(true);
                           }}>
-                            <Text style={{ color: cert.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{cert.certFechaInicio || "YYYY-MM-DD"}</Text>
+                            <Text style={{ color: cert.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{cert.certFechaInicio ? formatDateDisplay(cert.certFechaInicio) : "DD-MM-YYYY"}</Text>
                           </TouchableOpacity>
                         </View>
                         
@@ -470,7 +476,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                             disabled={cert.sinCaducidad}
                           >
                             <Text style={{ color: cert.sinCaducidad ? '#94a3b8' : (cert.certFechaFin ? '#1e293b' : '#94a3b8'), fontWeight: '800' }}>
-                              {cert.sinCaducidad ? 'Sin caducidad' : (cert.certFechaFin || "YYYY-MM-DD")}
+                              {cert.sinCaducidad ? 'Sin caducidad' : (cert.certFechaFin ? formatDateDisplay(cert.certFechaFin) : "DD-MM-YYYY")}
                             </Text>
                           </TouchableOpacity>
                         </View>
