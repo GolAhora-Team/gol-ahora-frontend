@@ -157,8 +157,10 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
           {isStaff && !isFinished && (
             <TouchableOpacity onPress={() => {
               setEditingMatch(match);
-              setGolesLocal(match.golesLocal?.toString() || '0');
-              setGolesVisitante(match.golesVisitante?.toString() || '0');
+              setGolesLocal(Number(match.golesLocal) || 0);
+              setGolesVisitante(Number(match.golesVisitante) || 0);
+              setPenalesLocal(0);
+              setPenalesVisitante(0);
             }}>
               <MaterialCommunityIcons name="pencil" size={16} color="#009b3a" />
             </TouchableOpacity>
