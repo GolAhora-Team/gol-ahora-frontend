@@ -144,8 +144,8 @@ export default function UserScreen({ route, navigation }) {
         especializacion: user.especialidad || user.especializacion || '',
         certificados: certs,
         certificacion: user.certificacion || '',
-        aptoFechaInicio: aptoInicio,
-        aptoFechaFin: aptoFin,
+        aptoFechaInicio: user.aptoFechaInicio ? user.aptoFechaInicio.split('T')[0] : '',
+        aptoFechaFin: user.aptoFechaFin ? user.aptoFechaFin.split('T')[0] : '',
         aptoMedicoFileName: user.tieneAptoMedicoArchivo ? 'Apto Médico Guardado' : null
       });
       setOriginalRole(user.role);
