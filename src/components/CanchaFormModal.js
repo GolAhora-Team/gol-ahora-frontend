@@ -46,11 +46,14 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     onPress={() => {
                       let cap = "0";
                       let dim = "";
-                      let precio = 0;
-                      if (t === 'F5') { cap = "10"; dim = "20x40m"; precio = 30000; }
-                      if (t === 'F7') { cap = "14"; dim = "30x50m"; precio = 65000; }
-                      if (t === 'F11') { cap = "22"; dim = "45x90m"; precio = 120000; }
-                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioBase: precio});
+                      let basePricePerHour = 30000;
+                      if (t === 'F5') { cap = "10"; dim = "20x40m"; basePricePerHour = 30000; }
+                      if (t === 'F7') { cap = "14"; dim = "30x50m"; basePricePerHour = 65000; }
+                      if (t === 'F11') { cap = "22"; dim = "45x90m"; basePricePerHour = 120000; }
+                      
+                      let duracion = formData.duracionMax || 60;
+                      let precioFinal = basePricePerHour * (duracion / 60);
+                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioBase: precioFinal});
                     }}
                   >
                     <Text style={[styles.choiceText, formData.tipo === t ? styles.whiteText : styles.greenText]}>{t}</Text>
@@ -77,7 +80,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               />
 
               <CustomInput 
-                label="PRECIO POR HORA - Autocalculado" 
+                label="PRECIO DEL TURNO - Autocalculado" 
                 value={formData.precioBase ? `$${formData.precioBase}` : ""} 
                 editable={false}
                 containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
@@ -91,7 +94,15 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                   <TouchableOpacity 
                     key={d} 
                     style={[styles.choiceBtn, formData.duracionMax === d && styles.activeBtn]} 
-                    onPress={() => setFormData({...formData, duracionMax: d})}
+                    onPress={() => {
+                      let basePricePerHour = 30000;
+                      if (formData.tipo === 'F5') basePricePerHour = 30000;
+                      if (formData.tipo === 'F7') basePricePerHour = 65000;
+                      if (formData.tipo === 'F11') basePricePerHour = 120000;
+                      
+                      let precioFinal = basePricePerHour * (d / 60);
+                      setFormData({...formData, duracionMax: d, precioBase: precioFinal});
+                    }}
                   >
                     <Text style={[styles.choiceText, formData.duracionMax === d ? styles.whiteText : styles.greenText]}>{d} min</Text>
                   </TouchableOpacity>
@@ -100,7 +111,16 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               <CustomInput 
                 label="DURACIÓN PERSONALIZADA (Minutos)" 
                 value={formData.duracionMax ? formData.duracionMax.toString() : ""} 
-                onChangeText={v => setFormData({...formData, duracionMax: parseInt(v.replace(/[^0-9]/g, '')) || 0})}
+                onChangeText={v => {
+                  let d = parseInt(v.replace(/[^0-9]/g, '')) || 0;
+                  let basePricePerHour = 30000;
+                  if (formData.tipo === 'F5') basePricePerHour = 30000;
+                  if (formData.tipo === 'F7') basePricePerHour = 65000;
+                  if (formData.tipo === 'F11') basePricePerHour = 120000;
+                  
+                  let precioFinal = basePricePerHour * (d / 60);
+                  setFormData({...formData, duracionMax: d, precioBase: precioFinal});
+                }}
                 containerStyle={styles.cleanInput}
                 labelStyle={styles.greenLabelBold}
                 inputStyle={styles.greenInputText}
