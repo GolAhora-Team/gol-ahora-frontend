@@ -79,22 +79,21 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
   return (
     <View style={[
       styles.card, 
-      (isFinalizado || (isCancelada && isPast)) && styles.cardFinalizado, 
+      isPast && styles.cardFinalizado, 
       isEnJuego && styles.cardEnJuego,
-      isCancelada && !isPast && styles.cardCancelada,
-      isCancelada && isPast && styles.cardCanceladaPast
+      isCancelada && !isPast && styles.cardCancelada
     ]}>
       <View style={styles.timeContainer}>
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, (isFinalizado || (isCancelada && isPast)) && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaInicio}</Text>
-        <View style={[styles.timeDivider, (isFinalizado || (isCancelada && isPast)) && { backgroundColor: '#cbd5e1' }, (isCancelada && !isPast) && { backgroundColor: '#fca5a5' }]} />
-        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, (isFinalizado || (isCancelada && isPast)) && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaFin}</Text>
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isPast && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaInicio}</Text>
+        <View style={[styles.timeDivider, isPast && { backgroundColor: '#cbd5e1' }, (isCancelada && !isPast) && { backgroundColor: '#fca5a5' }]} />
+        <Text style={[styles.timeText, isEnJuego && { color: '#059669' }, isPast && { color: '#94a3b8' }, (isCancelada && !isPast) && { color: '#ef4444' }]}>{item.horaFin}</Text>
         {item.fecha && (
           <Text style={styles.dateText}>{formatFecha(item.fecha)}</Text>
         )}
       </View>
 
       <View style={styles.infoSide}>
-        <Text style={[styles.canchaName, (isFinalizado || (isCancelada && isPast)) && { color: '#64748b' }]}>{item.canchaNombre}</Text>
+        <Text style={[styles.canchaName, isPast && { color: '#64748b' }]}>{item.canchaNombre}</Text>
         <Text style={styles.clienteName}>
           {item.clienteNombre} {item.clienteEdad ? `(${item.clienteEdad} años)` : ''}
         </Text>
@@ -103,18 +102,18 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
           <View style={[
             styles.statusBadge, 
             isEnJuego && { backgroundColor: '#10b981' },
-            isPendiente && { backgroundColor: '#fef08a' },
-            isFinalizado && { backgroundColor: '#bae6fd' },
-            isCancelada && !isPast && { backgroundColor: '#fca5a5' },
-            isCancelada && isPast && { backgroundColor: '#fee2e2' }
+            isPendiente && !isPast && { backgroundColor: '#fef08a' },
+            (!isEnJuego && !isPendiente && !isCancelada && !isPast) && { backgroundColor: '#bae6fd' }, // Confirmada (normal)
+            isPast && { backgroundColor: '#f1f5f9' },
+            isCancelada && !isPast && { backgroundColor: '#fca5a5' }
           ]}>
             <Text style={[
               styles.statusText, 
               isEnJuego && { color: '#fff' },
-              isPendiente && { color: '#854d0e' },
-              isFinalizado && { color: '#0369a1' },
-              isCancelada && !isPast && { color: '#7f1d1d' },
-              isCancelada && isPast && { color: '#991b1b' }
+              isPendiente && !isPast && { color: '#854d0e' },
+              (!isEnJuego && !isPendiente && !isCancelada && !isPast) && { color: '#0369a1' },
+              isPast && { color: '#64748b' },
+              isCancelada && !isPast && { color: '#7f1d1d' }
             ]}>
               {(item.estado || '').toUpperCase()}
             </Text>
