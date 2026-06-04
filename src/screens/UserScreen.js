@@ -15,6 +15,7 @@ import { reportHistoryService } from '../services/reportHistoryService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
+import { API_BASE_URL } from '../services/apiConfig';
 
 export default function UserScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
@@ -208,6 +209,8 @@ export default function UserScreen({ route, navigation }) {
         } else if (formData.role === 'PROFE') {
           const payloadProfe = {
             ...payloadToSave,
+            Especialidad: formData.especializacion,
+            Certificacion: formData.certificadoFile !== 'Certificado Guardado' ? formData.certificadoFile : null,
             CertificadoBase64: formData.certificadoBase64,
             CertificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
             CertificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null)
@@ -335,6 +338,7 @@ export default function UserScreen({ route, navigation }) {
       <div class="item"><b>Certificado:</b> ${user.tieneCertificado ? 'Sí' : 'No'}</div>
       <div class="item"><b>Cert. Inicio:</b> ${fechaFormat(user.certificadoFechaInicio)}</div>
       <div class="item"><b>Cert. Fin:</b> ${user.certificadoFechaFin ? fechaFormat(user.certificadoFechaFin) : 'Sin caducidad'}</div>
+      ${user.tieneCertificado ? `<div class="item" style="width: 100%; margin-top: 15px;"><b>Link Certificado:</b> <a href="${API_BASE_URL}/Profesor/${user.id}/certificado/descargar" target="_blank" style="color: #009b3a; text-decoration: underline;">Descargar PDF Original</a></div>` : ''}
     ` : `
       <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
       <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
