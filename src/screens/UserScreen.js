@@ -496,7 +496,8 @@ export default function UserScreen({ route, navigation }) {
 
   const sections = roleOrder.map(role => ({
     role: role,
-    data: sortedUsers.filter(u => u.role === role)
+    data: sortedUsers.filter(u => u.role === role),
+    totalCount: users.filter(u => u.role === role).length
   })).filter(section => section.data.length > 0);
 
   const scrollViewRef = useRef(null);
@@ -555,7 +556,7 @@ export default function UserScreen({ route, navigation }) {
             >
               <View style={styles.roleHeader}>
                 <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#000" />
-                <Text style={styles.roleHeaderText}>{section.role}</Text>
+                <Text style={styles.roleHeaderText}>{section.role}  {section.totalCount}</Text>
               </View>
               {section.data.map(item => (
                 <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} onDownloadCert={handleDownloadCert} canModify={canModifyTarget(item)} />
