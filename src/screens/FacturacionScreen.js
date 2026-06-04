@@ -31,14 +31,42 @@ export default function FacturacionScreen({ route, navigation }) {
       try {
         const facturas = await facturaService.getAll();
         items = [...items, ...(facturas || []).map(f => ({
-          ...f, id: f.id?.toString(),
+          ...f, 
+          id: f.id?.toString(),
+          concepto: f.concepto || 'Factura',
+          monto: f.total || 0,
+          fecha: f.fechaEmision ? new Date(f.fechaEmision).toLocaleDateString() : '-',
+          metodo: '-',
+          estado: 'EMITIDA'
         }))];
       } catch (e) { /* facturas endpoint puede fallar */ }
 
       try {
         const pagosData = await pagoService.getAll();
+        
+        const getMetodo = (m) => {
+          if (m === 1 || m === 'Efectivo') return 'Efectivo';
+          if (m === 2 || m === 'Tarjeta') return 'Tarjeta';
+          if (m === 3 || m === 'Transferencia') return 'Transferencia';
+          return 'Otro';
+        };
+
+        const getEstado = (e) => {
+          if (e === 1 || e === 'Pendiente') return 'PENDIENTE';
+          if (e === 2 || e === 'Pagado') return 'PAGADO';
+          if (e === 3 || e === 'Cancelado') return 'CANCELADO';
+          if (e === 4 || e === 'Reintegro') return 'REINTEGRO';
+          return 'DESCONOCIDO';
+        };
+
         items = [...items, ...(pagosData || []).map(p => ({
-          ...p, id: p.id?.toString(),
+          ...p, 
+          id: p.id?.toString(),
+          concepto: 'Pago de Reserva',
+          monto: p.monto || 0,
+          fecha: p.fechaPago ? new Date(p.fechaPago).toLocaleDateString() : '-',
+          metodo: getMetodo(p.metodo),
+          estado: getEstado(p.estado)
         }))];
       } catch (e) { /* pagos endpoint puede fallar */ }
 
