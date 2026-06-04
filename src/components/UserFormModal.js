@@ -377,10 +377,43 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   {formData.tieneCertificado && !formData.fileUri && (
                     <TouchableOpacity 
                       style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
-                      onPress={() => window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/descargar`, '_blank')}
+                      onPress={() => {
+                        if (Platform.OS === 'web') {
+                          window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/descargar`, '_blank');
+                        }
+                      }}
                     >
                       <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
                       <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                    </TouchableOpacity>
+                  )}
+                  {formData.fileUri && Platform.OS === 'web' && (
+                    <TouchableOpacity 
+                      style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
+                      onPress={() => window.open(formData.fileUri, '_blank')}
+                    >
+                      <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
+                      <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                    </TouchableOpacity>
+                  )}
+                  {(formData.tieneCertificado || formData.fileUri) && (
+                    <TouchableOpacity 
+                      style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginLeft: -5 }]} 
+                      onPress={() => {
+                        setFormData({
+                          ...formData,
+                          certificadoFile: null,
+                          certificadoBase64: null,
+                          fileUri: null,
+                          tieneCertificado: false,
+                          eliminarCertificado: true,
+                          certFechaInicio: '',
+                          certFechaFin: '',
+                          sinCaducidad: false
+                        });
+                      }}
+                    >
+                      <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
                     </TouchableOpacity>
                   )}
                 </View>
