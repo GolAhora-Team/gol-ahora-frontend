@@ -4,7 +4,7 @@ const isWebProd = Platform.OS === 'web' && typeof window !== 'undefined' && wind
 
 // En Vercel usamos ruta relativa '/api' para aprovechar el proxy de vercel.json y evitar errores de Mixed Content (HTTP vs HTTPS).
 // Localmente, pegamos directo al dominio completo.
-export const API_BASE_URL = isWebProd ? '/api' : 'http://golahora.runasp.net/api';
+export const API_BASE_URL = isWebProd ? '/api' : 'http://localhost:5184/api';
 
 /**
  * Helper genérico para manejar las respuestas del backend.
