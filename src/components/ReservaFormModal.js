@@ -542,7 +542,24 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           if (isApproved) {
             clearInterval(interval);
             setQrModalVisible(false);
-            if (pendingAdminReservaPayload) {
+            if (pendingAdminReservaPayload?.pagoId) {
+              try {
+                const pagos = await pagoService.getAll();
+                const pago = pagos.find(p => p.id === pendingAdminReservaPayload.pagoId || p.Id === pendingAdminReservaPayload.pagoId);
+                if (pago) {
+                  await pagoService.update(pendingAdminReservaPayload.pagoId, { ...pago, estado: 2 });
+                }
+              } catch (e) {
+                console.error("Error confirmando pago tras aprobar QR:", e);
+              }
+              onClose();
+              if (onReservaCreated) {
+                onReservaCreated({
+                  ...pendingAdminReservaPayload,
+                  isEdit: pendingAdminReservaPayload.isEdit
+                });
+              }
+            } else if (pendingAdminReservaPayload) {
               processAdminReservation(pendingAdminReservaPayload);
             }
           }
