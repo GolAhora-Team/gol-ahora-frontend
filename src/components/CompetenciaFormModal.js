@@ -170,7 +170,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
 
             <Text style={styles.label}>Cantidad de Equipos</Text>
             <View style={styles.selectorRow}>
-              {(formData.tipo === 'LIGA' ? ['8', '20'] : ['4', '8', '16']).map((num) => (
+              {(formData.tipo === 'LIGA' ? ['10', '20'] : ['4', '8', '16']).map((num) => (
                 <TouchableOpacity
                   key={num}
                   style={[styles.selectorBtn, formData.maxEquipos === num && styles.selectorActive]}
