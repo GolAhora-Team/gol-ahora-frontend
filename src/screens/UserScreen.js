@@ -233,7 +233,7 @@ export default function UserScreen({ route, navigation }) {
             certificados: mappedCerts,
             especialidad: formData.especializacion || 'General',
             obraSocial: formData.obraSocial || 'Ninguna',
-            certificacion: formData.certificacion || 'Ninguna'
+            certificacion: mappedCerts.length > 0 ? 'Certificado' : (formData.certificacion || 'Ninguna')
           };
           await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
@@ -290,7 +290,8 @@ export default function UserScreen({ route, navigation }) {
             especialidad: mappedData.especialidad,
             obraSocial: mappedData.obraSocial,
             certificacion: mappedData.certificacion,
-            certificados: mappedData.certificados
+            certificados: mappedData.certificados,
+            certificacion: mappedData.certificados.length > 0 ? 'Certificado' : (mappedData.certificacion || 'Ninguna')
           };
           await userService.createUsuarioProfesor(payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {

@@ -409,8 +409,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   const realIndex = formData.certificados.findIndex(c => c === cert);
                   return (
                     <View key={realIndex} style={styles.certCard}>
-                      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 15 }}>
-                        <TouchableOpacity style={[styles.fileBtn, { flex: 1, marginBottom: 0 }]} onPress={() => handlePickDocument(realIndex)}>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
+                        <TouchableOpacity style={[styles.fileBtn, { flex: 1, minWidth: 200, marginBottom: 0 }]} onPress={() => handlePickDocument(realIndex)}>
                           <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
                           <Text style={styles.fileBtnText}>
                             {cert.certificadoFile ? cert.certificadoFile : "Seleccionar Archivo"}
@@ -446,8 +446,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                         </TouchableOpacity>
                       </View>
 
-                      <View style={styles.datesRow}>
-                        <View style={{ flex: 1 }}>
+                      <View style={[styles.datesRow, { flexWrap: 'wrap', gap: 10 }]}>
+                        <View style={{ flex: 1, minWidth: 140 }}>
                           <Text style={styles.greenLabelBold}>FECHA INICIO</Text>
                           <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => {
                             setCalendarCertData({ index: realIndex, field: 'certFechaInicio' });
@@ -456,8 +456,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                             <Text style={{ color: cert.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{cert.certFechaInicio || "YYYY-MM-DD"}</Text>
                           </TouchableOpacity>
                         </View>
-                        <View style={{ width: 10 }} />
-                        <View style={{ flex: 1 }}>
+                        
+                        <View style={{ flex: 1, minWidth: 140 }}>
                           <Text style={[styles.greenLabelBold, cert.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
                           <TouchableOpacity 
                             style={[styles.cleanInput, cert.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]} 
