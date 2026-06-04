@@ -31,11 +31,11 @@ export const userService = {
 
   /**
    * POST /api/User/Profesor
-   * Crea un usuario con rol Profesor.
+   * Crea un usuario con rol Profesor usando FormData.
    */
-  createUsuarioProfesor: async (data) => {
+  createUsuarioProfesor: async (formData) => {
     try {
-      return await http.post(`${URL}/Profesor`, data);
+      return await http.postForm(`${URL}/Profesor`, formData);
     } catch (error) {
       console.error('Error creating usuario profesor:', error);
       throw error;

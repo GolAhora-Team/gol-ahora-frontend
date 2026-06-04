@@ -116,7 +116,7 @@ export default function UserScreen({ route, navigation }) {
       let aptoFin = '';
       if (user.role === 'PROFE') {
         if (user.certificadoFechaInicio) certInicio = user.certificadoFechaInicio.split('T')[0];
-        if (user.certificadoFechaFin) certFin = user.certificadoFechaFin.split('T')[0];
+        if (user.certificadoFechaVencimiento) certFin = user.certificadoFechaVencimiento.split('T')[0];
       } else if (user.role === 'CLIENTE') {
         if (user.aptoMedicoFechaInicio) aptoInicio = user.aptoMedicoFechaInicio.split('T')[0];
         if (user.aptoMedicoFechaFin) aptoFin = user.aptoMedicoFechaFin.split('T')[0];
@@ -129,8 +129,8 @@ export default function UserScreen({ route, navigation }) {
         tieneObraSocial: hasObraSocial,
         certFechaInicio: certInicio,
         certFechaFin: certFin,
-        sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaFin && user.tieneCertificado,
-        certificadoFile: user.tieneCertificado ? (user.certificacion || 'Certificado Guardado') : null,
+        sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaVencimiento && user.tieneCertificado,
+        certificadoFile: user.tieneCertificado ? (user.certificadoNombreArchivo || 'Certificado Guardado') : null,
         aptoFechaInicio: aptoInicio,
         aptoFechaFin: aptoFin,
         aptoMedicoFileName: user.tieneAptoMedicoArchivo ? 'Apto Médico Guardado' : null
@@ -207,15 +207,38 @@ export default function UserScreen({ route, navigation }) {
             });
           }
         } else if (formData.role === 'PROFE') {
-          const payloadProfe = {
-            ...payloadToSave,
-            Especialidad: formData.especializacion,
-            Certificacion: formData.certificadoFile !== 'Certificado Guardado' ? formData.certificadoFile : null,
-            CertificadoBase64: formData.certificadoBase64,
-            CertificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
-            CertificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null)
-          };
-          await profesorService.updateSimple(formData.id, payloadProfe);
+          const formPayload = new FormData();
+          formPayload.append('Dni', formData.dni);
+          formPayload.append('Nombre', formData.nombre);
+          formPayload.append('Apellido', formData.apellido);
+          formPayload.append('Genero', formData.genero);
+          formPayload.append('FechaNacimiento', dateStr);
+          formPayload.append('Telefono', formData.telefono);
+          formPayload.append('Direccion', formData.direccion);
+          formPayload.append('Localidad', formData.localidad);
+          formPayload.append('CodigoPostal', formData.codigoPostal);
+          formPayload.append('Provincia', formData.provincia);
+          formPayload.append('Pais', formData.pais);
+          formPayload.append('ContactoEmergencia', formData.contactoEmergencia);
+          formPayload.append('Email', formData.email);
+          formPayload.append('Especialidad', formData.especializacion || 'General');
+          formPayload.append('Certificacion', formData.certificadoFile !== 'Certificado Guardado' ? (formData.certificadoFile || 'Ninguna') : 'Ninguna');
+          
+          const certFechaInicio = formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null;
+          const certFechaFin = formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null);
+
+          if (certFechaInicio) formPayload.append('CertificadoFechaInicio', certFechaInicio);
+          if (certFechaFin) formPayload.append('CertificadoFechaVencimiento', certFechaFin);
+
+          if (formData.fileUri) {
+            formPayload.append('CertificadoArchivo', {
+              uri: formData.fileUri,
+              name: formData.certificadoFile,
+              type: formData.fileMimeType || 'application/pdf'
+            });
+          }
+
+          await profesorService.updateSimple(formData.id, formPayload);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           await administradorService.updateSimple(formData.id, payloadToSave);
         }
@@ -249,8 +272,37 @@ export default function UserScreen({ route, navigation }) {
           payload.cliente = mappedData;
           await userService.createUsuarioCliente(payload);
         } else if (formData.role === 'PROFE') {
-          payload.request = mappedData;
-          await userService.createUsuarioProfesor(payload);
+          const formPayload = new FormData();
+          formPayload.append('Email', formData.dni.toString());
+          formPayload.append('Password', "1234");
+          formPayload.append('Username', formData.dni.toString());
+          formPayload.append('Dni', mappedData.dni);
+          formPayload.append('Nombre', mappedData.nombre);
+          formPayload.append('Apellido', mappedData.apellido);
+          formPayload.append('Genero', mappedData.genero);
+          formPayload.append('FechaNacimiento', mappedData.fechaNacimiento);
+          formPayload.append('Telefono', mappedData.telefono);
+          formPayload.append('Direccion', mappedData.direccion);
+          formPayload.append('Localidad', mappedData.localidad);
+          formPayload.append('CodigoPostal', mappedData.codigoPostal);
+          formPayload.append('Provincia', mappedData.provincia);
+          formPayload.append('Pais', mappedData.pais);
+          formPayload.append('ContactoEmergencia', mappedData.contactoEmergencia);
+          formPayload.append('Certificacion', mappedData.certificacion);
+          formPayload.append('Especialidad', mappedData.especialidad);
+          
+          if (mappedData.certificadoFechaInicio) formPayload.append('CertificadoFechaInicio', mappedData.certificadoFechaInicio);
+          if (mappedData.certificadoFechaFin) formPayload.append('CertificadoFechaVencimiento', mappedData.certificadoFechaFin);
+
+          if (formData.fileUri) {
+            formPayload.append('CertificadoArchivo', {
+              uri: formData.fileUri,
+              name: formData.certificadoFile,
+              type: formData.fileMimeType || 'application/pdf'
+            });
+          }
+
+          await userService.createUsuarioProfesor(formPayload);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           mappedData.identificador = formData.role === 'ADMIN' ? 100 : 101;
           mappedData.puedeFacturar = true;
@@ -337,7 +389,7 @@ export default function UserScreen({ route, navigation }) {
       <div class="item"><b>Certificación:</b> ${d(user.certificacion)}</div>
       <div class="item"><b>Certificado:</b> ${user.tieneCertificado ? 'Sí' : 'No'}</div>
       <div class="item"><b>Cert. Inicio:</b> ${fechaFormat(user.certificadoFechaInicio)}</div>
-      <div class="item"><b>Cert. Fin:</b> ${user.certificadoFechaFin ? fechaFormat(user.certificadoFechaFin) : 'Sin caducidad'}</div>
+      <div class="item"><b>Cert. Fin:</b> ${user.certificadoFechaVencimiento ? fechaFormat(user.certificadoFechaVencimiento) : 'Sin caducidad'}</div>
       ${user.tieneCertificado ? `<div class="item" style="width: 100%; margin-top: 15px;"><b>Link Certificado:</b> <a href="${API_BASE_URL}/Profesor/${user.id}/certificado/descargar" target="_blank" style="color: #009b3a; text-decoration: underline;">Descargar PDF Original</a></div>` : ''}
     ` : `
       <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>

@@ -95,4 +95,21 @@ export const http = {
     });
     return handleResponse(response);
   },
+
+  postForm: async (url, formData) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // No setear Content-Type, fetch lo setea automáticamente a multipart/form-data con el boundary correcto
+    });
+    return handleResponse(response);
+  },
+
+  putForm: async (url, formData) => {
+    const response = await fetch(url, {
+      method: 'PUT',
+      body: formData,
+    });
+    return handleResponse(response);
+  },
 };

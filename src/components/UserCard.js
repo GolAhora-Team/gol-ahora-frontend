@@ -24,19 +24,10 @@ export default function UserCard({ item, onEdit, onDelete, onReport, onDownloadC
   const getCertificadoStatus = () => {
     if (!item.tieneCertificado) return { text: 'Sin Certificado', color: '#ef4444', bg: '#fee2e2', icon: 'certificate-outline' };
     
-    // Check if the certificate doesn't expire or has no end date but is valid
-    if (item.sinCaducidad || !item.certificadoFechaFin) return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
+    if (item.certificadoEstado === 'Certificado vencido') return { text: 'Certificado Vencido', color: '#ef4444', bg: '#fee2e2', icon: 'certificate' };
+    if (item.certificadoEstado === 'Certificado válido') return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
     
-    if (item.certificadoFechaFin) {
-      // Backend returns ISO string e.g. "2024-12-31T00:00:00", or date only
-      const endDate = new Date(item.certificadoFechaFin);
-      
-      if (!isNaN(endDate) && endDate < new Date()) {
-        return { text: 'Certificado Vencido', color: '#ef4444', bg: '#fee2e2', icon: 'certificate' };
-      }
-    }
-    
-    return { text: 'Certificado Vigente', color: '#059669', bg: '#d1fae5', icon: 'certificate' };
+    return { text: 'Sin Certificado', color: '#ef4444', bg: '#fee2e2', icon: 'certificate-outline' };
   };
 
   const certStatus = item.role === 'PROFE' ? getCertificadoStatus() : null;

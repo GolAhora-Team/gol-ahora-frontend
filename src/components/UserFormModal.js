@@ -58,7 +58,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           return;
         }
         const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
-        setFormData(prev => ({ ...prev, certificadoFile: file.name, certificadoBase64: base64 }));
+        setFormData(prev => ({ 
+          ...prev, 
+          certificadoFile: file.name, 
+          certificadoBase64: base64,
+          fileUri: file.uri,
+          fileMimeType: file.mimeType || 'application/pdf'
+        }));
       }
     } catch (err) {
       console.error("Error picking document: ", err);
