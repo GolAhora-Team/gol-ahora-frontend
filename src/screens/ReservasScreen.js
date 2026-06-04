@@ -12,6 +12,8 @@ import { reservaService } from '../services/reservaService';
 import { canchaService } from '../services/canchaService';
 import { clienteService } from '../services/clienteService';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
 
 export default function ReservaScreen({ route, navigation }) {
   const { role: currentUserRole, nombreUsuario: currentUserName } = route.params || { 
@@ -94,6 +96,31 @@ export default function ReservaScreen({ route, navigation }) {
                    await reservaService.create(pending.reservaPayload);
                 }
                 await reportHistoryService.saveReporte(pending.html, pending.fileName);
+
+                // --- CREATE FACTURA AND PAGO ---
+                try {
+                  const facturaPayload = {
+                    fechaEmision: pending.fecha,
+                    total: pending.montoFinal,
+                    clienteId: pending.reservaPayload.ClienteId
+                  };
+                  const factura = await facturaService.create(facturaPayload);
+                  
+                  const facturaId = factura?.id || factura?.Id;
+                  if (facturaId) {
+                    const pagoPayload = {
+                      fechaPago: pending.fecha,
+                      monto: pending.montoFinal,
+                      metodo: pending.metodoPago === 'EFECTIVO' ? 1 : 3, // 1=Efectivo, 3=Transferencia (MercadoPago)
+                      estado: 2, // Pagado
+                      facturaId: facturaId
+                    };
+                    await pagoService.create(pagoPayload);
+                  }
+                } catch (e) {
+                  console.error("Error al registrar factura/pago:", e);
+                }
+                // -------------------------------
                 
                 // Limpiamos la URL para no repetir el proceso si el usuario recarga
                 window.history.replaceState({}, document.title, window.location.pathname);

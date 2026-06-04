@@ -7,6 +7,8 @@ import { userService } from '../services/userService';
 import { reservaService } from '../services/reservaService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { descuentoService } from '../services/descuentoService';
+import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
 import ErrorModal from './ErrorModal';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -773,6 +775,29 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         await reservaService.create(data.reservaPayload);
       }
       await reportHistoryService.saveReporte(data.html, data.fileName);
+
+      try {
+        const facturaPayload = {
+          fechaEmision: data.fecha,
+          total: data.montoFinal,
+          clienteId: data.reservaPayload.ClienteId
+        };
+        const factura = await facturaService.create(facturaPayload);
+        
+        const facturaId = factura?.id || factura?.Id;
+        if (facturaId) {
+          const pagoPayload = {
+            fechaPago: data.fecha,
+            monto: data.montoFinal,
+            metodo: data.metodoPago === 'EFECTIVO' ? 1 : 3, // Efectivo=1, MercadoPago(Transferencia)=3
+            estado: 2, // Pagado
+            facturaId: facturaId
+          };
+          await pagoService.create(pagoPayload);
+        }
+      } catch (e) {
+        console.error("Error al registrar factura/pago:", e);
+      }
 
       onClose();
       if (onReservaCreated) {
