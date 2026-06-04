@@ -15,12 +15,49 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarAptoInicioVisible, setCalendarAptoInicioVisible] = useState(false);
   const [calendarAptoFinVisible, setCalendarAptoFinVisible] = useState(false);
-  const [calendarCertInicioVisible, setCalendarCertInicioVisible] = useState(false);
-  const [calendarCertFinVisible, setCalendarCertFinVisible] = useState(false);
+  const [calendarCertVisible, setCalendarCertVisible] = useState(false);
+  const [calendarCertData, setCalendarCertData] = useState({ index: null, field: null });
   const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
   const [cobroModalVisible, setCobroModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  const handleAddCertificado = () => {
+    setFormData(prev => ({
+      ...prev,
+      certificados: [...(prev.certificados || []), {
+        id: null,
+        certificadoFile: null,
+        certificadoBase64: null,
+        fileUri: null,
+        certFechaInicio: '',
+        certFechaFin: '',
+        sinCaducidad: false,
+        tieneCertificado: false,
+        eliminarCertificado: false
+      }]
+    }));
+  };
+
+  const handleRemoveCertificado = (index) => {
+    setFormData(prev => {
+      const newCerts = [...prev.certificados];
+      if (newCerts[index].id) {
+        newCerts[index].eliminarCertificado = true;
+      } else {
+        newCerts.splice(index, 1);
+      }
+      return { ...prev, certificados: newCerts };
+    });
+  };
+
+  const updateCertificado = (index, field, value) => {
+    setFormData(prev => {
+      const newCerts = [...prev.certificados];
+      newCerts[index] = { ...newCerts[index], [field]: value };
+      return { ...prev, certificados: newCerts };
+    });
+  };
 
   const topObrasSociales = [
     "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
@@ -44,7 +81,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
     ? topLocalidades.filter(loc => loc.toLowerCase().includes(formData.localidad.toLowerCase()))
     : topLocalidades;
 
-  const handlePickDocument = async () => {
+  const handlePickDocument = async (index) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
@@ -63,24 +100,18 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           const reader = new FileReader();
           reader.onload = () => {
             const base64Data = reader.result.split(',')[1];
-            setFormData(prev => ({ 
-              ...prev, 
-              certificadoFile: fileName, 
-              certificadoBase64: base64Data,
-              fileUri: file.uri,
-              fileMimeType: file.mimeType || 'application/pdf'
-            }));
+            updateCertificado(index, 'certificadoFile', fileName);
+            updateCertificado(index, 'certificadoBase64', base64Data);
+            updateCertificado(index, 'fileUri', file.uri);
+            updateCertificado(index, 'fileMimeType', file.mimeType || 'application/pdf');
           };
           reader.readAsDataURL(file.file);
         } else {
           const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
-          setFormData(prev => ({ 
-            ...prev, 
-            certificadoFile: fileName, 
-            certificadoBase64: base64,
-            fileUri: file.uri,
-            fileMimeType: file.mimeType || 'application/pdf'
-          }));
+          updateCertificado(index, 'certificadoFile', fileName);
+          updateCertificado(index, 'certificadoBase64', base64);
+          updateCertificado(index, 'fileUri', file.uri);
+          updateCertificado(index, 'fileMimeType', file.mimeType || 'application/pdf');
         }
       }
     } catch (err) {
@@ -366,84 +397,97 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 <CustomInput label="CERTIFICACIÓN / TÍTULO" placeholder="Ej: Profesorado Educación Física" value={formData.certificacion} onChangeText={v => setFormData({...formData, certificacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
                 
-                <Text style={styles.greenLabelBold}>CERTIFICADO PROFESIONAL (PDF, MÁX 4MB)</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity style={[styles.fileBtn, { flex: 1 }]} onPress={handlePickDocument}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
-                    <Text style={styles.fileBtnText}>
-                      {formData.certificadoFile ? formData.certificadoFile : "Seleccionar Archivo"}
-                    </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                  <Text style={[styles.greenLabelBold, { marginBottom: 0 }]}>CERTIFICADOS PROFESIONALES (PDF, MÁX 4MB)</Text>
+                  <TouchableOpacity style={styles.addCertBtn} onPress={handleAddCertificado}>
+                    <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+                    <Text style={styles.addCertBtnText}>AGREGAR</Text>
                   </TouchableOpacity>
-                  {formData.tieneCertificado && !formData.fileUri && (
-                    <TouchableOpacity 
-                      style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
-                      onPress={() => {
-                        if (Platform.OS === 'web') {
-                          window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/descargar`, '_blank');
-                        }
-                      }}
-                    >
-                      <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
-                      <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
-                    </TouchableOpacity>
-                  )}
-                  {formData.fileUri && Platform.OS === 'web' && (
-                    <TouchableOpacity 
-                      style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
-                      onPress={() => window.open(formData.fileUri, '_blank')}
-                    >
-                      <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
-                      <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
-                    </TouchableOpacity>
-                  )}
-                  {(formData.tieneCertificado || formData.fileUri) && (
-                    <TouchableOpacity 
-                      style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginLeft: -5 }]} 
-                      onPress={() => {
-                        setFormData({
-                          ...formData,
-                          certificadoFile: null,
-                          certificadoBase64: null,
-                          fileUri: null,
-                          tieneCertificado: false,
-                          eliminarCertificado: true,
-                          certFechaInicio: '',
-                          certFechaFin: '',
-                          sinCaducidad: false
-                        });
-                      }}
-                    >
-                      <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
                 </View>
+                
+                {formData.certificados && formData.certificados.filter(c => !c.eliminarCertificado).map((cert, index) => {
+                  const realIndex = formData.certificados.findIndex(c => c === cert);
+                  return (
+                    <View key={realIndex} style={styles.certCard}>
+                      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 15 }}>
+                        <TouchableOpacity style={[styles.fileBtn, { flex: 1, marginBottom: 0 }]} onPress={() => handlePickDocument(realIndex)}>
+                          <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
+                          <Text style={styles.fileBtnText}>
+                            {cert.certificadoFile ? cert.certificadoFile : "Seleccionar Archivo"}
+                          </Text>
+                        </TouchableOpacity>
+                        {cert.tieneCertificado && !cert.fileUri && cert.id && (
+                          <TouchableOpacity 
+                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]} 
+                            onPress={() => {
+                              if (Platform.OS === 'web') {
+                                window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/${cert.id}/descargar`, '_blank');
+                              }
+                            }}
+                          >
+                            <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
+                            <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                          </TouchableOpacity>
+                        )}
+                        {cert.fileUri && Platform.OS === 'web' && (
+                          <TouchableOpacity 
+                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]} 
+                            onPress={() => window.open(cert.fileUri, '_blank')}
+                          >
+                            <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
+                            <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity 
+                          style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginBottom: 0 }]} 
+                          onPress={() => handleRemoveCertificado(realIndex)}
+                        >
+                          <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
 
-                <View style={styles.datesRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.greenLabelBold}>FECHA INICIO</Text>
-                    <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => setCalendarCertInicioVisible(true)}>
-                      <Text style={{ color: formData.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{formData.certFechaInicio || "YYYY-MM-DD"}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={{ width: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.greenLabelBold, formData.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
-                    <TouchableOpacity 
-                      style={[styles.cleanInput, formData.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]} 
-                      onPress={() => !formData.sinCaducidad && setCalendarCertFinVisible(true)}
-                      disabled={formData.sinCaducidad}
-                    >
-                      <Text style={{ color: formData.sinCaducidad ? '#94a3b8' : (formData.certFechaFin ? '#1e293b' : '#94a3b8'), fontWeight: '800' }}>
-                        {formData.sinCaducidad ? 'Sin caducidad' : (formData.certFechaFin || "YYYY-MM-DD")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                      <View style={styles.datesRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.greenLabelBold}>FECHA INICIO</Text>
+                          <TouchableOpacity style={[styles.cleanInput, { height: 48, justifyContent: 'center' }]} onPress={() => {
+                            setCalendarCertData({ index: realIndex, field: 'certFechaInicio' });
+                            setCalendarCertVisible(true);
+                          }}>
+                            <Text style={{ color: cert.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{cert.certFechaInicio || "YYYY-MM-DD"}</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={{ width: 10 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.greenLabelBold, cert.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
+                          <TouchableOpacity 
+                            style={[styles.cleanInput, cert.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]} 
+                            onPress={() => {
+                              if (!cert.sinCaducidad) {
+                                setCalendarCertData({ index: realIndex, field: 'certFechaFin' });
+                                setCalendarCertVisible(true);
+                              }
+                            }}
+                            disabled={cert.sinCaducidad}
+                          >
+                            <Text style={{ color: cert.sinCaducidad ? '#94a3b8' : (cert.certFechaFin ? '#1e293b' : '#94a3b8'), fontWeight: '800' }}>
+                              {cert.sinCaducidad ? 'Sin caducidad' : (cert.certFechaFin || "YYYY-MM-DD")}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
 
-                <TouchableOpacity style={styles.checkboxContainer} onPress={() => setFormData({...formData, sinCaducidad: !formData.sinCaducidad})}>
-                  <MaterialCommunityIcons name={formData.sinCaducidad ? "checkbox-marked" : "checkbox-blank-outline"} size={24} color="#009b3a" />
-                  <Text style={styles.checkboxLabel}>Sin fecha de caducidad</Text>
-                </TouchableOpacity>
+                      <TouchableOpacity style={[styles.checkboxContainer, { marginBottom: 0 }]} onPress={() => updateCertificado(realIndex, 'sinCaducidad', !cert.sinCaducidad)}>
+                        <MaterialCommunityIcons name={cert.sinCaducidad ? "checkbox-marked" : "checkbox-blank-outline"} size={24} color="#009b3a" />
+                        <Text style={styles.checkboxLabel}>Sin fecha de caducidad</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {(!formData.certificados || formData.certificados.filter(c => !c.eliminarCertificado).length === 0) && (
+                  <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0', borderStyle: 'dashed' }}>
+                    <Text style={{ color: '#94a3b8', fontWeight: '800' }}>No hay certificados cargados. Haz clic en AGREGAR.</Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -522,16 +566,15 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         initialDate={formData.aptoFechaFin}
       />
       <DatePickerModal 
-        visible={calendarCertInicioVisible}
-        onClose={() => setCalendarCertInicioVisible(false)}
-        onSelect={(date) => setFormData({...formData, certFechaInicio: date})}
-        initialDate={formData.certFechaInicio}
-      />
-      <DatePickerModal 
-        visible={calendarCertFinVisible}
-        onClose={() => setCalendarCertFinVisible(false)}
-        onSelect={(date) => setFormData({...formData, certFechaFin: date})}
-        initialDate={formData.certFechaFin}
+        visible={calendarCertVisible}
+        onClose={() => setCalendarCertVisible(false)}
+        onSelect={(date) => {
+          if (calendarCertData.index !== null && calendarCertData.field) {
+            updateCertificado(calendarCertData.index, calendarCertData.field, date);
+          }
+          setCalendarCertVisible(false);
+        }}
+        initialDate={calendarCertData.index !== null && calendarCertData.field ? formData.certificados[calendarCertData.index][calendarCertData.field] : ''}
       />
       <CobroMembresiaModal 
         visible={cobroModalVisible} 
@@ -591,5 +634,8 @@ const styles = StyleSheet.create({
   checkboxLabel: { marginLeft: 8, fontSize: 14, color: '#334155', fontWeight: '800' },
   suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 5, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
   suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  suggestionText: { color: '#334155', fontSize: 14, fontWeight: '700' }
+  suggestionText: { color: '#334155', fontSize: 14, fontWeight: '700' },
+  addCertBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  addCertBtnText: { color: '#fff', fontWeight: '900', fontSize: 12, marginLeft: 4 },
+  certCard: { backgroundColor: '#fff', borderRadius: 14, padding: 15, borderWidth: 1.5, borderColor: '#e2e8f0', marginBottom: 15, elevation: 1 }
 });

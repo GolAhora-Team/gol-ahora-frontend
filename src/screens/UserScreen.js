@@ -54,7 +54,7 @@ export default function UserScreen({ route, navigation }) {
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
     fechaRegistro: new Date().toLocaleDateString(), fechaNacimiento: '',
-    certificadoFile: null, certificadoBase64: null, certFechaInicio: '', certFechaFin: '', sinCaducidad: false, certificacion: '',
+    certificados: [], certificacion: '',
     aptoMedicoFileName: null, aptoMedicoBase64: null, aptoFechaInicio: '', aptoFechaFin: ''
   };
 
@@ -121,16 +121,19 @@ export default function UserScreen({ route, navigation }) {
       }
       const hasObraSocial = user.obraSocial && user.obraSocial !== 'Ninguna' && user.obraSocial !== '';
       
-      let certInicio = '';
-      let certFin = '';
-      let aptoInicio = '';
-      let aptoFin = '';
-      if (user.role === 'PROFE') {
-        if (user.certificadoFechaInicio) certInicio = user.certificadoFechaInicio.split('T')[0];
-        if (user.certificadoFechaVencimiento) certFin = user.certificadoFechaVencimiento.split('T')[0];
-      } else if (user.role === 'CLIENTE') {
-        if (user.aptoMedicoFechaInicio) aptoInicio = user.aptoMedicoFechaInicio.split('T')[0];
-        if (user.aptoMedicoFechaFin) aptoFin = user.aptoMedicoFechaFin.split('T')[0];
+      let certs = [];
+      if (user.role === 'PROFE' && user.certificados) {
+        certs = user.certificados.map(c => ({
+          id: c.id,
+          certificadoFile: c.nombreArchivo || 'Certificado Guardado',
+          certFechaInicio: c.fechaInicio ? c.fechaInicio.split('T')[0] : '',
+          certFechaFin: c.fechaVencimiento ? c.fechaVencimiento.split('T')[0] : '',
+          sinCaducidad: !c.fechaVencimiento,
+          fileUri: null,
+          certificadoBase64: null,
+          tieneCertificado: true,
+          eliminarCertificado: false
+        }));
       }
 
       setFormData({ 
@@ -139,11 +142,8 @@ export default function UserScreen({ route, navigation }) {
         fechaNacimiento: fecha, 
         tieneObraSocial: hasObraSocial,
         especializacion: user.especialidad || user.especializacion || '',
-        certFechaInicio: certInicio,
-        certFechaFin: certFin,
-        sinCaducidad: user.role === 'PROFE' && !user.certificadoFechaVencimiento && user.tieneCertificado,
+        certificados: certs,
         certificacion: user.certificacion || '',
-        certificadoFile: user.tieneCertificado ? (user.certificadoNombreArchivo || 'Certificado Guardado') : null,
         aptoFechaInicio: aptoInicio,
         aptoFechaFin: aptoFin,
         aptoMedicoFileName: user.tieneAptoMedicoArchivo ? 'Apto Médico Guardado' : null
@@ -220,15 +220,20 @@ export default function UserScreen({ route, navigation }) {
             });
           }
         } else if (formData.role === 'PROFE') {
+          const mappedCerts = formData.certificados.map(c => ({
+            id: c.id,
+            certificadoBase64: c.certificadoBase64,
+            certificadoFechaInicio: c.certFechaInicio ? `${c.certFechaInicio}T00:00:00.000Z` : null,
+            certificadoFechaVencimiento: c.sinCaducidad ? null : (c.certFechaFin ? `${c.certFechaFin}T00:00:00.000Z` : null),
+            eliminar: c.eliminarCertificado || false
+          }));
+
           const payloadProfe = {
             ...payloadToSave,
-            certificadoBase64: formData.certificadoBase64,
-            certificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
-            certificadoFechaVencimiento: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),
+            certificados: mappedCerts,
             especialidad: formData.especializacion || 'General',
             obraSocial: formData.obraSocial || 'Ninguna',
-            certificacion: formData.certificacion || 'Ninguna',
-            eliminarCertificado: formData.eliminarCertificado || false
+            certificacion: formData.certificacion || 'Ninguna'
           };
           await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
@@ -248,9 +253,11 @@ export default function UserScreen({ route, navigation }) {
           dni: Number(formData.dni),
           especialidad: formData.especializacion || 'General',
           certificacion: formData.certificacion || 'Ninguna',
-          certificadoBase64: formData.certificadoBase64,
-          certificadoFechaInicio: formData.certFechaInicio ? `${formData.certFechaInicio}T00:00:00.000Z` : null,
-          certificadoFechaFin: formData.sinCaducidad ? null : (formData.certFechaFin ? `${formData.certFechaFin}T00:00:00.000Z` : null),
+          certificados: formData.certificados.map(c => ({
+            certificadoBase64: c.certificadoBase64,
+            certificadoFechaInicio: c.certFechaInicio ? `${c.certFechaInicio}T00:00:00.000Z` : null,
+            certificadoFechaVencimiento: c.sinCaducidad ? null : (c.certFechaFin ? `${c.certFechaFin}T00:00:00.000Z` : null),
+          })),
           obraSocial: formData.obraSocial || 'Ninguna'
         };
         
@@ -283,9 +290,7 @@ export default function UserScreen({ route, navigation }) {
             especialidad: mappedData.especialidad,
             obraSocial: mappedData.obraSocial,
             certificacion: mappedData.certificacion,
-            certificadoBase64: formData.certificadoBase64,
-            certificadoFechaInicio: mappedData.certificadoFechaInicio,
-            certificadoFechaVencimiento: mappedData.certificadoFechaFin
+            certificados: mappedData.certificados
           };
           await userService.createUsuarioProfesor(payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
@@ -372,10 +377,17 @@ export default function UserScreen({ route, navigation }) {
     const profeFields = isProfe ? `
       <div class="item"><b>Especialidad:</b> ${d(user.especialidad || user.especializacion)}</div>
       <div class="item"><b>Certificación:</b> ${d(user.certificacion)}</div>
-      <div class="item"><b>Certificado:</b> ${user.tieneCertificado ? 'Sí' : 'No'}</div>
-      <div class="item"><b>Cert. Inicio:</b> ${fechaFormat(user.certificadoFechaInicio)}</div>
-      <div class="item"><b>Cert. Fin:</b> ${user.certificadoFechaVencimiento ? fechaFormat(user.certificadoFechaVencimiento) : 'Sin caducidad'}</div>
-      ${user.tieneCertificado ? `<div class="item" style="width: 100%; margin-top: 15px;"><b>Link Certificado:</b> <a href="${API_BASE_URL}/Profesor/${user.id}/certificado/descargar" target="_blank" style="color: #009b3a; text-decoration: underline;">Descargar PDF Original</a></div>` : ''}
+      <div class="item" style="width: 100%; margin-top: 15px; margin-bottom: 5px;"><b>Certificados Registrados:</b></div>
+      ${(user.certificados && user.certificados.length > 0) ? user.certificados.map((c, idx) => `
+        <div style="width: 100%; border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 10px; border-radius: 8px;">
+          <div class="item" style="width: 100%; margin-bottom: 5px;"><b>Archivo:</b> ${d(c.nombreArchivo)}</div>
+          <div style="display: flex;">
+            <div class="item"><b>Inicio:</b> ${fechaFormat(c.fechaInicio)}</div>
+            <div class="item"><b>Fin:</b> ${c.fechaVencimiento ? fechaFormat(c.fechaVencimiento) : 'Sin caducidad'}</div>
+          </div>
+          <div class="item" style="width: 100%; margin-top: 5px;"><b>Link:</b> <a href="${API_BASE_URL}/Profesor/${user.id}/certificado/${c.id}/descargar" target="_blank" style="color: #009b3a; text-decoration: underline;">Descargar PDF Original</a></div>
+        </div>
+      `).join('') : '<div class="item" style="width: 100%;">Ninguno registrado.</div>'}
     ` : `
       <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
       <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
