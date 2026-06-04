@@ -86,25 +86,36 @@ export default function ReservaScreen({ route, navigation }) {
       if (status === 'approved') {
         const pendingResStr = window.localStorage.getItem('pendingReservation');
         if (pendingResStr) {
-          try {
-            const pending = JSON.parse(pendingResStr);
-            window.localStorage.removeItem('pendingReservation');
-            
-            // La reserva ya fue creada en estado Pendiente antes de ir a MP.
-            // El webhook actualizará el estado a Confirmada en el backend.
-            
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // Mostramos el modal de éxito
-            handleReservaCreated({
-              html: pending.html, fileName: pending.fileName, persona: pending.persona, 
-              cancha: pending.cancha, fecha: new Date(pending.fecha), 
-              hora: pending.hora, montoFinal: pending.montoFinal, 
-              metodoPago: pending.metodoPago, isEdit: pending.isEdit
-            });
-          } catch(e) {
-            console.error("Error procesando reserva pendiente", e);
-          }
+          const processReturn = async () => {
+            try {
+              const pending = JSON.parse(pendingResStr);
+              window.localStorage.removeItem('pendingReservation');
+              
+              // Forzar actualización manual del backend comprobando el estado antes de mostrar el éxito
+              const extRef = urlParams.get('external_reference') || pending.reservaId?.toString();
+              if (extRef) {
+                try {
+                  const { mercadoPagoService } = await import('../services/mercadoPagoService');
+                  await mercadoPagoService.checkPaymentStatus(extRef);
+                } catch (err) {
+                  console.log('Error manual check:', err);
+                }
+              }
+              
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              // Mostramos el modal de éxito (esto recargará las reservas desde la BD ya actualizada)
+              handleReservaCreated({
+                html: pending.html, fileName: pending.fileName, persona: pending.persona, 
+                cancha: pending.cancha, fecha: new Date(pending.fecha), 
+                hora: pending.hora, montoFinal: pending.montoFinal, 
+                metodoPago: pending.metodoPago, isEdit: pending.isEdit
+              });
+            } catch(e) {
+              console.error("Error procesando reserva pendiente", e);
+            }
+          };
+          processReturn();
         }
       } else if (isMpReturn || status === 'rejected' || status === 'null' || (prefId && status !== 'approved')) {
         // El pago falló o el usuario lo canceló
