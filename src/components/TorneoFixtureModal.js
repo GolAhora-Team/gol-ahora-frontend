@@ -172,7 +172,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
       <View key={`match-${match.id}`} style={[styles.matchCard, isFinished && styles.matchCardFinished]}>
         <View style={styles.matchHeader}>
           <Text style={styles.matchDate}>{match.fecha ? new Date(match.fecha).toLocaleDateString() : 'Por definir'} - {match.hora ? match.hora.substring(0,5) : ''}</Text>
-          {isStaff && !isFinished && (
+          {isStaff && (
             <TouchableOpacity onPress={() => {
               setEditingMatch(match);
               setGolesLocal(Number(match.golesLocal) || 0);
@@ -211,48 +211,49 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.bracketContainer}>
           {columns.map(faseId => {
             const matches = dataToUse.filter(p => p.fase === faseId);
-          const expected = FASE_MATCH_COUNT[faseId] || 1;
-          const displayMatches = [];
-          
-          for (let i = 0; i < expected; i++) {
-            displayMatches.push(matches[i] || null);
-          }
+            const expected = FASE_MATCH_COUNT[faseId] || 1;
+            const displayMatches = [];
+            
+            for (let i = 0; i < expected; i++) {
+              displayMatches.push(matches[i] || null);
+            }
 
-          const matchPairs = [];
-          for (let i = 0; i < expected; i += 2) {
-            matchPairs.push([displayMatches[i], displayMatches[i+1]]);
-          }
+            const isLast = faseId === columns[columns.length - 1];
+            const isFirst = faseId === columns[0];
+            const flexVal = Math.pow(2, columns.indexOf(faseId));
 
-          return (
-            <View key={`col-${faseId}`} style={styles.bracketColumn}>
-              <View style={styles.colHeader}>
-                <Text style={styles.colTitle}>{FASE_NAMES[faseId]}</Text>
-              </View>
-              <View style={styles.colMatches}>
-                {matchPairs.map((pair, pIdx) => (
-                  <View key={`pair-${faseId}-${pIdx}`} style={styles.matchPairContainer}>
-                    <View style={styles.matchWrapper}>
-                      {renderMatchCard(pair[0], pIdx * 2, faseId)}
-                    </View>
-                    {pair[1] && (
+            return (
+              <View key={`col-${faseId}`} style={[styles.bracketColumn, { marginRight: isLast ? 0 : 40 }]}>
+                <View style={styles.colHeader}>
+                  <Text style={styles.colTitle}>{FASE_NAMES[faseId]}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  {displayMatches.map((m, idx) => (
+                    <View key={`cell-${faseId}-${idx}`} style={{ flex: flexVal, justifyContent: 'center', position: 'relative' }}>
                       <View style={styles.matchWrapper}>
-                        {renderMatchCard(pair[1], pIdx * 2 + 1, faseId)}
+                        {renderMatchCard(m, idx, faseId)}
                       </View>
-                    )}
-                    {faseId !== 4 && pair[1] && (
-                      <View style={styles.connectorBracket} />
-                    )}
-                    {faseId !== 4 && pair[1] && (
-                      <View style={styles.connectorToNext} />
-                    )}
-                    {faseId !== 4 && !pair[1] && (
-                      <View style={styles.connectorStraight} />
-                    )}
-                  </View>
-                ))}
+                      
+                      {!isFirst && (
+                        <View style={{ position: 'absolute', left: -20, top: '50%', width: 20, height: 2, backgroundColor: '#cbd5e1', zIndex: 0 }} />
+                      )}
+                      
+                      {!isLast && (
+                        <View style={{ position: 'absolute', right: -20, top: '50%', width: 20, height: 2, backgroundColor: '#cbd5e1', zIndex: 0 }} />
+                      )}
+                      
+                      {!isLast && idx % 2 === 0 && (
+                        <View style={{ position: 'absolute', right: -20, top: '50%', bottom: 0, width: 2, backgroundColor: '#cbd5e1', zIndex: 0 }} />
+                      )}
+                      
+                      {!isLast && idx % 2 === 1 && (
+                        <View style={{ position: 'absolute', right: -20, top: 0, bottom: '50%', width: 2, backgroundColor: '#cbd5e1', zIndex: 0 }} />
+                      )}
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          );
+            );
         })}
         </ScrollView>
       </ScrollView>
