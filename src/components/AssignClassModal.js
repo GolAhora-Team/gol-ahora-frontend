@@ -28,7 +28,12 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
         profesorService.getAll(),
         claseService.getAll()
       ]);
-      setProfesores(profData || []);
+      const now = new Date();
+      const validProfesores = (profData || []).filter(p => {
+        if (!p.certificados || p.certificados.length === 0) return false;
+        return p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
+      });
+      setProfesores(validProfesores);
       setClases((claseData || []).filter(c => !c.profesorId && !c.profe)); // Mostrar clases sin profesor asignado o todas? Mostraremos todas por las dudas
     } catch (error) {
       console.error(error);
