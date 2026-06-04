@@ -40,14 +40,6 @@ export const getEstadisticas = () => {
       icon: "account-multiple",
       datosSemanales: [],
       descripcion: "Historial de reportes de usuarios tipo cliente."
-    },
-    Membresías: {
-      total: "Historial",
-      detalle: "Facturas de socios",
-      color: "#ec4899",
-      icon: "card-account-details-star",
-      datosSemanales: [],
-      descripcion: "Historial de facturas de membresías de socios activos."
     }
   };
 };

@@ -8,11 +8,13 @@ import GenerarImpresion from '../components/GenerarImpresion';
 import { facturaService } from '../services/facturaService';
 import { pagoService } from '../services/pagoService';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { clienteService } from '../services/clienteService';
 
 export default function FacturacionScreen({ route, navigation }) {
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [pagos, setPagos] = useState([]);
   const [comprobantesReservas, setComprobantesReservas] = useState([]);
+  const [comprobantesMembresias, setComprobantesMembresias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('RECIBOS');
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -81,6 +83,33 @@ export default function FacturacionScreen({ route, navigation }) {
         setComprobantesReservas(reservaReports);
       } catch (e) { console.error('Error cargando comprobantes:', e); }
 
+      // Cargar comprobantes de membresias
+      try {
+        const [facturas, clientes] = await Promise.all([
+          facturaService.getAll(),
+          clienteService.getAll()
+        ]);
+        const clienteMap = {};
+        (clientes || []).forEach(c => { clienteMap[c.id] = c; });
+
+        const items = (facturas || []).map(f => {
+          const cliente = clienteMap[f.clienteId];
+          const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellido}` : `Cliente #${f.clienteId}`;
+          const fecha = f.fechaEmision ? new Date(f.fechaEmision) : new Date();
+          const html = generateMembresiaHtml(f, nombreCliente, fecha);
+          return {
+            id: f.id,
+            clienteId: f.clienteId,
+            nombreCliente,
+            total: f.total || 2000,
+            fecha: fecha.toISOString(),
+            fileName: `Membresia-${nombreCliente.replace(/\s+/g, '_')}`,
+            html
+          };
+        });
+        setComprobantesMembresias(items);
+      } catch (e) { console.error('Error cargando membresias:', e); }
+
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los datos de facturación.');
     } finally {
@@ -127,6 +156,53 @@ export default function FacturacionScreen({ route, navigation }) {
     } catch (e) {
       Alert.alert('Error', 'No se pudo imprimir el comprobante.');
     }
+  };
+
+  const generateMembresiaHtml = (factura, nombreCliente, fecha) => {
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #1e293b; background: #fff; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .logo { color: #009b3a; font-size: 42px; font-weight: 900; margin: 0; }
+            .sub { font-size: 13px; color: #64748b; font-weight: 600; margin-top: 5px; }
+            .divider { border-bottom: 2px solid #e2e8f0; margin: 20px 0; }
+            .title { font-size: 20px; font-weight: 800; color: #ec4899; text-align: center; margin-bottom: 20px; }
+            .info-grid { margin: 0 auto; max-width: 500px; }
+            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+            .label { font-weight: 700; color: #64748b; font-size: 14px; }
+            .value { font-weight: 800; color: #1e293b; font-size: 14px; }
+            .total-row { display: flex; justify-content: space-between; padding: 16px 20px; background: #f0fdf4; border-radius: 12px; margin-top: 20px; }
+            .total-label { font-weight: 900; color: #009b3a; font-size: 18px; }
+            .total-value { font-weight: 900; color: #009b3a; font-size: 18px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="logo">GOL AHORA</h1>
+            <p class="sub">SISTEMA DE GESTIÓN DEPORTIVA</p>
+          </div>
+          <div class="divider"></div>
+          <div class="title">FACTURA DE MEMBRESÍA - SOCIO ACTIVO</div>
+          <div class="info-grid">
+            <div class="row"><span class="label">N° Factura</span> <span class="value">#${factura.id}</span></div>
+            <div class="row"><span class="label">Cliente</span> <span class="value">${nombreCliente}</span></div>
+            <div class="row"><span class="label">Fecha de Emisión</span> <span class="value">${fecha.toLocaleDateString('es-AR')}</span></div>
+            <div class="row"><span class="label">Hora</span> <span class="value">${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+            <div class="row"><span class="label">Concepto</span> <span class="value">Suscripción Socio Activo</span></div>
+            <div class="total-row">
+              <span class="total-label">TOTAL ABONADO</span>
+              <span class="total-value">$${(factura.total || 2000).toLocaleString('es-AR')}</span>
+            </div>
+          </div>
+          <div class="footer">
+            Generado automáticamente por Gol Ahora - ${fecha.toLocaleDateString('es-AR')}
+          </div>
+        </body>
+      </html>
+    `;
   };
 
   const viewComprobante = (comprobante) => {
@@ -180,7 +256,14 @@ export default function FacturacionScreen({ route, navigation }) {
           onPress={() => setActiveTab('COMPROBANTES')}
         >
           <MaterialCommunityIcons name="receipt" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes de Reservas</Text>
+          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes Reservas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('MEMBRESIAS')}
+        >
+          <MaterialCommunityIcons name="card-account-details-star" size={18} color={activeTab === 'MEMBRESIAS' ? '#fff' : '#009b3a'} />
+          <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes Membresías</Text>
         </TouchableOpacity>
       </View>
       
@@ -288,7 +371,68 @@ export default function FacturacionScreen({ route, navigation }) {
               ))
             )}
           </>
-        )}
+        ) : activeTab === 'MEMBRESIAS' ? (
+          <>
+            {comprobantesMembresias.length > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{comprobantesMembresias.length} comprobantes</Text>
+                <TouchableOpacity onPress={() => setSortDesc(!sortDesc)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}>
+                  <MaterialCommunityIcons name={sortDesc ? "sort-calendar-descending" : "sort-calendar-ascending"} size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 }}>
+                    {sortDesc ? 'Más recientes' : 'Más antiguos'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {comprobantesMembresias.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="file-document-outline" size={50} color="#94a3b8" />
+                <Text style={styles.emptyText}>No hay comprobantes de membresías.</Text>
+              </View>
+            ) : (
+              [...comprobantesMembresias].sort((a, b) => {
+                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
+                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
+                return sortDesc ? d2 - d1 : d1 - d2;
+              }).map(comp => (
+                <View key={comp.id} style={styles.comprobanteCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={styles.comprobanteName}>{comp.fileName || 'Comprobante de Membresía'}</Text>
+                      <Text style={styles.comprobanteFecha}>
+                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.comprobanteBtns}>
+                    <TouchableOpacity 
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
+                      onPress={() => downloadPdf(comp)}
+                    >
+                      <MaterialCommunityIcons name="download" size={16} color="#fff" />
+                      <Text style={styles.compBtnText}>Descargar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
+                      onPress={() => viewComprobante(comp)}
+                    >
+                      <MaterialCommunityIcons name="eye" size={16} color="#fff" />
+                      <Text style={styles.compBtnText}>Ver</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
+                      onPress={() => printComprobante(comp)}
+                    >
+                      <MaterialCommunityIcons name="printer" size={16} color="#000" />
+                      <Text style={[styles.compBtnText, { color: '#000' }]}>Imprimir</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </>
+        ) : null}
       </ScrollView>
 
       {/* Modal Ver Comprobante */}

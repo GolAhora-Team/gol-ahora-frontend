@@ -37,11 +37,6 @@ export default function ReportesScreen({ route, navigation }) {
 
   const chartWidth = isMobile ? width - 80 : Math.min(width - 340, 800);
 
-  // Membresías
-  const [membresiasData, setMembresiasData] = useState([]);
-  const [membresiasLoading, setMembresiasLoading] = useState(false);
-  const [ordenFechaMembresias, setOrdenFechaMembresias] = useState('desc');
-
   const estadisticas = getEstadisticas();
   
   if (realIngresos) {
@@ -83,9 +78,6 @@ export default function ReportesScreen({ route, navigation }) {
     }
     if (reporteActivo === 'Reservas') {
       loadRealReservas();
-    }
-    if (reporteActivo === 'Membresías') {
-      loadMembresiasData();
     }
     setTooltip(null);
   }, [reporteActivo, timeFilter]);
@@ -229,86 +221,6 @@ export default function ReportesScreen({ route, navigation }) {
     } finally {
       setAsistenciaLoading(false);
     }
-  };
-
-  const loadMembresiasData = async () => {
-    setMembresiasLoading(true);
-    try {
-      const [facturas, clientes] = await Promise.all([
-        facturaService.getAll(),
-        clienteService.getAll()
-      ]);
-      const clienteMap = {};
-      (clientes || []).forEach(c => { clienteMap[c.id] = c; });
-
-      const items = (facturas || []).map(f => {
-        const cliente = clienteMap[f.clienteId];
-        const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellido}` : `Cliente #${f.clienteId}`;
-        const fecha = f.fechaEmision ? new Date(f.fechaEmision) : new Date();
-        const html = generateMembresiaHtml(f, nombreCliente, fecha);
-        return {
-          id: f.id,
-          clienteId: f.clienteId,
-          nombreCliente,
-          total: f.total || 2000,
-          fecha: fecha.toISOString(),
-          fileName: `Membresia-${nombreCliente.replace(/\s+/g, '_')}`,
-          html
-        };
-      });
-      setMembresiasData(items);
-    } catch (error) {
-      console.error('Error loading membresias:', error);
-    } finally {
-      setMembresiasLoading(false);
-    }
-  };
-
-  const generateMembresiaHtml = (factura, nombreCliente, fecha) => {
-    return `
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Arial', sans-serif; padding: 40px; color: #1e293b; background: #fff; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { color: #009b3a; font-size: 42px; font-weight: 900; margin: 0; }
-            .sub { font-size: 13px; color: #64748b; font-weight: 600; margin-top: 5px; }
-            .divider { border-bottom: 2px solid #e2e8f0; margin: 20px 0; }
-            .title { font-size: 20px; font-weight: 800; color: #ec4899; text-align: center; margin-bottom: 20px; }
-            .info-grid { margin: 0 auto; max-width: 500px; }
-            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-            .label { font-weight: 700; color: #64748b; font-size: 14px; }
-            .value { font-weight: 800; color: #1e293b; font-size: 14px; }
-            .total-row { display: flex; justify-content: space-between; padding: 16px 20px; background: #f0fdf4; border-radius: 12px; margin-top: 20px; }
-            .total-label { font-weight: 900; color: #009b3a; font-size: 18px; }
-            .total-value { font-weight: 900; color: #009b3a; font-size: 18px; }
-            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="logo">GOL AHORA</h1>
-            <p class="sub">SISTEMA DE GESTIÓN DEPORTIVA</p>
-          </div>
-          <div class="divider"></div>
-          <div class="title">FACTURA DE MEMBRESÍA - SOCIO ACTIVO</div>
-          <div class="info-grid">
-            <div class="row"><span class="label">N° Factura</span> <span class="value">#${factura.id}</span></div>
-            <div class="row"><span class="label">Cliente</span> <span class="value">${nombreCliente}</span></div>
-            <div class="row"><span class="label">Fecha de Emisión</span> <span class="value">${fecha.toLocaleDateString('es-AR')}</span></div>
-            <div class="row"><span class="label">Hora</span> <span class="value">${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span></div>
-            <div class="row"><span class="label">Concepto</span> <span class="value">Suscripción Socio Activo</span></div>
-            <div class="total-row">
-              <span class="total-label">TOTAL ABONADO</span>
-              <span class="total-value">$${(factura.total || 2000).toLocaleString('es-AR')}</span>
-            </div>
-          </div>
-          <div class="footer">
-            Generado automáticamente por Gol Ahora - ${fecha.toLocaleDateString('es-AR')}
-          </div>
-        </body>
-      </html>
-    `;
   };
 
   const downloadPdf = async (pdfData) => {
@@ -680,50 +592,6 @@ export default function ReportesScreen({ route, navigation }) {
             )}
             <View style={{ height: 100 }} />
           </ScrollView>
-        ) : reporteActivo === 'Membresías' ? (
-          <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
-            <View style={styles.kpiCard}>
-              <MaterialCommunityIcons name="card-account-details-star" size={32} color="#ec4899" />
-              <View style={{ marginLeft: 15 }}>
-                <Text style={styles.kpiLabel}>MEMBRESÍAS</Text>
-                <Text style={styles.kpiValue}>{membresiasData.length} Facturas</Text>
-                <Text style={styles.kpiSub}>Facturas de socios activos</Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, elevation: 2 }}
-                onPress={() => setOrdenFechaMembresias(prev => prev === 'desc' ? 'asc' : 'desc')}
-              >
-                <Text style={{ color: '#1e293b', fontSize: 12, fontWeight: '800', marginRight: 5 }}>Ordenar por fecha</Text>
-                <MaterialCommunityIcons name={ordenFechaMembresias === 'asc' ? "arrow-up" : "arrow-down"} size={16} color="#1e293b" />
-              </TouchableOpacity>
-            </View>
-
-            {membresiasLoading ? (
-              <ActivityIndicator size="large" color="#ec4899" style={{ marginTop: 30 }} />
-            ) : membresiasData.length === 0 ? (
-              <Text style={{ color: '#94a3b8', textAlign: 'center', marginTop: 30, fontStyle: 'italic' }}>No hay facturas de membresía registradas.</Text>
-            ) : (
-              [...membresiasData].sort((a, b) => {
-                const dateA = new Date(a.fecha).getTime();
-                const dateB = new Date(b.fecha).getTime();
-                return ordenFechaMembresias === 'asc' ? dateA - dateB : dateB - dateA;
-              }).map(item => (
-                <View key={item.id} style={[styles.historyCard, isMobile && styles.historyCardMobile]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginBottom: isMobile ? 12 : 0 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={isMobile ? 24 : 30} color="#ec4899" />
-                    <View style={{ marginLeft: 10 }}>
-                      <Text style={{ fontWeight: '800', color: '#1e293b', fontSize: isMobile ? 13 : 15 }}>{item.nombreCliente}</Text>
-                      <Text style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(item.fecha).toLocaleString('es-AR')} • ${item.total.toLocaleString('es-AR')}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.historyActionRow, isMobile && { width: '100%', justifyContent: 'flex-end' }]}>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#3b82f6' }, isMobile && { flex: 1 }]}
-                      onPress={() => { setReporteSeleccionado(item); setModalVerVisible(true); }}
-                    >
                       <MaterialCommunityIcons name="eye" size={18} color="#fff" />
                       {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
                     </TouchableOpacity>
@@ -774,7 +642,7 @@ export default function ReportesScreen({ route, navigation }) {
           </ScrollView>
         )}
 
-        {reporteActivo !== 'Canchas' && reporteActivo !== 'Usuarios' && reporteActivo !== 'Membresías' && (
+        {reporteActivo !== 'Canchas' && reporteActivo !== 'Usuarios' && (
           <View style={styles.recuadroRojoAcciones}>
             <TouchableOpacity 
               style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
