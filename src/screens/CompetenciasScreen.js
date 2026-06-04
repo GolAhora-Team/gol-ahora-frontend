@@ -63,6 +63,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [generarFixtureConfirmVisible, setGenerarFixtureConfirmVisible] = useState(false);
   const [competicionToGenerarFixture, setCompeticionToGenerarFixture] = useState(null);
 
+  // Iniciar confirm modal
+  const [iniciarConfirmVisible, setIniciarConfirmVisible] = useState(false);
+  const [competicionToIniciar, setCompeticionToIniciar] = useState(null);
+
   // Remove equipos from competicion
   const [removeEquiposModalVisible, setRemoveEquiposModalVisible] = useState(false);
   const [competicionToRemoveFrom, setCompeticionToRemoveFrom] = useState(null);
@@ -236,6 +240,39 @@ export default function CompetenciasScreen({ route, navigation }) {
       Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo generar el fixture. Asegurate de tener la cantidad correcta de equipos inscriptos.');
       setCompeticionToGenerarFixture(null);
     }
+  };
+
+  const handleIniciarCompeticion = (item) => {
+    setCompeticionToIniciar(item);
+    setIniciarConfirmVisible(true);
+  };
+
+  const ejecutarIniciarCompeticion = async () => {
+    if (!competicionToIniciar) return;
+    const item = competicionToIniciar;
+    try {
+      setIniciarConfirmVisible(false);
+      setLoading(true);
+      await competicionService.iniciar(item.id);
+      setCompetencias(prev => prev.map(c =>
+        c.id === item.id ? { ...c, estado: 'en_juego' } : c
+      ));
+      showSuccess('Torneo Iniciado', `La competición ${item.nombre} ha iniciado oficialmente.`);
+      setCompeticionToIniciar(null);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo iniciar la competición.');
+      setCompeticionToIniciar(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEstadoTorneo = (item) => {
+    // For now, it opens TorneoFixtureModal which also manages results
+    // We could create a dedicated dashboard later if needed.
+    setSelectedCompeticion(item);
+    setFixtureModalVisible(true);
   };
 
   const handleSelectEquiposParaInscribir = async (equiposSeleccionados) => {
@@ -451,6 +488,8 @@ export default function CompetenciasScreen({ route, navigation }) {
                 onVerFixture={() => handleVerFixture(item)}
                 onGenerarFixture={() => handleGenerarFixture(item)}
                 onDelete={() => askDeleteCompeticion(item)}
+                onIniciar={() => handleIniciarCompeticion(item)}
+                onEstado={() => handleEstadoTorneo(item)}
               />
             ))}
           </ScrollView>
@@ -551,6 +590,18 @@ export default function CompetenciasScreen({ route, navigation }) {
         cancelText="Cancelar"
         color="#3b82f6"
         icon="shuffle-variant"
+      />
+
+      <ConfirmModal
+        visible={iniciarConfirmVisible}
+        onClose={() => { setIniciarConfirmVisible(false); setCompeticionToIniciar(null); }}
+        onConfirm={ejecutarIniciarCompeticion}
+        title="Iniciar Competición"
+        message={`¿Estás seguro de que deseas iniciar oficialmente la competición "${competicionToIniciar?.nombre}"? Ya no podrás inscribir ni eliminar equipos.`}
+        confirmText="Iniciar"
+        cancelText="Cancelar"
+        color="#10b981"
+        icon="play-circle"
       />
 
       <AddJugadoresModal

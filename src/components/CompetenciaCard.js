@@ -28,7 +28,7 @@ const getEstadoInfo = (item) => {
   return { label: 'SIN FECHA', color: '#94a3b8', bg: '#f8fafc' };
 };
 
-export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onGenerarFixture }) {
+export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onGenerarFixture, onIniciar, onEstado }) {
   const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
   const estadoInfo = getEstadoInfo(item);
 
@@ -61,24 +61,50 @@ export default function CompetenciaCard({ item, canModify, onInscribir, onElimin
 
         {/* Row 2: INSCRIBIR EQUIPOS + ELIMINAR EQUIPOS */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.inscribirBtn} onPress={onInscribir}>
-            <Text style={styles.inscribirText}>INSCRIBIR EQUIPOS</Text>
+          <TouchableOpacity 
+            style={[styles.inscribirBtn, item.estado === 'en_juego' && styles.disabledBtn]} 
+            onPress={item.estado !== 'en_juego' ? onInscribir : null}
+            disabled={item.estado === 'en_juego'}
+          >
+            <Text style={[styles.inscribirText, item.estado === 'en_juego' && styles.disabledText]}>INSCRIBIR EQUIPOS</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.eliminarBtn} onPress={onEliminarEquipos}>
-            <Text style={styles.eliminarText}>ELIMINAR EQUIPOS</Text>
+          <TouchableOpacity 
+            style={[styles.eliminarBtn, item.estado === 'en_juego' && styles.disabledBtn]} 
+            onPress={item.estado !== 'en_juego' ? onEliminarEquipos : null}
+            disabled={item.estado === 'en_juego'}
+          >
+            <Text style={[styles.eliminarText, item.estado === 'en_juego' && styles.disabledText]}>ELIMINAR EQUIPOS</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Row 3: GENERAR FIXTURE (hidden if already generated, disabled if not enough teams) */}
-        {!item.fixtureGenerado && (
+        {/* Row 3: GENERAR FIXTURE / INICIAR / ESTADO */}
+        {item.estado === 'inscripcion' && !item.fixtureGenerado && (
           <View style={styles.actionRow}>
             <TouchableOpacity 
-              style={[styles.generarBtn, !cupoCompleto && styles.generarBtnDisabled]} 
+              style={[styles.generarBtn, !cupoCompleto && styles.disabledBtn]} 
               onPress={cupoCompleto ? onGenerarFixture : null}
               disabled={!cupoCompleto}
             >
               <MaterialCommunityIcons name="shuffle-variant" size={16} color={cupoCompleto ? '#fff' : '#94a3b8'} />
-              <Text style={[styles.generarText, !cupoCompleto && styles.generarTextDisabled]}>GENERAR FIXTURE</Text>
+              <Text style={[styles.generarText, !cupoCompleto && styles.disabledText]}>GENERAR FIXTURE</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.estado === 'inscripcion' && item.fixtureGenerado && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.iniciarBtn} onPress={onIniciar}>
+              <MaterialCommunityIcons name="play-circle" size={16} color="#fff" />
+              <Text style={styles.iniciarText}>INICIAR</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.estado === 'en_juego' && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.estadoBtn} onPress={onEstado}>
+              <MaterialCommunityIcons name="chart-bar" size={16} color="#fff" />
+              <Text style={styles.estadoText}>ESTADO</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -122,8 +148,12 @@ const styles = StyleSheet.create({
   eliminarBtn: { backgroundColor: '#ef4444', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
   eliminarText: { color: '#fff', fontWeight: '900', fontSize: 10 },
   generarBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  generarBtnDisabled: { backgroundColor: '#e2e8f0' },
   generarText: { color: '#fff', fontWeight: '900', fontSize: 10 },
-  generarTextDisabled: { color: '#94a3b8' },
+  iniciarBtn: { backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  iniciarText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  estadoBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  estadoText: { color: '#fff', fontWeight: '900', fontSize: 10 },
+  disabledBtn: { backgroundColor: '#e2e8f0' },
+  disabledText: { color: '#94a3b8' },
   deleteBtn: { padding: 5 }
 });
