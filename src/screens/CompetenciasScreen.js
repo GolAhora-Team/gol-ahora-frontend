@@ -433,10 +433,10 @@ export default function CompetenciasScreen({ route, navigation }) {
   };
 
   const handleFormacionSaved = (payload) => {
-    // Actualizar el equipo en el estado local con tipoCancha, formacion y capitan
+    // Actualizar el equipo en el estado local con las formaciones guardadas
     setEquipos(prev => prev.map(e =>
       e.id === equipoFormacion?.id
-        ? { ...e, tipoCancha: payload.tipoCancha, formacion: payload.formacion, capitan: payload.capitan }
+        ? { ...e, formaciones: payload.formaciones }
         : e
     ));
   };

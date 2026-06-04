@@ -246,23 +246,9 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
 
   useEffect(() => {
     if (visible && equipo) {
-      if (equipo.tipoCancha) {
-        const tipo = TIPOS_CANCHA.find(t => t.key === equipo.tipoCancha);
-        setTipoSeleccionado(tipo || null);
-        if (equipo.formacion && tipo) {
-          const form = tipo.formaciones.find(f => f.id === equipo.formacion);
-          setFormacionSeleccionada(form || null);
-          if (form) setStep(3);
-          else setStep(2);
-        } else {
-          setFormacionSeleccionada(null);
-          setStep(tipo ? 2 : 1);
-        }
-      } else {
-        setStep(1);
-        setTipoSeleccionado(null);
-        setFormacionSeleccionada(null);
-      }
+      setStep(1);
+      setTipoSeleccionado(null);
+      setFormacionSeleccionada(null);
       setAsignaciones({});
       setSuplentes([]);
       setCapitanSlotId(null);
@@ -286,45 +272,82 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
       }));
       setJugadores(enriched);
 
-      // Reconstruir asignaciones existentes si hay tipo y formación guardados
-      if (equipo.tipoCancha && equipo.formacion) {
-        const tipo = TIPOS_CANCHA.find(t => t.key === equipo.tipoCancha);
-        const form = tipo?.formaciones.find(f => f.id === equipo.formacion);
-        if (form) {
-          const slots = generarSlots(form);
-          const POSICION_TO_LINEA = { 1: 'ARQ', 2: 'DEF', 3: 'MED', 4: 'DEL' };
-          const nuevasAsignaciones = {};
-          const nuevosSuplentes = [];
-          let nuevoCapitanSlotId = null;
-
-          // Separar titulares y suplentes
-          const titulares = enriched.filter(j => j.esTitular);
-          const supls = enriched.filter(j => !j.esTitular && j.posicion > 0);
-
-          // Asignar titulares a slots disponibles según su posición
-          const slotsUsados = new Set();
-          titulares.forEach(jugador => {
-            const linea = POSICION_TO_LINEA[jugador.posicion];
-            const slotDisponible = slots.find(s => s.linea === linea && !slotsUsados.has(s.id));
-            if (slotDisponible) {
-              nuevasAsignaciones[slotDisponible.id] = jugador;
-              slotsUsados.add(slotDisponible.id);
-              if (jugador.esCapitan) {
-                nuevoCapitanSlotId = slotDisponible.id;
-              }
-            }
-          });
-
-          setAsignaciones(nuevasAsignaciones);
-          setSuplentes(supls);
-          if (nuevoCapitanSlotId) setCapitanSlotId(nuevoCapitanSlotId);
-        }
-      }
     } catch (e) {
       console.error('Error cargando jugadores:', e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const rebuildAsignaciones = (tipo, formacionDefecto, formacionesDelEquipo) => {
+    const formConfig = tipo.formaciones.find(f => f.id === formacionDefecto);
+    if (!formConfig) return false;
+
+    setFormacionSeleccionada(formConfig);
+
+    const savedFormacion = formacionesDelEquipo.find(f => f.tipoCancha === tipo.key);
+    if (!savedFormacion) return false;
+
+    const slots = generarSlots(formConfig);
+    const POSICION_TO_LINEA = { 1: 'ARQ', 2: 'DEF', 3: 'MED', 4: 'DEL' };
+    const nuevasAsignaciones = {};
+    const nuevosSuplentes = [];
+    let nuevoCapitanSlotId = null;
+
+    // Separate based on savedFormacion.jugadores (JugadorFormacionResponse)
+    const savedJugadores = savedFormacion.jugadores || [];
+    const savedTitulares = savedJugadores.filter(j => j.esTitular);
+    const savedSuplentes = savedJugadores.filter(j => !j.esTitular && j.posicion > 0);
+
+    const slotsUsados = new Set();
+
+    savedTitulares.forEach(savedJ => {
+      const jugadorFull = jugadores.find(j => j.id === savedJ.jugadorId);
+      if (jugadorFull) {
+        const linea = POSICION_TO_LINEA[savedJ.posicion];
+        const slotDisponible = slots.find(s => s.linea === linea && !slotsUsados.has(s.id));
+        if (slotDisponible) {
+          nuevasAsignaciones[slotDisponible.id] = { ...jugadorFull, posicion: savedJ.posicion, esTitular: true, esCapitan: savedJ.esCapitan };
+          slotsUsados.add(slotDisponible.id);
+          if (savedJ.esCapitan) {
+            nuevoCapitanSlotId = slotDisponible.id;
+          }
+        }
+      }
+    });
+
+    savedSuplentes.forEach(savedJ => {
+      const jugadorFull = jugadores.find(j => j.id === savedJ.jugadorId);
+      if (jugadorFull) {
+        nuevosSuplentes.push({ ...jugadorFull, posicion: savedJ.posicion, esTitular: false, esCapitan: savedJ.esCapitan });
+      }
+    });
+
+    setAsignaciones(nuevasAsignaciones);
+    setSuplentes(nuevosSuplentes);
+    if (nuevoCapitanSlotId) setCapitanSlotId(nuevoCapitanSlotId);
+    return true;
+  };
+
+  const handleNextStep1 = () => {
+    if (!tipoSeleccionado) return;
+    
+    // Reset selections when choosing type
+    setFormacionSeleccionada(null);
+    setAsignaciones({});
+    setSuplentes([]);
+    setCapitanSlotId(null);
+
+    const savedFormacion = equipo?.formaciones?.find(f => f.tipoCancha === tipoSeleccionado.key);
+    if (savedFormacion && savedFormacion.formacionDefecto) {
+      const ok = rebuildAsignaciones(tipoSeleccionado, savedFormacion.formacionDefecto, equipo.formaciones);
+      if (ok) {
+        setStep(3); // Already exists, go straight to pitch
+        return;
+      }
+    }
+    
+    setStep(2); // Needs to select formation
   };
 
   const handleClose = () => {
@@ -422,12 +445,28 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
     try {
       setSaving(true);
       await equipoService.guardarFormacion(equipo.id, payload);
-      if (onSaved) onSaved({
-        ...equipo,
-        tipoCancha: tipoSeleccionado.key,
-        formacion: formacionSeleccionada.id,
-        capitan: payload.capitanId,
-      });
+      if (onSaved) {
+        const formaciones = equipo.formaciones ? [...equipo.formaciones] : [];
+        const existingIndex = formaciones.findIndex(f => f.tipoCancha === tipoSeleccionado.key);
+        const newFormacion = {
+          id: existingIndex >= 0 ? formaciones[existingIndex].id : 0,
+          tipoCancha: tipoSeleccionado.key,
+          formacionDefecto: formacionSeleccionada.id,
+          jugadores: payload.jugadores.map(j => ({
+            jugadorId: j.jugadorId,
+            esTitular: j.esTitular,
+            posicion: j.posicion,
+            esCapitan: j.jugadorId === payload.capitanId
+          }))
+        };
+        if (existingIndex >= 0) formaciones[existingIndex] = newFormacion;
+        else formaciones.push(newFormacion);
+
+        onSaved({
+          ...equipo,
+          formaciones
+        });
+      }
       Alert.alert('¡Guardado!', 'La formación fue guardada correctamente.', [{ text: 'OK', onPress: handleClose }]);
     } catch (e) {
       console.error(e);
@@ -502,7 +541,7 @@ export default function FormacionModal({ visible, onClose, equipo, onSaved }) {
 
                 <TouchableOpacity
                   style={[styles.nextBtn, !tipoSeleccionado && styles.nextBtnDisabled]}
-                  onPress={() => tipoSeleccionado && setStep(2)}
+                  onPress={handleNextStep1}
                   disabled={!tipoSeleccionado}
                 >
                   <Text style={styles.nextBtnText}>SIGUIENTE</Text>
