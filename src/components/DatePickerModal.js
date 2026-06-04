@@ -17,7 +17,7 @@ const MONTHS = [
 ];
 const DAYS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 
-export default function DatePickerModal({ visible, onClose, onSelect, initialDate }) {
+export default function DatePickerModal({ visible, onClose, onSelect, initialDate, minDate }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   
@@ -34,8 +34,9 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
         setCurrentMonth(parseInt(m, 10) - 1);
         setSelectedDateStr(initialDate);
       } else {
-        setCurrentYear(2000); // Default for Date of Birth
-        setCurrentMonth(0);
+        const now = new Date();
+        setCurrentYear(now.getFullYear());
+        setCurrentMonth(now.getMonth());
         setSelectedDateStr('');
       }
       setShowYearPicker(false);
@@ -117,12 +118,18 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
       const formattedDay = String(i).padStart(2, '0');
       const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
       const isSelected = selectedDateStr === dateStr;
+      
+      let isDisabled = false;
+      if (minDate) {
+        isDisabled = dateStr < minDate;
+      }
 
       daysArray.push(
         <TouchableOpacity 
           key={i} 
-          style={[styles.dayCell, isSelected && styles.selectedDayCell]}
-          onPress={() => handleSelectDay(i)}
+          style={[styles.dayCell, isSelected && styles.selectedDayCell, isDisabled && { opacity: 0.3 }]}
+          onPress={() => !isDisabled && handleSelectDay(i)}
+          disabled={isDisabled}
         >
           <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{i}</Text>
         </TouchableOpacity>

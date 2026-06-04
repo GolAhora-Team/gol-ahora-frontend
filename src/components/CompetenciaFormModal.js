@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DatePickerModal from './DatePickerModal';
 
 const formatDateInput = (text, previousText) => {
   // Remove all non-numeric characters
@@ -16,9 +17,34 @@ const formatDateInput = (text, previousText) => {
 };
 
 export default function CompetenciaFormModal({ visible, onClose, formData, setFormData, onSave }) {
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [activeDateField, setActiveDateField] = useState('');
+
   const handleDateChange = (field, text) => {
     const formatted = formatDateInput(text, formData[field]);
     setFormData({...formData, [field]: formatted});
+  };
+
+  const handleDateSelect = (dateStr) => {
+    // dateStr comes as YYYY-MM-DD. Convert to DD/MM/AAAA
+    const [y, m, d] = dateStr.split('-');
+    const formatted = `${d}/${m}/${y}`;
+    setFormData({...formData, [activeDateField]: formatted});
+  };
+
+  const openDatePicker = (field) => {
+    setActiveDateField(field);
+    setDatePickerVisible(true);
+  };
+
+  // Convert DD/MM/AAAA to YYYY-MM-DD for the date picker initial value
+  const getInitialDate = (field) => {
+    const val = formData[field];
+    if (val && val.length === 10) {
+      const [d, m, y] = val.split('/');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
   };
 
   return (
@@ -74,24 +100,34 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             </View>
 
             <Text style={styles.label}>Fecha de Inicio</Text>
-            <TextInput 
-              style={styles.input} 
-              value={formData.fechaInicio} 
-              onChangeText={(t) => handleDateChange('fechaInicio', t)}
-              placeholder="DD/MM/AAAA"
-              keyboardType="numeric"
-              maxLength={10}
-            />
+            <View style={styles.dateInputContainer}>
+              <TextInput 
+                style={[styles.input, { flex: 1, borderWidth: 0 }]} 
+                value={formData.fechaInicio} 
+                onChangeText={(t) => handleDateChange('fechaInicio', t)}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              <TouchableOpacity onPress={() => openDatePicker('fechaInicio')} style={styles.calendarIconBtn}>
+                <MaterialCommunityIcons name="calendar-range" size={24} color="#009b3a" />
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Fecha de Finalización</Text>
-            <TextInput 
-              style={styles.input} 
-              value={formData.fechaFin} 
-              onChangeText={(t) => handleDateChange('fechaFin', t)}
-              placeholder="DD/MM/AAAA"
-              keyboardType="numeric"
-              maxLength={10}
-            />
+            <View style={styles.dateInputContainer}>
+              <TextInput 
+                style={[styles.input, { flex: 1, borderWidth: 0 }]} 
+                value={formData.fechaFin} 
+                onChangeText={(t) => handleDateChange('fechaFin', t)}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              <TouchableOpacity onPress={() => openDatePicker('fechaFin')} style={styles.calendarIconBtn}>
+                <MaterialCommunityIcons name="calendar-range" size={24} color="#009b3a" />
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Tipo de Cancha</Text>
             <View style={styles.selectorRow}>
@@ -134,6 +170,13 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
           </View>
         </View>
       </View>
+      <DatePickerModal 
+        visible={datePickerVisible}
+        onClose={() => setDatePickerVisible(false)}
+        onSelect={handleDateSelect}
+        initialDate={getInitialDate(activeDateField)}
+        minDate={new Date().toISOString().split('T')[0]}
+      />
     </Modal>
   );
 }
@@ -144,6 +187,8 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#1e293b', fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
   label: { color: '#64748b', fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 12 },
   input: { backgroundColor: '#f1f5f9', color: '#1e293b', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 14 },
+  dateInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  calendarIconBtn: { padding: 10, borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
   selectorRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   selectorBtn: { flex: 1, flexDirection: 'row', backgroundColor: '#f1f5f9', padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#e2e8f0' },
   selectorActive: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
