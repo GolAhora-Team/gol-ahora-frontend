@@ -93,12 +93,15 @@ export default function ReservaScreen({ route, navigation }) {
               
               // Forzar actualización manual del backend comprobando el estado antes de mostrar el éxito
               const extRef = urlParams.get('external_reference') || pending.reservaId?.toString();
+              const paymentId = urlParams.get('payment_id');
+              
               if (extRef) {
                 try {
                   const { mercadoPagoService } = await import('../services/mercadoPagoService');
                   const isApproved = await mercadoPagoService.checkPaymentStatus(extRef);
                   
                   if (isApproved) {
+                    // Intento 1: Actualizar a través del endpoint de Reserva (solo funcionará si el backend tiene el último deploy)
                     const { reservaService } = await import('../services/reservaService');
                     const { pagoService } = await import('../services/pagoService');
                     
@@ -120,6 +123,21 @@ export default function ReservaScreen({ route, navigation }) {
                               await pagoService.update(p.id || p.Id, { ...p, estado: 2 });
                           }
                        } catch(e) { console.log('Error update pago', e); }
+                    }
+                    
+                    // Intento 2: Forzar el Webhook del backend remoto enviando el paymentId exacto
+                    if (paymentId) {
+                      try {
+                        const { API_BASE_URL } = await import('../services/apiConfig');
+                        await fetch(`${API_BASE_URL}/MercadoPago/webhook?type=payment&data.id=${paymentId}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ type: 'payment', data: { id: paymentId } })
+                        });
+                        console.log('Webhook disparado manualmente con exito');
+                      } catch (e) {
+                        console.log('Error disparando webhook manual', e);
+                      }
                     }
                   }
                 } catch (err) {
