@@ -130,52 +130,90 @@ export default function ReportesScreen({ route, navigation }) {
     try {
       const reservas = await reservaService.getAll();
       const list = reservas || [];
-      const total = list.length;
-      
+      const now = new Date();
+
+      // ─── Función auxiliar: obtener tipo de cancha (F5=0, F7=1, F11=2) ───────
+      const getTipoIdx = (r) => {
+        // Intentar por campo tipo primero, luego por nombre como fallback
+        const tipo = (r.cancha?.tipo ?? '').toString().toLowerCase();
+        if (tipo === '2' || tipo.includes('11')) return 2;
+        if (tipo === '1' || tipo.includes('7'))  return 1;
+        // Fallback por nombre
+        const nombre = r.cancha?.nombre ?? '';
+        if (nombre.includes('11')) return 2;
+        if (nombre.includes('7'))  return 1;
+        return 0; // Fútbol 5
+      };
+
       let labels = [];
       const legend = ['F5', 'F7', 'F11'];
       let data = [];
+      let filteredList = [];
 
       if (timeFilter === 'Semana') {
+        // Filtrar solo la semana actual (lunes a hoy)
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Lunes
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          return new Date(dateStr) >= startOfWeek;
+        });
+
         labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
-        data = Array.from({length: 7}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        data = Array.from({length: 7}, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            let day = date.getDay();
-            let index = day === 0 ? 6 : day - 1;
-            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-            data[index][tipoIdx] += 1;
+            const index = (date.getDay() + 6) % 7; // 0=Lun ... 6=Dom
+            data[index][getTipoIdx(r)] += 1;
           }
         });
+
       } else if (timeFilter === 'Mes') {
+        // Filtrar solo el mes actual
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        });
+
         labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        data = Array.from({length: 4}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        data = Array.from({length: 4}, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            let week = Math.min(Math.floor(date.getDate() / 7), 3);
-            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-            data[week][tipoIdx] += 1;
+            const week = Math.min(Math.floor((date.getDate() - 1) / 7), 3);
+            data[week][getTipoIdx(r)] += 1;
           }
         });
+
       } else {
-        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
-        data = Array.from({length: 6}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        // Filtrar solo el año actual
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          return new Date(dateStr).getFullYear() === now.getFullYear();
+        });
+
+        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        data = Array.from({length: 12}, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            if(date.getMonth() < 6) {
-              let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-              data[date.getMonth()][tipoIdx] += 1;
-            }
+            data[date.getMonth()][getTipoIdx(r)] += 1;
           }
         });
       }
-      setRealReservas({ total, data, labels, legend });
+
+      // Total KPI = reservas del período seleccionado (no total histórico)
+      setRealReservas({ total: filteredList.length, data, labels, legend });
     } catch (e) { console.error(e); }
   };
 

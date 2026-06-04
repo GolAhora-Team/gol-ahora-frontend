@@ -415,7 +415,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   const realIndex = formData.certificados.findIndex(c => c === cert);
                   return (
                     <View key={realIndex} style={styles.certCard}>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15, alignItems: 'center' }}>
                         <TouchableOpacity style={[styles.fileBtn, { flex: 1, minWidth: 200, marginBottom: 0 }]} onPress={() => handlePickDocument(realIndex)}>
                           <MaterialCommunityIcons name="file-pdf-box" size={24} color="#ef4444" />
                           <Text style={styles.fileBtnText}>
@@ -445,7 +445,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                           </TouchableOpacity>
                         )}
                         <TouchableOpacity 
-                          style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginBottom: 0 }]} 
+                          style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginBottom: 0, alignSelf: 'center' }]} 
                           onPress={() => handleRemoveCertificado(realIndex)}
                         >
                           <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
