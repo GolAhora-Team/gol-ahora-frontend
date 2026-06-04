@@ -45,9 +45,10 @@ const ALL_MODULES = [
   { id: "facturacion", title: "Facturación", screen: "FacturacionScreen", icon: "cash-register", desc: "Caja y Cobros", color: "#06b6d4" },
   { id: "reportes", title: "Reportes", screen: "ReportesScreen", icon: "chart-bar", desc: "Estadísticas", color: "#f97316" },
   { id: "clases-profe", title: "Clases a Cargo", screen: "ClasesProfeScreen", icon: "whistle", desc: "Ver alumnos inscriptos", color: "#6366f1" },
+  { id: "mis-recibos", title: "Mis Recibos", screen: "MisRecibosScreen", icon: "receipt", desc: "Comprobantes de pago", color: "#ec4899" },
 ];
 
-const ModuleCard = ({ module, currentRole, idPersona, userName, navigation, isMobile }) => {
+const ModuleCard = ({ module, currentRole, idPersona, idUsuario, userName, navigation, isMobile }) => {
   const [isPressed, setIsPressed] = useState(false);
 
   return (
@@ -63,7 +64,7 @@ const ModuleCard = ({ module, currentRole, idPersona, userName, navigation, isMo
       onPressOut={() => setIsPressed(false)}
       onPress={() => {
         if (module.screen) {
-          navigation.navigate(module.screen, { role: currentRole, idPersona, nombreUsuario: userName });
+          navigation.navigate(module.screen, { role: currentRole, idPersona, idUsuario, nombreUsuario: userName });
         }
       }}
     >
@@ -404,13 +405,13 @@ export default function Dashboard({ route, navigation }) {
         });
 
       case 'CLIENTE':
-        const allowedCliente = ['canchas', 'reservas', 'competencias', 'inscripciones'];
+        const allowedCliente = ['canchas', 'reservas', 'competencias', 'inscripciones', 'mis-recibos'];
         return ALL_MODULES
           .filter(m => allowedCliente.includes(m.id))
-          .map(m => m.id === 'inscripciones' 
-            ? { ...m, desc: "Mis clases y turnos" } 
-            : m
-          );
+          .map(m => {
+            if (m.id === 'inscripciones') return { ...m, desc: "Mis clases y turnos" };
+            return m;
+          });
 
       case 'PROFE': 
       case 'PROFESORES':
@@ -556,6 +557,7 @@ export default function Dashboard({ route, navigation }) {
                         module={item} 
                         currentRole={role} 
                         idPersona={idPersona}
+                        idUsuario={idUsuario}
                         userName={userName}
                         navigation={navigation} 
                         isMobile={isMobile}

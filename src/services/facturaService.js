@@ -62,4 +62,16 @@ export const facturaService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Factura/por-cliente/{clienteId}
+   */
+  getByClienteId: async (clienteId) => {
+    try {
+      return await http.get(`${URL}/por-cliente/${clienteId}`);
+    } catch (error) {
+      console.error(`Error fetching facturas por cliente ${clienteId}:`, error);
+      throw error;
+    }
+  },
 };

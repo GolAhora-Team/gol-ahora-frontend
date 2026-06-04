@@ -62,4 +62,28 @@ export const equipoService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Equipo/por-cliente/{clienteId}
+   */
+  getByClienteId: async (clienteId) => {
+    try {
+      return await http.get(`${URL}/por-cliente/${clienteId}`);
+    } catch (error) {
+      console.error(`Error fetching equipos por cliente ${clienteId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * POST /api/Equipo/{equipoId}/invitar
+   */
+  invitarJugador: async (equipoId, data) => {
+    try {
+      return await http.post(`${URL}/${equipoId}/invitar`, data);
+    } catch (error) {
+      console.error(`Error invitando jugador al equipo ${equipoId}:`, error);
+      throw error;
+    }
+  },
 };

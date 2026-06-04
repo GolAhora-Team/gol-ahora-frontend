@@ -139,4 +139,16 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/User/buscar-username/{username}
+   */
+  buscarPorUsername: async (username) => {
+    try {
+      return await http.get(`${URL}/buscar-username/${encodeURIComponent(username)}`);
+    } catch (error) {
+      console.error('Error en buscarPorUsername:', error);
+      throw error;
+    }
+  },
 };

@@ -16,13 +16,15 @@ import TorneoFixtureModal from '../components/TorneoFixtureModal';
 import EnrollTeamModal from '../components/EnrollTeamModal';
 import RemoveEquiposCompModal from '../components/RemoveEquiposCompModal';
 import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
+import ClienteInvitarJugadorModal from '../components/ClienteInvitarJugadorModal';
+import ClienteInscripcionCompModal from '../components/ClienteInscripcionCompModal';
 import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
 import { partidoService } from '../services/partidoService';
 
 export default function CompetenciasScreen({ route, navigation }) {
-  const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
+  const { role: currentUserRole, idPersona, idUsuario } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
 
   const [activeTab, setActiveTab] = useState('COMPETENCIAS');
   const [competencias, setCompetencias] = useState([]);
@@ -81,7 +83,14 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [formacionVisible, setFormacionVisible] = useState(false);
   const [equipoFormacion, setEquipoFormacion] = useState(null);
 
+  // Cliente-specific modals
+  const [invitarJugadorVisible, setInvitarJugadorVisible] = useState(false);
+  const [equipoParaInvitar, setEquipoParaInvitar] = useState(null);
+  const [inscripcionCompVisible, setInscripcionCompVisible] = useState(false);
+  const [competenciaParaInscripcion, setCompetenciaParaInscripcion] = useState(null);
+
   const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+  const isCliente = currentUserRole === 'CLIENTE';
   const canCreateEquipo = currentUserRole !== 'PROFE';
 
   useEffect(() => {
@@ -104,13 +113,21 @@ export default function CompetenciasScreen({ route, navigation }) {
         fechaFin: c.fechaFin ? new Date(c.fechaFin).toLocaleDateString('es-AR') : '',
         premio: 'Trofeo + Medallas',
         tipoCancha: c.tipoCancha || 5,
-        fixtureGenerado: c.fixtureGenerado || false
+        fixtureGenerado: c.fixtureGenerado || false,
+        precioInscripcion: c.precioInscripcion || 50000
       }));
       setCompetencias(mapped);
 
-      const eqData = await equipoService.getAll();
-      const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
-      setEquipos(mappedEq);
+      // Para clientes: solo cargar sus propios equipos
+      if (isCliente && idPersona) {
+        const eqData = await equipoService.getByClienteId(idPersona);
+        const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
+        setEquipos(mappedEq);
+      } else {
+        const eqData = await equipoService.getAll();
+        const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
+        setEquipos(mappedEq);
+      }
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los datos.');
@@ -333,7 +350,11 @@ export default function CompetenciasScreen({ route, navigation }) {
   // ── Equipo handlers ──
   const handleCreateEquipo = async (equipoFormData) => {
     try {
-      const result = await equipoService.create(equipoFormData);
+      // Si es cliente, agregar CreadoPorClienteId automáticamente
+      const dataToSend = isCliente && idPersona
+        ? { ...equipoFormData, creadoPorClienteId: idPersona }
+        : equipoFormData;
+      const result = await equipoService.create(dataToSend);
       const nuevo = { ...result, id: result?.id?.toString() || Date.now().toString() };
       setEquipos(prev => [...prev, nuevo]);
       setEquipoModalVisible(false);
@@ -461,7 +482,7 @@ export default function CompetenciasScreen({ route, navigation }) {
           <Text style={[styles.tabText, activeTab === 'COMPETENCIAS' && styles.tabTextActive]}>Competencias</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tabBtn, activeTab === 'EQUIPOS' && styles.tabBtnActive]} onPress={() => setActiveTab('EQUIPOS')}>
-          <Text style={[styles.tabText, activeTab === 'EQUIPOS' && styles.tabTextActive]}>Equipos</Text>
+          <Text style={[styles.tabText, activeTab === 'EQUIPOS' && styles.tabTextActive]}>{isCliente ? 'Mis equipos' : 'Equipos'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -477,31 +498,65 @@ export default function CompetenciasScreen({ route, navigation }) {
             )}
           </View>
           <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
-            {competencias.map(item => (
-              <CompetenciaCard 
-                key={item.id} 
-                item={item} 
-                canModify={isStaff}
-                onInscribir={() => handleInscripcion(item)}
-                onEliminarEquipos={() => handleEliminarEquipos(item)}
-                onVerDetalle={() => handleVerDetalle(item)}
-                onVerFixture={() => handleVerFixture(item)}
-                onGenerarFixture={() => handleGenerarFixture(item)}
-                onDelete={() => askDeleteCompeticion(item)}
-                onIniciar={() => handleIniciarCompeticion(item)}
-                onEstado={() => handleEstadoTorneo(item)}
-              />
-            ))}
+            {competencias.map(item => {
+              const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
+              return isCliente ? (
+                <View key={item.id} style={styles.clienteCompCard}>
+                  <View style={styles.clienteCompInfo}>
+                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
+                      <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
+                        <Text style={styles.badgeText}>{item.tipo}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.clienteCompTitle}>{item.nombre}</Text>
+                    <Text style={styles.clienteCompDate}>Inicia: {item.fechaInicio}{item.fechaFin ? ` — Fin: ${item.fechaFin}` : ''}</Text>
+                    <Text style={styles.clienteCompDetail}>Cupos: {item.inscriptos} / {item.maxEquipos}</Text>
+                    <Text style={styles.clienteCompPrice}>Inscripción: ${(item.precioInscripcion || 50000).toLocaleString('es-AR')}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerDetalle(item)}>
+                      <Text style={styles.clienteCompBtnText}>VER</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
+                      <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
+                    </TouchableOpacity>
+                    {!cupoCompleto && item.estado === 'inscripcion' ? (
+                      <TouchableOpacity 
+                        style={styles.clienteInscribirBtn}
+                        onPress={() => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); }}
+                      >
+                        <MaterialCommunityIcons name="trophy" size={16} color="#fff" />
+                        <Text style={styles.clienteInscribirText}>INSCRIBIR MI EQUIPO</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </View>
+              ) : (
+                <CompetenciaCard 
+                  key={item.id} 
+                  item={item} 
+                  canModify={isStaff}
+                  onInscribir={() => handleInscripcion(item)}
+                  onEliminarEquipos={() => handleEliminarEquipos(item)}
+                  onVerDetalle={() => handleVerDetalle(item)}
+                  onVerFixture={() => handleVerFixture(item)}
+                  onGenerarFixture={() => handleGenerarFixture(item)}
+                  onDelete={() => askDeleteCompeticion(item)}
+                  onIniciar={() => handleIniciarCompeticion(item)}
+                  onEstado={() => handleEstadoTorneo(item)}
+                />
+              );
+            })}
           </ScrollView>
         </>
       ) : (
         <>
           <View style={styles.headerRow}>
-            <Text style={styles.mainTitle}>Equipos Registrados</Text>
+            <Text style={styles.mainTitle}>{isCliente ? 'Mis Equipos' : 'Equipos Registrados'}</Text>
             {canCreateEquipo && (
               <TouchableOpacity style={styles.addButton} onPress={() => { setEditingEquipo(null); setEquipoModalVisible(true); }}>
                 <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
-                <Text style={styles.addButtonText}>Agregar Equipo</Text>
+                <Text style={styles.addButtonText}>{isCliente ? 'Crear Equipo' : 'Agregar Equipo'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -524,17 +579,17 @@ export default function CompetenciasScreen({ route, navigation }) {
               <EquipoCard 
                 key={item.id} 
                 item={item} 
-                canModify={isStaff}
+                canModify={isStaff || (isCliente && item.creadoPorClienteId == idPersona)}
                 onEdit={() => handleEditEquipo(item)}
                 onDelete={() => askDeleteEquipo(item)}
-                onAddJugadores={() => openAddJugadores(item)}
+                onAddJugadores={() => isCliente ? (function(){ setEquipoParaInvitar(item); setInvitarJugadorVisible(true); })() : openAddJugadores(item)}
                 onRemoveJugadores={() => openRemoveJugadores(item)}
                 onVerJugadores={() => openVerJugadores(item)}
                 onFormacion={() => openFormacion(item)}
               />
             ))}
             {equipos.length === 0 && (
-              <Text style={{color: '#94a3b8', textAlign: 'center', marginTop: 20}}>No hay equipos registrados.</Text>
+              <Text style={{color: '#94a3b8', textAlign: 'center', marginTop: 20}}>{isCliente ? 'No tenés equipos creados. ¡Creá uno!' : 'No hay equipos registrados.'}</Text>
             )}
           </ScrollView>
         </>
@@ -666,6 +721,24 @@ export default function CompetenciasScreen({ route, navigation }) {
         enrolledEquipos={competicionToRemoveFrom ? equipos.filter(e => e.competicionId?.toString() === competicionToRemoveFrom.id?.toString()) : []}
         onRemove={handleRemoveEquiposConfirm}
       />
+
+      {/* ── Cliente Modals ── */}
+      <ClienteInvitarJugadorModal
+        visible={invitarJugadorVisible}
+        onClose={() => { setInvitarJugadorVisible(false); setEquipoParaInvitar(null); }}
+        equipo={equipoParaInvitar}
+        idUsuario={idUsuario}
+        onSuccess={() => loadData()}
+      />
+
+      <ClienteInscripcionCompModal
+        visible={inscripcionCompVisible}
+        onClose={() => { setInscripcionCompVisible(false); setCompetenciaParaInscripcion(null); }}
+        competencia={competenciaParaInscripcion}
+        idPersona={idPersona}
+        idUsuario={idUsuario}
+        onSuccess={() => loadData()}
+      />
     </ScreenTemplate>
   );
 }
@@ -687,4 +760,17 @@ const styles = StyleSheet.create({
   mainTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 6, color: '#fff' },
+  // Client competencias view
+  clienteCompCard: { backgroundColor: '#fff', borderRadius: 18, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', justifyContent: 'space-between' },
+  clienteCompInfo: { flex: 1, marginRight: 10 },
+  clienteCompTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b', marginBottom: 3 },
+  clienteCompDate: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+  clienteCompDetail: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+  clienteCompPrice: { fontSize: 13, color: '#009b3a', fontWeight: '900', marginTop: 4 },
+  clienteCompBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  clienteCompBtnText: { fontSize: 10, fontWeight: '900', color: '#475569' },
+  clienteInscribirBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, gap: 5, marginTop: 2 },
+  clienteInscribirText: { fontSize: 9, fontWeight: '900', color: '#fff' },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  badgeText: { fontSize: 10, fontWeight: '900', color: '#fff' },
 });
