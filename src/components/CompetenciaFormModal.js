@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DatePickerModal from './DatePickerModal';
 
@@ -45,6 +45,22 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
       return `${y}-${m}-${d}`;
     }
     return '';
+  };
+
+  const getMinDate = () => {
+    if (activeDateField === 'fechaFin' && formData.fechaInicio) {
+      const [d, m, y] = formData.fechaInicio.split('/');
+      if (d && m && y) return `${y}-${m}-${d}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  };
+
+  const handleSaveLocal = () => {
+    if (!formData.nombre || !formData.tipo || !formData.maxEquipos || !formData.fechaInicio || !formData.fechaFin) {
+      Alert.alert("Campos incompletos", "Por favor completa todos los campos requeridos para crear la competición.");
+      return;
+    }
+    onSave();
   };
 
   return (
@@ -114,7 +130,17 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             </TouchableOpacity>
 
             <Text style={styles.label}>Fecha de Finalización</Text>
-            <TouchableOpacity onPress={() => openDatePicker('fechaFin')} style={styles.dateInputContainer} activeOpacity={0.7}>
+            <TouchableOpacity 
+              onPress={() => {
+                if (!formData.fechaInicio) {
+                  Alert.alert("Atención", "Debes seleccionar una fecha de inicio primero.");
+                  return;
+                }
+                openDatePicker('fechaFin');
+              }} 
+              style={[styles.dateInputContainer, !formData.fechaInicio && { opacity: 0.5 }]} 
+              activeOpacity={0.7}
+            >
               <TextInput 
                 style={[styles.input, { flex: 1, borderWidth: 0, color: '#1e293b' }]} 
                 value={formData.fechaFin} 
@@ -162,7 +188,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>CANCELAR</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveLocal}>
               <Text style={styles.saveText}>CREAR</Text>
             </TouchableOpacity>
           </View>
@@ -173,7 +199,7 @@ export default function CompetenciaFormModal({ visible, onClose, formData, setFo
         onClose={() => setDatePickerVisible(false)}
         onSelect={handleDateSelect}
         initialDate={getInitialDate(activeDateField)}
-        minDate={new Date().toISOString().split('T')[0]}
+        minDate={getMinDate()}
       />
     </Modal>
   );
