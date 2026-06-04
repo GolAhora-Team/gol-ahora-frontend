@@ -766,38 +766,57 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     `;
   };
 
+  const createReservaCompleta = async (data, estadoPago) => {
+    let reservaId = null;
+    let newReservaResponse = null;
+    let createdFacturaId = null;
+    let createdPagoId = null;
+
+    if (data.isEdit) {
+      await reservaService.update(reservaToEdit.id, data.reservaPayload);
+      reservaId = reservaToEdit.id;
+    } else {
+      newReservaResponse = await reservaService.create(data.reservaPayload);
+      reservaId = newReservaResponse?.id || newReservaResponse?.Id;
+    }
+    
+    await reportHistoryService.saveReporte(data.html, data.fileName);
+
+    try {
+      const facturaPayload = {
+        fechaEmision: data.fecha,
+        total: data.montoFinal,
+        clienteId: data.reservaPayload.ClienteId
+      };
+      const factura = await facturaService.create(facturaPayload);
+      
+      const facturaId = factura?.id || factura?.Id;
+      createdFacturaId = facturaId;
+      if (facturaId && reservaId) {
+        // Actualizar Reserva con FacturaId
+        await reservaService.update(reservaId, { ...data.reservaPayload, facturaId: facturaId });
+
+        const pagoPayload = {
+          fechaPago: data.fecha,
+          monto: data.montoFinal,
+          metodo: data.metodoPago === 'EFECTIVO' ? 1 : 3, // Efectivo=1, MercadoPago(Transferencia)=3
+          estado: estadoPago, // 1=Pendiente, 2=Pagado
+          facturaId: facturaId
+        };
+        const pagoResp = await pagoService.create(pagoPayload);
+        createdPagoId = pagoResp?.id || pagoResp?.Id;
+      }
+    } catch (e) {
+      console.error("Error al registrar factura/pago:", e);
+    }
+    
+    return { reservaId, pagoId: createdPagoId, facturaId: createdFacturaId };
+  };
+
   const processAdminReservation = async (data) => {
     try {
       setIsLoading(true);
-      if (data.isEdit) {
-        await reservaService.update(reservaToEdit.id, data.reservaPayload);
-      } else {
-        await reservaService.create(data.reservaPayload);
-      }
-      await reportHistoryService.saveReporte(data.html, data.fileName);
-
-      try {
-        const facturaPayload = {
-          fechaEmision: data.fecha,
-          total: data.montoFinal,
-          clienteId: data.reservaPayload.ClienteId
-        };
-        const factura = await facturaService.create(facturaPayload);
-        
-        const facturaId = factura?.id || factura?.Id;
-        if (facturaId) {
-          const pagoPayload = {
-            fechaPago: data.fecha,
-            monto: data.montoFinal,
-            metodo: data.metodoPago === 'EFECTIVO' ? 1 : 3, // Efectivo=1, MercadoPago(Transferencia)=3
-            estado: 2, // Pagado
-            facturaId: facturaId
-          };
-          await pagoService.create(pagoPayload);
-        }
-      } catch (e) {
-        console.error("Error al registrar factura/pago:", e);
-      }
+      await createReservaCompleta(data, 2); // 2 = Pagado
 
       onClose();
       if (onReservaCreated) {
@@ -898,41 +917,69 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         CanchaId: parseInt(selectedCancha.id)
       };
 
-      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, nombreUsuario, descuentoEfectivoPct, descuentoSocioPct);
+      const html = generateComprobanteHtml(persona, selectedCancha, selectedDate, selectedHora, precioBase, metodoPago, socio, null, descuentoEfectivoPct, descuentoSocioPct);
       const fileName = `Comprobante-Reserva-${reservaToEdit ? 'Editada-' : ''}${persona.nombre}_${persona.apellido}-${selectedCancha.nombre}`.replace(/\s+/g, '_');
 
       const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
       
+      const payloadBase = {
+        reservaPayload,
+        html,
+        fileName,
+        persona,
+        cancha: selectedCancha,
+        fecha: selectedDate.toISOString(),
+        hora: selectedHora,
+        montoFinal,
+        metodoPago,
+        esSocio: esSocio(),
+        precioBase: getPrecioBase(),
+        isEdit: !!reservaToEdit
+      };
+
       if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
-        const title = `Reserva Cancha ${selectedCancha.nombre}`;
+        // FLUJO CLIENTE MERCADO PAGO: Creamos Reserva en Pendiente y redirigimos
+        const { reservaId } = await createReservaCompleta(payloadBase, 1); // 1 = Pendiente
         
+        const title = `Reserva Cancha ${selectedCancha.nombre}`;
+        const baseUrl = window.location.href.split('?')[0]; 
+        const currentUrl = baseUrl + '?mp_return=true'; // El cliente vuelve a esta URL
+        const webhookUrl = `${window.location.protocol}//${window.location.host}/api/MercadoPago/webhook`; // O la URL pública de la API
+        
+        const payloadMP = {
+          title: title,
+          price: montoFinal,
+          returnUrl: currentUrl,
+          webhookUrl: webhookUrl,
+          externalReference: reservaId ? reservaId.toString() : null
+        };
+
         if (Platform.OS === 'web') {
           const pendingReservation = {
-            reservaPayload,
-            html,
-            fileName,
-            persona,
-            cancha: selectedCancha,
-            fecha: selectedDate.toISOString(),
-            hora: selectedHora,
-            montoFinal,
-            metodoPago,
-            esSocio: esSocio(),
-            precioBase: getPrecioBase(),
-            isEdit: !!reservaToEdit
+            ...payloadBase,
+            reservaId
           };
           window.localStorage.setItem('pendingReservation', JSON.stringify(pendingReservation));
           
-          const baseUrl = window.location.href.split('?')[0]; 
-          const currentUrl = baseUrl + '?mp_return=true'; // Parámetro de control
-          const mpResponse = await mercadoPagoService.createPreference(title, montoFinal, currentUrl);
-          
+          const mpResponse = await mercadoPagoService.createPreference(
+            title, 
+            montoFinal, 
+            currentUrl, 
+            webhookUrl, 
+            reservaId ? reservaId.toString() : null
+          );
           setIsLoading(false);
           window.location.href = mpResponse.initPoint;
           return;
         } else {
-          // Fallback para mobile (sin guardado temporal robusto)
-          const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
+          // Fallback para mobile
+          const mpResponse = await mercadoPagoService.createPreference(
+            title, 
+            montoFinal, 
+            currentUrl, 
+            webhookUrl, 
+            reservaId ? reservaId.toString() : null
+          );
           const { Linking } = require('react-native');
           Linking.openURL(mpResponse.initPoint);
           setIsLoading(false);
@@ -941,42 +988,30 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       }
 
       if (metodoPago === 'MERCADOPAGO' && isAdminOrPersonal) {
+        // FLUJO ADMIN MERCADO PAGO: Creamos Reserva en Pendiente y mostramos QR
+        const { reservaId, pagoId } = await createReservaCompleta(payloadBase, 1); // 1 = Pendiente
+        
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
-        const mpResponse = await mercadoPagoService.createPreference(title, montoFinal);
+        const webhookUrl = `${window.location.protocol}//${window.location.host}/api/MercadoPago/webhook`;
+        
+        const mpResponse = await mercadoPagoService.createPreference(
+          title, 
+          montoFinal, 
+          '', 
+          webhookUrl, 
+          reservaId ? reservaId.toString() : null
+        );
+        
         setQrUrl(mpResponse.initPoint);
         if (mpResponse.externalReference) {
           setExternalReference(mpResponse.externalReference);
         }
-        setPendingAdminReservaPayload({
-          reservaPayload,
-          html,
-          fileName,
-          persona,
-          cancha: selectedCancha,
-          fecha: selectedDate,
-          hora: selectedHora,
-          montoFinal,
-          metodoPago,
-          isEdit: !!reservaToEdit
-        });
+        // Save the IDs so we can update the payment later if needed
+        setPendingAdminReservaPayload({ ...payloadBase, reservaId, pagoId });
         setQrModalVisible(true);
         setIsLoading(false);
         return;
       }
-
-      // FLUJO NORMAL (Efectivo)
-      await processAdminReservation({
-        reservaPayload,
-        html,
-        fileName,
-        persona,
-        cancha: selectedCancha,
-        fecha: selectedDate,
-        hora: selectedHora,
-        montoFinal,
-        metodoPago,
-        isEdit: !!reservaToEdit
-      });
     } catch (error) {
       const msg = error.message || 'No se pudo registrar la reserva.';
       setErrorModalMessage(msg);
@@ -1137,9 +1172,29 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
             <TouchableOpacity 
               style={s.qrConfirmBtn} 
-              onPress={() => {
+              onPress={async () => {
                  setQrModalVisible(false);
-                 processAdminReservation(pendingAdminReservaPayload);
+                 if (pendingAdminReservaPayload?.pagoId) {
+                   try {
+                     // Obtenemos el pago para mantener sus datos
+                     const pagos = await pagoService.getAll();
+                     const pago = pagos.find(p => p.id === pendingAdminReservaPayload.pagoId || p.Id === pendingAdminReservaPayload.pagoId);
+                     if (pago) {
+                       await pagoService.update(pendingAdminReservaPayload.pagoId, { ...pago, estado: 2 });
+                     }
+                   } catch (e) {
+                     console.error("Error confirmando pago manual:", e);
+                   }
+                   onClose();
+                   if (onReservaCreated) {
+                     onReservaCreated({
+                       ...pendingAdminReservaPayload,
+                       isEdit: pendingAdminReservaPayload.isEdit
+                     });
+                   }
+                 } else {
+                   processAdminReservation(pendingAdminReservaPayload);
+                 }
               }}
             >
               <Text style={s.qrConfirmBtnText}>Marcar como Pagado</Text>

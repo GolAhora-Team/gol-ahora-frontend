@@ -90,56 +90,18 @@ export default function ReservaScreen({ route, navigation }) {
             const pending = JSON.parse(pendingResStr);
             window.localStorage.removeItem('pendingReservation');
             
-            const createReservaAfterPayment = async () => {
-              try {
-                if (pending.isEdit && pending.reservaPayload.id) {
-                   await reservaService.update(pending.reservaPayload.id, pending.reservaPayload);
-                } else {
-                   await reservaService.create(pending.reservaPayload);
-                }
-                await reportHistoryService.saveReporte(pending.html, pending.fileName);
-
-                // --- CREATE FACTURA AND PAGO ---
-                try {
-                  const facturaPayload = {
-                    fechaEmision: pending.fecha,
-                    total: pending.montoFinal,
-                    clienteId: pending.reservaPayload.ClienteId
-                  };
-                  const factura = await facturaService.create(facturaPayload);
-                  
-                  const facturaId = factura?.id || factura?.Id;
-                  if (facturaId) {
-                    const pagoPayload = {
-                      fechaPago: pending.fecha,
-                      monto: pending.montoFinal,
-                      metodo: pending.metodoPago === 'EFECTIVO' ? 1 : 3, // 1=Efectivo, 3=Transferencia (MercadoPago)
-                      estado: 2, // Pagado
-                      facturaId: facturaId
-                    };
-                    await pagoService.create(pagoPayload);
-                  }
-                } catch (e) {
-                  console.error("Error al registrar factura/pago:", e);
-                }
-                // -------------------------------
-                
-                // Limpiamos la URL para no repetir el proceso si el usuario recarga
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Mostramos el modal de éxito llamando al manejador existente
-                handleReservaCreated({
-                  html: pending.html, fileName: pending.fileName, persona: pending.persona, 
-                  cancha: pending.cancha, fecha: new Date(pending.fecha), 
-                  hora: pending.hora, montoFinal: pending.montoFinal, 
-                  metodoPago: pending.metodoPago, isEdit: pending.isEdit
-                });
-              } catch (e) {
-                console.error("Error creating reservation after MP success", e);
-                Alert.alert('Error', 'El pago fue exitoso pero hubo un error al registrar la reserva en la base de datos.');
-              }
-            };
-            createReservaAfterPayment();
+            // La reserva ya fue creada en estado Pendiente antes de ir a MP.
+            // El webhook actualizará el estado a Confirmada en el backend.
+            
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Mostramos el modal de éxito
+            handleReservaCreated({
+              html: pending.html, fileName: pending.fileName, persona: pending.persona, 
+              cancha: pending.cancha, fecha: new Date(pending.fecha), 
+              hora: pending.hora, montoFinal: pending.montoFinal, 
+              metodoPago: pending.metodoPago, isEdit: pending.isEdit
+            });
           } catch(e) {
             console.error("Error procesando reserva pendiente", e);
           }
@@ -148,13 +110,24 @@ export default function ReservaScreen({ route, navigation }) {
         // El pago falló o el usuario lo canceló
         const pendingResStr = window.localStorage.getItem('pendingReservation');
         if (pendingResStr) {
-          window.localStorage.removeItem('pendingReservation');
-          window.history.replaceState({}, document.title, window.location.pathname);
-          setTimeout(() => {
-            setSuccessMessage('Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
-            setErrorMode(true);
-            setSuccessVisible(true);
-          }, 500);
+          try {
+            const pending = JSON.parse(pendingResStr);
+            window.localStorage.removeItem('pendingReservation');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Cancelar la reserva porque el pago no se completó
+            if (pending.reservaId) {
+              reservaService.cancelar(pending.reservaId).catch(e => console.error("Error cancelando reserva fallida", e));
+            }
+
+            setTimeout(() => {
+              setSuccessMessage('Lo sentimos, algo falló en el pago y no se pudo completar la reserva.');
+              setErrorMode(true);
+              setSuccessVisible(true);
+            }, 500);
+          } catch(e) {
+            console.error("Error procesando fallo de reserva", e);
+          }
         }
       }
     }
