@@ -310,7 +310,7 @@ export default function FacturacionScreen({ route, navigation }) {
               ))
             )}
           </>
-        ) : (
+        ) : activeTab === 'COMPROBANTES' ? (
           <>
             {comprobantesReservas.length > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>

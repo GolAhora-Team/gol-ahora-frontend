@@ -592,29 +592,7 @@ export default function ReportesScreen({ route, navigation }) {
             )}
             <View style={{ height: 100 }} />
           </ScrollView>
-                      <MaterialCommunityIcons name="eye" size={18} color="#fff" />
-                      {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#009b3a' }, isMobile && { flex: 1 }]}
-                      onPress={() => downloadPdf(item)}
-                    >
-                      <MaterialCommunityIcons name="download" size={18} color="#fff" />
-                      {!isMobile && <Text style={styles.actionButtonText}>Descargar</Text>}
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#ffb300' }, isMobile && { flex: 1 }]}
-                      onPress={() => printHtml(item.html)}
-                    >
-                      <MaterialCommunityIcons name="printer" size={18} color="#000" />
-                      {!isMobile && <Text style={[styles.actionButtonText, { color: '#000' }]}>Imprimir</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-            <View style={{ height: 100 }} />
-          </ScrollView>
+
         ) : (
           <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
             
