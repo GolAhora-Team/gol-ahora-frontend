@@ -310,19 +310,30 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
 
   const generateMockPartidosLiga = () => {
     const mock = [];
-    for (let j = 1; j <= 3; j++) {
-      for (let i = 0; i < 4; i++) {
+    const equipos = ["Boca", "River", "Racing", "Independiente", "San Lorenzo", "Huracán"];
+    let mId = 1;
+    const numEquipos = equipos.length;
+    
+    for (let j = 0; j < numEquipos - 1; j++) {
+      for (let i = 0; i < numEquipos / 2; i++) {
+        let localIndex = (j + i) % (numEquipos - 1);
+        let visitanteIndex = (numEquipos - 1 - i + j) % (numEquipos - 1);
+
+        if (i === 0) {
+          visitanteIndex = numEquipos - 1;
+        }
+
         mock.push({
-          id: `mock-liga-${j}-${i}`,
+          id: `mock-liga-${mId++}`,
           isMock: true,
-          equipoLocalNombre: `Equipo Local ${i+1}`,
-          equipoVisitanteNombre: `Equipo Visit ${i+1}`,
-          golesLocal: Math.floor(Math.random() * 3),
-          golesVisitante: Math.floor(Math.random() * 3),
-          estado: j === 1 ? 3 : 1, // Jornada 1 finalizada, resto programada
-          jornada: j,
-          fecha: new Date().toISOString(),
-          hora: "20:00:00"
+          equipoLocalNombre: equipos[localIndex],
+          equipoVisitanteNombre: equipos[visitanteIndex],
+          golesLocal: Math.floor(Math.random() * 4),
+          golesVisitante: Math.floor(Math.random() * 4),
+          estado: Math.random() > 0.5 ? 3 : 1,
+          jornada: j + 1,
+          fecha: new Date(Date.now() + j * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          hora: "15:00:00"
         });
       }
     }
