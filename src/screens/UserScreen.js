@@ -270,9 +270,78 @@ export default function UserScreen({ route, navigation }) {
     setConfirmReportModalVisible(true);
   };
 
+  const handleDownloadCert = async (user) => {
+    try {
+      const blob = await profesorService.descargarCertificado(user.id);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Certificado_${user.nombre}_${user.apellido}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert('Certificado', 'Descarga disponible solo en la versión web.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo descargar el certificado.');
+    }
+  };
+
+  const handleDownloadProfesorReporte = async (user) => {
+    try {
+      const blob = await profesorService.descargarReporte(user.id);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Profesor_${user.nombre}_${user.apellido}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert('Reporte', 'Descarga disponible solo en la versión web.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo generar el reporte.');
+    }
+  };
+
   const generateUserHtml = (user) => {
     const d = (val) => val ? val : "-";
     const fechaFormat = (val) => val ? new Date(val).toLocaleDateString() : "-";
+    const isProfe = user.role === 'PROFE';
+    const reportTitle = isProfe ? 'REPORTE DE PROFESOR' : 'REPORTE DE CLIENTE';
+    
+    const commonFields = `
+      <div class="item"><b>Nombre:</b> ${d(user.nombre)}</div>
+      <div class="item"><b>Apellido:</b> ${d(user.apellido)}</div>
+      <div class="item"><b>DNI:</b> ${d(user.dni)}</div>
+      <div class="item"><b>Fecha de Creación:</b> ${fechaFormat(user.fechaAlta)}</div>
+      <div class="item"><b>Email:</b> ${d(user.email)}</div>
+      <div class="item"><b>Teléfono:</b> ${d(user.telefono)}</div>
+      <div class="item"><b>Género:</b> ${d(user.genero)}</div>
+      <div class="item"><b>Fecha Nacimiento:</b> ${fechaFormat(user.fechaNacimiento)}</div>
+      <div class="item"><b>Dirección:</b> ${d(user.direccion)}</div>
+      <div class="item"><b>Localidad:</b> ${d(user.localidad)}</div>
+      <div class="item"><b>Código Postal:</b> ${d(user.codigoPostal)}</div>
+      <div class="item"><b>Provincia:</b> ${d(user.provincia)}</div>
+      <div class="item"><b>País:</b> ${d(user.pais)}</div>
+      <div class="item"><b>Contacto Emergencia:</b> ${d(user.contactoEmergencia)}</div>
+    `;
+
+    const profeFields = isProfe ? `
+      <div class="item"><b>Especialidad:</b> ${d(user.especialidad || user.especializacion)}</div>
+      <div class="item"><b>Certificación:</b> ${d(user.certificacion)}</div>
+      <div class="item"><b>Certificado:</b> ${user.tieneCertificado ? 'Sí' : 'No'}</div>
+      <div class="item"><b>Cert. Inicio:</b> ${fechaFormat(user.certificadoFechaInicio)}</div>
+      <div class="item"><b>Cert. Fin:</b> ${user.certificadoFechaFin ? fechaFormat(user.certificadoFechaFin) : 'Sin caducidad'}</div>
+    ` : `
+      <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
+      <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
+      <div class="item"><b>Socio Activo:</b> ${user.esSocioActivo ? "Sí" : "No"}</div>
+      <div class="item"><b>Fecha Baja:</b> ${fechaFormat(user.fechaBaja)}</div>
+    `;
+
     const html = `
       <html>
         <head>
@@ -296,26 +365,10 @@ export default function UserScreen({ route, navigation }) {
           </div>
           <div class="line"></div>
           <div class="content">
-            <div class="report-name">REPORTE DE CLIENTE</div>
+            <div class="report-name">${reportTitle}</div>
             <div class="grid">
-              <div class="item"><b>Nombre:</b> ${d(user.nombre)}</div>
-              <div class="item"><b>Apellido:</b> ${d(user.apellido)}</div>
-              <div class="item"><b>DNI:</b> ${d(user.dni)}</div>
-              <div class="item"><b>Fecha de Creación:</b> ${fechaFormat(user.fechaAlta)}</div>
-              <div class="item"><b>Email:</b> ${d(user.email)}</div>
-              <div class="item"><b>Teléfono:</b> ${d(user.telefono)}</div>
-              <div class="item"><b>Género:</b> ${d(user.genero)}</div>
-              <div class="item"><b>Fecha Nacimiento:</b> ${fechaFormat(user.fechaNacimiento)}</div>
-              <div class="item"><b>Dirección:</b> ${d(user.direccion)}</div>
-              <div class="item"><b>Localidad:</b> ${d(user.localidad)}</div>
-              <div class="item"><b>Código Postal:</b> ${d(user.codigoPostal)}</div>
-              <div class="item"><b>Provincia:</b> ${d(user.provincia)}</div>
-              <div class="item"><b>País:</b> ${d(user.pais)}</div>
-              <div class="item"><b>Contacto Emergencia:</b> ${d(user.contactoEmergencia)}</div>
-              <div class="item"><b>Obra Social:</b> ${d(user.obraSocial)}</div>
-              <div class="item"><b>Apto Físico:</b> ${user.aptoFisico ? "Sí" : "No"}</div>
-              <div class="item"><b>Socio Activo:</b> ${user.esSocioActivo ? "Sí" : "No"}</div>
-              <div class="item"><b>Fecha Baja:</b> ${fechaFormat(user.fechaBaja)}</div>
+              ${commonFields}
+              ${profeFields}
             </div>
           </div>
           <div class="footer">
@@ -324,7 +377,7 @@ export default function UserScreen({ route, navigation }) {
         </body>
       </html>
     `;
-    return { html, fileName: `Reporte-Usuario-${user.nombre}_${user.apellido}`.replace(/\s+/g, '_') };
+    return { html, fileName: `Reporte-${isProfe ? 'Profesor' : 'Usuario'}-${user.nombre}_${user.apellido}`.replace(/\s+/g, '_') };
   };
 
   const executeGenerateReport = async () => {
@@ -437,7 +490,7 @@ export default function UserScreen({ route, navigation }) {
                 <Text style={styles.roleHeaderText}>{section.role}</Text>
               </View>
               {section.data.map(item => (
-                <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} canModify={canModifyTarget(item)} />
+                <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} onDownloadCert={handleDownloadCert} canModify={canModifyTarget(item)} />
               ))}
             </View>
           ))}

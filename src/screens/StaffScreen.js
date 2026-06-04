@@ -111,6 +111,33 @@ export default function StaffScreen({ route, navigation }) {
     setAlumnosModalVisible(true);
   };
 
+  const handleDeleteActivity = (id, type, nombre) => {
+    Alert.alert(
+      'Confirmar Eliminación',
+      `¿Estás seguro de que deseas eliminar ${type === 'CLASE' ? 'la clase' : 'el entrenamiento'} "${nombre}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (type === 'CLASE') {
+                await claseService.delete(id);
+              } else {
+                await entrenamientoService.delete(id);
+              }
+              Alert.alert('Éxito', 'Eliminado correctamente.');
+              loadData();
+            } catch (error) {
+              Alert.alert('Error', error.message || 'No se pudo eliminar.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleDescargarReporteProfesor = async (profesorId, profesorNombre) => {
     setDownloadingReporteId(profesorId);
     try {
@@ -195,43 +222,69 @@ export default function StaffScreen({ route, navigation }) {
       <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
         {itemsVisibles().map(item => (
           <View key={item.id} style={styles.claseCard}>
-            <View style={styles.cardInfo}>
-              <Text style={styles.claseTitle}>{item.nombre}</Text>
-              <Text style={styles.claseDetail}>
-                <Text style={{ fontWeight: '900' }}>Horario/Fecha:</Text> {item.horario}
-              </Text>
-              <Text style={styles.claseDetail}>
-                <Text style={{ fontWeight: '900' }}>Precio:</Text> ${item.precio}
-              </Text>
-              <Text style={styles.claseDetail}>
-                <Text style={{ fontWeight: '900' }}>Capacidad:</Text> {item.alumnos} / {item.capacidad} inscriptos
-              </Text>
+            <View style={styles.cardHeaderTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.claseTitle}>{item.nombre}</Text>
+                <View style={styles.alumnosBadge}>
+                  <MaterialCommunityIcons name="account-group" size={14} color="#009b3a" />
+                  <Text style={styles.badgeText}>{item.alumnos} / {item.capacidad} Inscriptos</Text>
+                </View>
+              </View>
+
               {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
-                <Text style={styles.claseDetail}>
-                  <Text style={{ fontWeight: '900' }}>Profesor:</Text> {item.profe}
-                </Text>
+                <View style={styles.adminCardActions}>
+                  {/* Botón Editar - placeholder para futura implementación o modal existente */}
+                  <TouchableOpacity 
+                    style={styles.iconBtnEdit} 
+                    onPress={() => Alert.alert('Información', 'La modificación de actividad se realizará desde el panel de edición (próximamente).')}
+                  >
+                    <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.iconBtnDelete} 
+                    onPress={() => handleDeleteActivity(item.id, activeTab === 'CLASES' ? 'CLASE' : 'ENTRENAMIENTO', item.nombre)}
+                  >
+                    <MaterialCommunityIcons name="delete" size={18} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.cardInfoGrid}>
+              <View style={styles.infoCol}>
+                <Text style={styles.infoLabel}>Horario / Fecha</Text>
+                <Text style={styles.infoValue}>{item.horario}</Text>
+              </View>
+              <View style={styles.infoCol}>
+                <Text style={styles.infoLabel}>Precio</Text>
+                <Text style={styles.infoValue}>${item.precio}</Text>
+              </View>
+              {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Profesor</Text>
+                  <Text style={styles.infoValue} numberOfLines={1}>{item.profe}</Text>
+                </View>
               )}
             </View>
             
-            <View style={styles.badgeContainer}>
-              <View style={styles.alumnosBadge}>
-                <Text style={styles.badgeText}>{item.alumnos} Alumnos</Text>
-              </View>
+            <View style={styles.cardActionsContainer}>
               <View style={styles.btnRow}>
                 <TouchableOpacity 
                   style={styles.verAlumnosBtn} 
                   onPress={() => abrirVerAlumnos(item)}
                 >
+                  <MaterialCommunityIcons name="account-multiple" size={16} color="#64748b" />
                   <Text style={styles.btnTextInfo}>VER ALUMNOS</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.asistenciaBtn} 
                   onPress={() => abrirAsistencia(item)}
                 >
-                  <MaterialCommunityIcons name="barcode-scan" size={14} color="#fff" />
+                  <MaterialCommunityIcons name="barcode-scan" size={16} color="#fff" />
                   <Text style={styles.btnText}>ASISTENCIA</Text>
                 </TouchableOpacity>
               </View>
+
               {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && item.profesorId && (
                 <TouchableOpacity
                   style={[styles.reporteBtn, downloadingReporteId === item.profesorId && { opacity: 0.5 }]}
@@ -240,7 +293,7 @@ export default function StaffScreen({ route, navigation }) {
                 >
                   {downloadingReporteId === item.profesorId
                     ? <ActivityIndicator size="small" color="#f59e0b" />
-                    : <MaterialCommunityIcons name="file-account" size={14} color="#f59e0b" />
+                    : <MaterialCommunityIcons name="file-chart-outline" size={16} color="#f59e0b" />
                   }
                   <Text style={styles.reporteBtnText}>REPORTE PROFE</Text>
                 </TouchableOpacity>
@@ -297,23 +350,32 @@ const styles = StyleSheet.create({
   actionBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, flex: 1, justifyContent: 'center' },
   actionBtnText: { color: '#fff', fontWeight: '900', marginLeft: 8, fontSize: 13 },
   claseCard: { 
-    backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12, 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4
+    backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 16, 
+    elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 8,
+    borderWidth: 1, borderColor: '#f1f5f9'
   },
-  cardInfo: { flex: 1 },
-  claseTitle: { fontSize: 17, fontWeight: '800', color: '#1e293b', marginBottom: 5 },
-  claseDetail: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  badgeContainer: { alignItems: 'flex-end' },
-  alumnosBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 8 },
+  cardHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 12, marginBottom: 12 },
+  claseTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 },
+  adminCardActions: { flexDirection: 'row', gap: 8 },
+  iconBtnEdit: { backgroundColor: '#eff6ff', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#bfdbfe' },
+  iconBtnDelete: { backgroundColor: '#fef2f2', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fecaca' },
+  alumnosBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText: { fontSize: 11, fontWeight: '800', color: '#009b3a' },
-  btnRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
-  asistenciaBtn: { backgroundColor: '#009b3a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  verAlumnosBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1' },
-  btnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  btnTextInfo: { color: '#64748b', fontSize: 11, fontWeight: '900' },
-  reporteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fffbeb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#fde68a', marginTop: 4 },
-  reporteBtnText: { color: '#f59e0b', fontSize: 10, fontWeight: '900' },
+  
+  cardInfoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  infoCol: { flex: 1, minWidth: '30%' },
+  infoLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 },
+  infoValue: { fontSize: 13, fontWeight: '700', color: '#334155' },
+
+  cardActionsContainer: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 14 },
+  btnRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  asistenciaBtn: { flex: 1, backgroundColor: '#009b3a', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, elevation: 2, shadowColor: '#009b3a', shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+  verAlumnosBtn: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  btnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  btnTextInfo: { color: '#64748b', fontSize: 12, fontWeight: '900' },
+  reporteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fffbeb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#fde68a', marginTop: 8 },
+  reporteBtnText: { color: '#f59e0b', fontSize: 12, fontWeight: '900' },
+  
   emptyContainer: { marginTop: 50, alignItems: 'center' },
   emptyText: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.8 },
   tabsContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 4, marginBottom: 20 },

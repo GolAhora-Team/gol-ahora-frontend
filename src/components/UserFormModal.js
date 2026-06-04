@@ -5,6 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { facturaService } from '../services/facturaService';
 import { clienteService } from '../services/clienteService';
+import { API_BASE_URL } from '../services/apiConfig';
 import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 import CobroMembresiaModal from './CobroMembresiaModal';
@@ -297,7 +298,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                       {(formData.tieneAptoMedicoArchivo || formData.id) && formData.aptoMedicoFileName === 'Apto Médico Guardado' && (
                         <TouchableOpacity 
                           style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
-                          onPress={() => window.open(`http://localhost:5184/api/Clientes/${formData.id}/apto-medico/descargar`, '_blank')}
+                          onPress={() => window.open(`${API_BASE_URL}/Clientes/${formData.id}/apto-medico/descargar`, '_blank')}
                         >
                           <MaterialCommunityIcons name="eye" size={24} color="#009b3a" />
                           <Text style={[styles.fileBtnText, { color: '#009b3a' }]}>VER</Text>
@@ -341,7 +342,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   {(formData.tieneCertificado || formData.id) && formData.certificadoFile === 'Certificado Guardado' && (
                     <TouchableOpacity 
                       style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
-                      onPress={() => window.open(`http://localhost:5184/api/Profesor/${formData.id}/certificado/descargar`, '_blank')}
+                      onPress={() => window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/descargar`, '_blank')}
                     >
                       <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
                       <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>

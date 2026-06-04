@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function UserCard({ item, onEdit, onDelete, onReport, canModify }) {
+export default function UserCard({ item, onEdit, onDelete, onReport, onDownloadCert, canModify }) {
   // Manejo de errores de datos: si no hay item, no renderizamos nada
   if (!item) return null;
 
@@ -89,12 +89,23 @@ export default function UserCard({ item, onEdit, onDelete, onReport, canModify }
       {/* Verificamos el permiso de modificación */}
       {canModify === true && (
         <View style={styles.actionSide}>
-          {item.role === 'CLIENTE' && (
+          {/* Reporte — CLIENTE y PROFE */}
+          {(item.role === 'CLIENTE' || item.role === 'PROFE') && (
             <TouchableOpacity 
               onPress={() => onReport && onReport(item)} 
               style={[styles.actionBtn, { backgroundColor: '#fffbeb' }]}
             >
               <MaterialCommunityIcons name="file-document-edit-outline" size={20} color="#f59e0b" />
+            </TouchableOpacity>
+          )}
+
+          {/* Descargar certificado — solo PROFE con certificado */}
+          {item.role === 'PROFE' && item.tieneCertificado && (
+            <TouchableOpacity 
+              onPress={() => onDownloadCert && onDownloadCert(item)} 
+              style={[styles.actionBtn, { backgroundColor: '#fef2f2' }]}
+            >
+              <MaterialCommunityIcons name="certificate" size={20} color="#ef4444" />
             </TouchableOpacity>
           )}
 
