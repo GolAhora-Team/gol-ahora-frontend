@@ -130,7 +130,6 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
         }
       }
 
-      Alert.alert('Éxito', `Inscripción confirmada correctamente.`);
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
@@ -201,15 +200,42 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                         <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
                           {filteredClientes.slice(0, 5).map(c => {
                             const isSelected = selectedCliente?.id === c.id;
+                            const tieneApto = c.tieneAptoMedicoArchivo;
                             return (
                               <TouchableOpacity
                                 key={c.id}
-                                style={[s.clienteItem, isSelected && s.clienteItemSelected]}
-                                onPress={() => setSelectedCliente(c)}
+                                style={[
+                                  s.clienteItem, 
+                                  isSelected && s.clienteItemSelected,
+                                  !tieneApto && { opacity: 0.6, backgroundColor: '#fef2f2', borderColor: '#fca5a5' }
+                                ]}
+                                onPress={() => {
+                                  if (!tieneApto) {
+                                    Alert.alert('Apto Médico Faltante', 'Este cliente no tiene un apto médico cargado o está vencido. No se puede inscribir por normas del establecimiento.');
+                                    return;
+                                  }
+                                  setSelectedCliente(c);
+                                }}
                               >
                                 <View>
                                   <Text style={[s.clienteName, isSelected && { color: '#fff' }]}>{c.nombre} {c.apellido}</Text>
                                   <Text style={[s.clienteDni, isSelected && { color: '#d1fae5' }]}>DNI: {c.dni}</Text>
+                                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                                    {tieneApto ? (
+                                      <View style={[s.socioBadge, { backgroundColor: '#059669' }]}>
+                                        <Text style={s.socioBadgeText}>Apto Físico Válido</Text>
+                                      </View>
+                                    ) : (
+                                      <View style={[s.socioBadge, { backgroundColor: '#ef4444' }]}>
+                                        <Text style={s.socioBadgeText}>Sin Apto Físico</Text>
+                                      </View>
+                                    )}
+                                    {c.esSocioActivo && (
+                                      <View style={[s.socioBadge, { backgroundColor: '#d97706' }]}>
+                                        <Text style={s.socioBadgeText}>SOCIO</Text>
+                                      </View>
+                                    )}
+                                  </View>
                                 </View>
                                 {isSelected && <MaterialCommunityIcons name="check-circle" size={20} color="#fff" />}
                               </TouchableOpacity>

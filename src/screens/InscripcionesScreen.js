@@ -7,6 +7,7 @@ import { competicionService } from '../services/competicionService';
 import { entrenamientoService } from '../services/entrenamientoService';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
+import SuccessModal from '../components/SuccessModal';
 
 export default function InscripcionesScreen({ route, navigation }) {
   const { role: currentUserRole, idPersona, nombreUsuario } = route.params || { role: "ADMIN" };
@@ -19,6 +20,8 @@ export default function InscripcionesScreen({ route, navigation }) {
 
   const [pagoModalVisible, setPagoModalVisible] = useState(false);
   const [actividadParaPago, setActividadParaPago] = useState(null);
+  
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   useEffect(() => {
     loadActividades();
@@ -223,7 +226,17 @@ export default function InscripcionesScreen({ route, navigation }) {
         currentUserRole={currentUserRole}
         idPersona={idPersona}
         nombreUsuario={nombreUsuario}
-        onSuccess={loadActividades}
+        onSuccess={() => {
+          loadActividades();
+          setSuccessModalVisible(true);
+        }}
+      />
+
+      <SuccessModal
+        visible={successModalVisible}
+        onClose={() => setSuccessModalVisible(false)}
+        title="¡Inscripción Exitosa!"
+        message="La inscripción se ha registrado correctamente en la actividad."
       />
     </ScreenTemplate>
   );
