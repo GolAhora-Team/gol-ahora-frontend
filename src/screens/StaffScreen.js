@@ -29,6 +29,7 @@ export default function StaffScreen({ route, navigation }) {
   const [claseParaAlumnos, setClaseParaAlumnos] = useState(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createType, setCreateType] = useState('CLASE');
+  const [editData, setEditData] = useState(null);
   const [downloadingReporteId, setDownloadingReporteId] = useState(null);
 
   useEffect(() => {
@@ -111,6 +112,13 @@ export default function StaffScreen({ route, navigation }) {
   };
 
   const handleOpenCreate = (type) => {
+    setEditData(null);
+    setCreateType(type);
+    setCreateModalVisible(true);
+  };
+
+  const handleOpenEdit = (item, type) => {
+    setEditData(item);
     setCreateType(type);
     setCreateModalVisible(true);
   };
@@ -119,16 +127,27 @@ export default function StaffScreen({ route, navigation }) {
     // Esta función es llamada desde CreateActivityModal.
     // El modal re-lanza el error si falla, así que lo manejamos aquí
     // y mostramos UNA SOLA alerta al usuario.
-    if (type === 'CLASE') {
-      await claseService.create(payload);
+    if (editData) {
+      if (type === 'CLASE') {
+        await claseService.update(editData.id, payload);
+      } else {
+        await entrenamientoService.update(editData.id, payload);
+      }
+      Alert.alert(
+        '✅ ¡Actualizado con éxito!',
+        `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se actualizó correctamente.`
+      );
     } else {
-      await entrenamientoService.create(payload);
+      if (type === 'CLASE') {
+        await claseService.create(payload);
+      } else {
+        await entrenamientoService.create(payload);
+      }
+      Alert.alert(
+        '✅ ¡Creado con éxito!',
+        `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se guardó en la base de datos.`
+      );
     }
-    // Si llegamos acá, fue exitoso
-    Alert.alert(
-      '✅ ¡Creado con éxito!',
-      `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se guardó en la base de datos.`
-    );
     loadData();
   };
 
@@ -255,10 +274,9 @@ export default function StaffScreen({ route, navigation }) {
 
               {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
                 <View style={styles.adminCardActions}>
-                  {/* Botón Editar - placeholder para futura implementación o modal existente */}
                   <TouchableOpacity 
                     style={styles.iconBtnEdit} 
-                    onPress={() => Alert.alert('Información', 'La modificación de actividad se realizará desde el panel de edición (próximamente).')}
+                    onPress={() => handleOpenEdit(item, activeTab === 'CLASES' ? 'CLASE' : 'ENTRENAMIENTO')}
                   >
                     <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
                   </TouchableOpacity>
@@ -353,12 +371,13 @@ export default function StaffScreen({ route, navigation }) {
         esEntrenamiento={activeTab === 'ENTRENAMIENTOS'}
       />
 
-      <CreateActivityModal
+      <CreateActivityModal 
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSave={handleCreateSave}
-        title={createType === 'CLASE' ? 'Crear Nueva Clase' : 'Crear Nuevo Entrenamiento'}
+        title={editData ? (createType === 'CLASE' ? 'Editar Clase' : 'Editar Entrenamiento') : (createType === 'CLASE' ? 'Nueva Clase' : 'Nuevo Entrenamiento')}
         type={createType}
+        initialData={editData}
       />
     </ScreenTemplate>
   );

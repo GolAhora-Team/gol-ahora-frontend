@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { profesorService } from '../services/profesorService';
+import { canchaService } from '../services/canchaService';
 
 const DIAS = [
   { key: 'Lun', label: 'Lun' },
@@ -13,7 +14,7 @@ const DIAS = [
   { key: 'Dom', label: 'Dom' },
 ];
 
-export default function CreateActivityModal({ visible, onClose, onSave, title, type }) {
+export default function CreateActivityModal({ visible, onClose, onSave, title, type, initialData = null }) {
   const [formData, setFormData] = useState({
     nombre: '',
     diasSeleccionados: [],
@@ -21,21 +22,43 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     horaFin: '',
     maxAlumnos: '20',
     profesorId: null,
+    canchaId: null,
     precio: '5000'
   });
   
   const [profesores, setProfesores] = useState([]);
+  const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      loadProfesores();
-      setFormData({ nombre: '', diasSeleccionados: [], horaInicio: '', horaFin: '', maxAlumnos: '20', profesorId: null, precio: '5000' });
+      loadData();
+      if (initialData) {
+        // Parse time if it exists
+        const formatInitialTime = (timeStr) => {
+          if (!timeStr) return '';
+          return timeStr.substring(0, 5); // "18:00:00" -> "18:00"
+        };
+        const diasArr = initialData.diasSemana ? initialData.diasSemana.split(',').map(d => d.trim()) : [];
+        
+        setFormData({ 
+          nombre: initialData.nombre || '', 
+          diasSeleccionados: diasArr, 
+          horaInicio: formatInitialTime(initialData.horaInicio), 
+          horaFin: formatInitialTime(initialData.horaFin), 
+          maxAlumnos: initialData.capacidadMax?.toString() || initialData.cupoMaximo?.toString() || '20', 
+          profesorId: initialData.profesor?.id || initialData.profesorId || null, 
+          canchaId: initialData.canchaId || null,
+          precio: initialData.precioInscripcion?.toString() || '5000' 
+        });
+      } else {
+        setFormData({ nombre: '', diasSeleccionados: [], horaInicio: '', horaFin: '', maxAlumnos: '20', profesorId: null, canchaId: null, precio: '5000' });
+      }
     }
-  }, [visible]);
+  }, [visible, initialData]);
 
-  const loadProfesores = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const data = await profesorService.getAll();
@@ -45,6 +68,9 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
         return p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
       });
       setProfesores(validos);
+
+      const dataCanchas = await canchaService.getAll();
+      setCanchas(dataCanchas || []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -109,6 +135,8 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       const capNombre = capitalizeWords(formData.nombre.trim());
 
       let payload;
+      const diasStr = formData.diasSeleccionados.join(',');
+      
       if (type === 'CLASE') {
         payload = {
           nombre: capNombre,
@@ -117,15 +145,21 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
           fecha: safeFecha,
           horaInicio: formatTimeSpan(formData.horaInicio),
           horaFin: formatTimeSpan(formData.horaFin),
+          diasSemana: diasStr,
           precioInscripcion: parseFloat(formData.precio) || 5000,
-          profesorId: parseInt(formData.profesorId)
+          profesorId: parseInt(formData.profesorId),
+          canchaId: formData.canchaId ? parseInt(formData.canchaId) : null
         };
       } else {
         payload = {
           nombre: capNombre,
           fecha: safeFecha,
           cupoMaximo: parseInt(formData.maxAlumnos) || 20,
-          profesorId: parseInt(formData.profesorId)
+          horaInicio: formatTimeSpan(formData.horaInicio),
+          horaFin: formatTimeSpan(formData.horaFin),
+          diasSemana: diasStr,
+          profesorId: parseInt(formData.profesorId),
+          canchaId: formData.canchaId ? parseInt(formData.canchaId) : null
         };
       }
       
@@ -262,10 +296,38 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
                 ))}
               </ScrollView>
             )}
+
+            {/* SELECTOR DE CANCHA */}
+            <Text style={styles.label}>Cancha Asignada <Text style={{ color: '#94a3b8' }}>(Opcional)</Text></Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#009b3a" style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
+                <TouchableOpacity 
+                  style={[styles.profCard, formData.canchaId === null && styles.profCardSelected]}
+                  onPress={() => setFormData({...formData, canchaId: null})}
+                >
+                  <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === null ? '#fff' : '#64748b'} />
+                  <Text style={[styles.profName, formData.canchaId === null && { color: '#fff' }]}>Sin Cancha</Text>
+                </TouchableOpacity>
+
+                {canchas.map(c => (
+                  <TouchableOpacity 
+                    key={c.id} 
+                    style={[styles.profCard, formData.canchaId === c.id && styles.profCardSelected]}
+                    onPress={() => setFormData({...formData, canchaId: c.id})}
+                  >
+                    <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === c.id ? '#fff' : '#009b3a'} />
+                    <Text style={[styles.profName, formData.canchaId === c.id && { color: '#fff' }]}>{c.nombre}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
           </ScrollView>
 
           <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>
-            <Text style={styles.saveBtnText}>{saving ? 'GUARDANDO...' : 'CREAR ACTIVIDAD'}</Text>
+            <Text style={styles.saveBtnText}>{saving ? 'GUARDANDO...' : (initialData ? 'GUARDAR CAMBIOS' : 'CREAR ACTIVIDAD')}</Text>
           </TouchableOpacity>
         </View>
       </View>
