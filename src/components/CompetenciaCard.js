@@ -28,7 +28,7 @@ const getEstadoInfo = (item) => {
   return { label: 'SIN FECHA', color: '#94a3b8', bg: '#f8fafc' };
 };
 
-export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onGenerarFixture, onIniciar, onEstado }) {
+export default function CompetenciaCard({ item, canModify, onInscribir, onEliminarEquipos, onDelete, onVerFixture, onVerDetalle, onVerTabla, onGenerarFixture, onIniciar, onEstado }) {
   const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
   const estadoInfo = getEstadoInfo(item);
 
@@ -54,6 +54,11 @@ export default function CompetenciaCard({ item, canModify, onInscribir, onElimin
           <TouchableOpacity style={styles.actionBtn} onPress={onVerDetalle}>
             <Text style={styles.actionBtnText}>VER</Text>
           </TouchableOpacity>
+          {item.tipo === 'LIGA' && (
+            <TouchableOpacity style={styles.actionBtn} onPress={onVerTabla}>
+              <Text style={styles.actionBtnText}>TABLA</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.actionBtn} onPress={onVerFixture}>
             <Text style={styles.actionBtnText}>FIXTURE</Text>
           </TouchableOpacity>

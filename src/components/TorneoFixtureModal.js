@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { partidoService } from '../services/partidoService';
 
@@ -17,7 +17,7 @@ const FASE_MATCH_COUNT = {
   4: 1
 };
 
-export default function TorneoFixtureModal({ visible, onClose, competicion, isStaff }) {
+export default function TorneoFixtureModal({ visible, onClose, competicion, isStaff, initialTab = 'FIXTURE' }) {
   const [partidos, setPartidos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
@@ -30,8 +30,20 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
   const [penalesLocal, setPenalesLocal] = useState(0);
   const [penalesVisitante, setPenalesVisitante] = useState(0);
 
+  const trophyScale = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(trophyScale, { toValue: 1.2, duration: 800, useNativeDriver: true }),
+        Animated.timing(trophyScale, { toValue: 1, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
   useEffect(() => {
     if (visible && competicion) {
+      setActiveTab(initialTab);
       loadPartidos();
     } else {
       setPartidos([]);
@@ -244,6 +256,13 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
                     <View key={`cell-${faseId}-${idx}`} style={{ flex: flexVal, justifyContent: 'center', position: 'relative' }}>
                       <View style={styles.matchWrapper}>
                         {renderMatchCard(m, idx, faseId)}
+                        
+                        {isLast && m && m.estado === 3 && m.ganadorId && (
+                           <Animated.View style={{ position: 'absolute', right: -90, top: '50%', transform: [{ translateY: -35 }, { scale: trophyScale }], alignItems: 'center', zIndex: 10 }}>
+                              <MaterialCommunityIcons name="trophy" size={50} color="#fbbf24" style={{ textShadowColor: 'rgba(251, 191, 36, 0.5)', textShadowOffset: {width: 0, height: 0}, textShadowRadius: 10 }} />
+                              <Text style={{ fontSize: 11, fontWeight: '900', color: '#fbbf24', marginTop: 4 }}>¡CAMPEÓN!</Text>
+                           </Animated.View>
+                        )}
                       </View>
                       
                       {!isFirst && (
@@ -288,6 +307,83 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
             ))}
           </View>
         ))}
+      </ScrollView>
+    );
+  };
+
+  const renderTablaPosiciones = () => {
+    const dataToUse = demoMode ? generateMockPartidosLiga() : partidos;
+    const stats = {};
+
+    dataToUse.forEach(p => {
+       const locId = p.equipoLocalId || p.equipoLocalNombre;
+       const visId = p.equipoVisitanteId || p.equipoVisitanteNombre;
+
+       if (!stats[locId]) stats[locId] = { id: locId, nombre: p.equipoLocalNombre, colorPrimario: p.equipoLocalColorPrimario, colorSecundario: p.equipoLocalColorSecundario, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0 };
+       if (!stats[visId]) stats[visId] = { id: visId, nombre: p.equipoVisitanteNombre, colorPrimario: p.equipoVisitanteColorPrimario, colorSecundario: p.equipoVisitanteColorSecundario, Pts: 0, PJ: 0, PG: 0, PE: 0, PP: 0, GF: 0, GC: 0 };
+
+       if (p.estado === 3) {
+           const local = stats[locId];
+           const visit = stats[visId];
+           
+           local.PJ++;
+           visit.PJ++;
+           local.GF += p.golesLocal || 0;
+           local.GC += p.golesVisitante || 0;
+           visit.GF += p.golesVisitante || 0;
+           visit.GC += p.golesLocal || 0;
+
+           if (p.golesLocal > p.golesVisitante) {
+              local.PG++;
+              local.Pts += 3;
+              visit.PP++;
+           } else if (p.golesLocal < p.golesVisitante) {
+              visit.PG++;
+              visit.Pts += 3;
+              local.PP++;
+           } else {
+              local.PE++;
+              visit.PE++;
+              local.Pts += 1;
+              visit.Pts += 1;
+           }
+       }
+    });
+
+    const tabla = Object.values(stats).map(t => ({ ...t, DG: t.GF - t.GC })).sort((a,b) => {
+       if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+       if (b.DG !== a.DG) return b.DG - a.DG;
+       return b.GF - a.GF;
+    });
+
+    return (
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+         <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderColor: '#e2e8f0', paddingBottom: 10, marginBottom: 10 }}>
+            <Text style={{ width: 25 }}></Text>
+            <Text style={{ flex: 1, fontWeight: '900', color: '#64748b', fontSize: 11 }}>EQUIPO</Text>
+            <Text style={{ width: 32, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>PTS</Text>
+            <Text style={{ width: 25, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>PJ</Text>
+            <Text style={{ width: 25, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>PG</Text>
+            <Text style={{ width: 25, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>PE</Text>
+            <Text style={{ width: 25, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>PP</Text>
+            <Text style={{ width: 25, textAlign: 'center', fontWeight: '900', color: '#64748b', fontSize: 11 }}>DG</Text>
+         </View>
+         {tabla.map((t, i) => (
+            <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#f1f5f9' }}>
+               <Text style={{ width: 25, fontWeight: '800', color: i < 3 ? '#009b3a' : '#64748b', fontSize: 12 }}>{i+1}</Text>
+               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                  <TeamShield primario={t.colorPrimario} secundario={t.colorSecundario} fallbackName={t.nombre} />
+                  <Text style={{ marginLeft: 8, fontWeight: '700', color: '#1e293b', fontSize: 13 }} numberOfLines={1}>{t.nombre}</Text>
+               </View>
+               <Text style={{ width: 32, textAlign: 'center', fontWeight: '900', color: '#1e293b', fontSize: 13 }}>{t.Pts}</Text>
+               <Text style={{ width: 25, textAlign: 'center', fontWeight: '600', color: '#64748b', fontSize: 12 }}>{t.PJ}</Text>
+               <Text style={{ width: 25, textAlign: 'center', fontWeight: '600', color: '#64748b', fontSize: 12 }}>{t.PG}</Text>
+               <Text style={{ width: 25, textAlign: 'center', fontWeight: '600', color: '#64748b', fontSize: 12 }}>{t.PE}</Text>
+               <Text style={{ width: 25, textAlign: 'center', fontWeight: '600', color: '#64748b', fontSize: 12 }}>{t.PP}</Text>
+               <Text style={{ width: 25, textAlign: 'center', fontWeight: '600', color: '#64748b', fontSize: 12 }}>{t.DG > 0 ? `+${t.DG}` : t.DG}</Text>
+            </View>
+         ))}
+         {tabla.length === 0 && <Text style={{ textAlign: 'center', marginTop: 20, color: '#94a3b8' }}>Aún no hay equipos para mostrar en la tabla.</Text>}
       </ScrollView>
     );
   };
@@ -374,6 +470,17 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
             </TouchableOpacity>
           </View>
 
+          {!isTorneo && (
+             <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', marginHorizontal: 20, marginTop: 10, borderRadius: 8, padding: 4 }}>
+                <TouchableOpacity style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'FIXTURE' ? '#fff' : 'transparent', borderRadius: 6, elevation: activeTab === 'FIXTURE' ? 1 : 0 }} onPress={() => setActiveTab('FIXTURE')}>
+                   <Text style={{ fontWeight: '800', color: activeTab === 'FIXTURE' ? '#009b3a' : '#64748b' }}>FIXTURE</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'TABLA' ? '#fff' : 'transparent', borderRadius: 6, elevation: activeTab === 'TABLA' ? 1 : 0 }} onPress={() => setActiveTab('TABLA')}>
+                   <Text style={{ fontWeight: '800', color: activeTab === 'TABLA' ? '#009b3a' : '#64748b' }}>TABLA DE POSICIONES</Text>
+                </TouchableOpacity>
+             </View>
+          )}
+
           {/* Empty state & Actions */}
           {!hasMatches && !loading && (
             <View style={styles.emptyState}>
@@ -396,7 +503,7 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
           ) : (
             <View style={styles.contentArea}>
               {(hasMatches || demoMode) && (
-                isTorneo ? renderTorneoBracket() : renderLigaRounds()
+                isTorneo ? renderTorneoBracket() : (activeTab === 'TABLA' ? renderTablaPosiciones() : renderLigaRounds())
               )}
             </View>
           )}
@@ -494,6 +601,7 @@ const styles = StyleSheet.create({
   // Bracket Styles
   bracketContainer: {
     padding: 20,
+    paddingRight: 100,
     flexDirection: 'row',
     alignItems: 'stretch',
   },

@@ -42,6 +42,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   // Fixture / Enroll modals
   const [selectedCompeticion, setSelectedCompeticion] = useState(null);
   const [fixtureModalVisible, setFixtureModalVisible] = useState(false);
+  const [initialModalTab, setInitialModalTab] = useState('FIXTURE');
   const [enrollModalVisible, setEnrollModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [competicionToEnroll, setCompeticionToEnroll] = useState(null);
@@ -303,6 +304,7 @@ export default function CompetenciasScreen({ route, navigation }) {
     // For now, it opens TorneoFixtureModal which also manages results
     // We could create a dedicated dashboard later if needed.
     setSelectedCompeticion(item);
+    setInitialModalTab('FIXTURE');
     setFixtureModalVisible(true);
   };
 
@@ -340,6 +342,13 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const handleVerFixture = (item) => {
     setSelectedCompeticion(item);
+    setInitialModalTab('FIXTURE');
+    setFixtureModalVisible(true);
+  };
+
+  const handleVerTabla = (item) => {
+    setSelectedCompeticion(item);
+    setInitialModalTab('TABLA');
     setFixtureModalVisible(true);
   };
 
@@ -534,6 +543,11 @@ export default function CompetenciasScreen({ route, navigation }) {
                     <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
                       <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
                     </TouchableOpacity>
+                    {item.tipo === 'LIGA' && (
+                      <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerTabla(item)}>
+                        <Text style={styles.clienteCompBtnText}>TABLA</Text>
+                      </TouchableOpacity>
+                    )}
                     {item.estado === 'inscripcion' && (
                       <TouchableOpacity 
                         style={[styles.clienteInscribirBtn, cupoCompleto && { backgroundColor: '#e2e8f0' }]}
@@ -555,6 +569,7 @@ export default function CompetenciasScreen({ route, navigation }) {
                   onEliminarEquipos={() => handleEliminarEquipos(item)}
                   onVerDetalle={() => handleVerDetalle(item)}
                   onVerFixture={() => handleVerFixture(item)}
+                  onVerTabla={() => handleVerTabla(item)}
                   onGenerarFixture={() => handleGenerarFixture(item)}
                   onDelete={() => askDeleteCompeticion(item)}
                   onIniciar={() => handleIniciarCompeticion(item)}
@@ -723,6 +738,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         onClose={() => setFixtureModalVisible(false)}
         competicion={selectedCompeticion}
         isStaff={isStaff}
+        initialTab={initialModalTab}
       />
 
       <EnrollTeamModal 
