@@ -223,43 +223,65 @@ export default function ReportesScreen({ route, navigation }) {
     try {
       let clases = [];
       let entrenamientos = [];
-      try { clases = await claseService.getAll() || []; } catch(e){}
-      try { entrenamientos = await entrenamientoService.getAll() || []; } catch(e){}
+      try { clases = await claseService.getAll() || []; } catch(e){ console.warn('Error cargando clases:', e); }
+      try { entrenamientos = await entrenamientoService.getAll() || []; } catch(e){ console.warn('Error cargando entrenamientos:', e); }
+
+      console.log('Clases cargadas:', clases.length, 'Entrenamientos cargados:', entrenamientos.length);
 
       const combined = [
         ...clases.map(c => ({ ...c, tipo: 'CLASE' })),
         ...entrenamientos.map(e => ({ ...e, tipo: 'ENTRENAMIENTO' }))
       ];
 
-      // Generar últimos 30 días para consultar asistencias
+      if (combined.length === 0) {
+        setAsistenciaData([]);
+        return;
+      }
+
+      // Generar últimos 7 días para consultar asistencias
       const fechas = [];
       const hoy = new Date();
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 7; i++) {
         const d = new Date(hoy);
         d.setDate(hoy.getDate() - i);
         fechas.push(d.toISOString().split('T')[0]);
       }
 
-      const result = [];
+      // Construir todas las promesas en paralelo (actividad × fecha)
+      const promesas = [];
       for (const actividad of combined) {
-        const actId = actividad.id;
+        for (const fecha of fechas) {
+          promesas.push(
+            asistenciaService.getAsistenciasPorClaseYFecha(actividad.id, fecha)
+              .then(registros => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: registros || [] }))
+              .catch(() => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: [] }))
+          );
+        }
+      }
+
+      const responses = await Promise.all(promesas);
+
+      // Agrupar resultados por actividad
+      const asistenciasPorActividad = {};
+      responses.forEach(r => {
+        const key = `${r.tipo}-${r.actividadId}`;
+        if (!asistenciasPorActividad[key]) {
+          asistenciasPorActividad[key] = { registros: [], fechasConRegistro: new Set() };
+        }
+        if (r.registros.length > 0) {
+          asistenciasPorActividad[key].registros.push(...r.registros);
+          asistenciasPorActividad[key].fechasConRegistro.add(r.fecha);
+        }
+      });
+
+      // Armar resultado final — siempre mostramos TODAS las clases/entrenamientos
+      const result = combined.map(actividad => {
+        const key = `${actividad.tipo}-${actividad.id}`;
+        const datos = asistenciasPorActividad[key] || { registros: [], fechasConRegistro: new Set() };
         const alumnos = actividad.clientes || [];
 
-        // Consultar asistencias de la API para cada fecha
-        const todasAsistencias = [];
-        const fechasConRegistro = new Set();
-        for (const fecha of fechas) {
-          try {
-            const registros = await asistenciaService.getAsistenciasPorClaseYFecha(actId, fecha);
-            if (registros && registros.length > 0) {
-              fechasConRegistro.add(fecha);
-              todasAsistencias.push(...registros);
-            }
-          } catch(e) { /* fecha sin registros */ }
-        }
-
         const alumnosStats = alumnos.map(alumno => {
-          const registrosAlumno = todasAsistencias.filter(r => r.clienteId === alumno.id);
+          const registrosAlumno = datos.registros.filter(r => r.clienteId === alumno.id);
           const presentes = registrosAlumno.filter(r => r.presente === true).length;
           const inasistencias = registrosAlumno.filter(r => r.presente === false).length;
           const totalClases = presentes + inasistencias;
@@ -274,16 +296,18 @@ export default function ReportesScreen({ route, navigation }) {
           };
         });
 
-        result.push({
-          id: `${actividad.tipo}-${actId?.toString()}`,
-          originalId: actId?.toString(),
+        return {
+          id: key,
+          originalId: actividad.id?.toString(),
           nombre: `${actividad.nombre} (${actividad.tipo === 'ENTRENAMIENTO' ? 'Entrenamiento' : 'Clase'})`,
           horario: actividad.horario || 'Sin horario',
           totalAlumnos: alumnos.length,
-          totalClasesRegistradas: fechasConRegistro.size,
+          totalClasesRegistradas: datos.fechasConRegistro.size,
           alumnosStats
-        });
-      }
+        };
+      });
+
+      console.log('Resultado asistencia:', result.length, 'actividades');
       setAsistenciaData(result);
     } catch (error) {
       console.error('Error loading asistencia:', error);
