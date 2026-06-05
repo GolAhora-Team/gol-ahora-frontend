@@ -30,7 +30,8 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
   const [perfil, setPerfil] = useState({
     nombre: '',
     apellido: '',
-    email: '', // DNI
+    dni: '',
+    email: '',
     telefono: '',
     direccion: '',
     obraSocial: '',
@@ -77,7 +78,8 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         setPerfil({
           nombre: data.nombre || '',
           apellido: data.apellido || '',
-          email: data.dni?.toString() || '',
+          dni: data.dni?.toString() || '',
+          email: data.email || '',
           telefono: data.telefono || '',
           direccion: data.direccion || '',
           obraSocial: data.obraSocial || '',
@@ -107,6 +109,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         ...fullData,
         nombre: perfil.nombre,
         apellido: perfil.apellido,
+        email: perfil.email,
         telefono: perfil.telefono,
         direccion: perfil.direccion,
         obraSocial: perfil.obraSocial,
@@ -216,8 +219,17 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                     <Text style={styles.label}>DNI / Usuario (No editable)</Text>
                     <TextInput 
                       style={[styles.input, styles.inputDisabled]} 
-                      value={perfil.email} 
+                      value={perfil.dni} 
                       editable={false} 
+                    />
+                    <Text style={styles.label}>Correo Electrónico</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.email} 
+                      onChangeText={(t)=>setPerfil({...perfil, email:t})} 
+                      editable={isEditingInfo}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
                     />
                     <Text style={styles.label}>Obra Social</Text>
                     <View style={{ zIndex: 10 }}>
