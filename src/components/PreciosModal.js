@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { canchaService } from '../services/canchaService';
-
-const { width } = Dimensions.get('window');
 
 export default function PreciosModal({ visible, onClose, onPreciosUpdated, canchas }) {
   const [precioF5, setPrecioF5] = useState('');
@@ -58,26 +54,15 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.overlay}>
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }]} />
-        )}
-        
-        <View style={styles.container}>
-          <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.header}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={styles.iconWrapper}>
-                <MaterialCommunityIcons name="cash-multiple" size={24} color="#ffb300" />
-              </View>
-              <Text style={styles.title}>Actualizar Precios</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close-circle-outline" size={28} color="#94a3b8" />
+        <View style={styles.modalContainer}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Actualizar Precios</Text>
+            <TouchableOpacity onPress={onClose}>
+              <MaterialCommunityIcons name="close" size={24} color="#64748b" />
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
           
-          <View style={styles.content}>
+          <ScrollView style={styles.body}>
             <View style={styles.infoBox}>
               <MaterialCommunityIcons name="information-outline" size={20} color="#3b82f6" />
               <Text style={styles.infoText}>
@@ -85,79 +70,48 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
               </Text>
             </View>
 
-            <View style={styles.inputsContainer}>
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.label}>Fútbol 5</Text>
-                  <View style={styles.badge}><Text style={styles.badgeText}>F5</Text></View>
-                </View>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.currencyPrefix}>$</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="35000"
-                    placeholderTextColor="#94a3b8"
-                    keyboardType="numeric"
-                    value={precioF5}
-                    onChangeText={setPrecioF5}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.label}>Fútbol 7</Text>
-                  <View style={[styles.badge, { backgroundColor: '#8b5cf6' }]}><Text style={styles.badgeText}>F7</Text></View>
-                </View>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.currencyPrefix}>$</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="65000"
-                    placeholderTextColor="#94a3b8"
-                    keyboardType="numeric"
-                    value={precioF7}
-                    onChangeText={setPrecioF7}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.label}>Fútbol 11</Text>
-                  <View style={[styles.badge, { backgroundColor: '#ec4899' }]}><Text style={styles.badgeText}>F11</Text></View>
-                </View>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.currencyPrefix}>$</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="120000"
-                    placeholderTextColor="#94a3b8"
-                    keyboardType="numeric"
-                    value={precioF11}
-                    onChangeText={setPrecioF11}
-                  />
-                </View>
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fútbol 5</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="35000"
+                keyboardType="numeric"
+                value={precioF5}
+                onChangeText={setPrecioF5}
+              />
             </View>
 
-            <TouchableOpacity 
-              style={[styles.saveBtnWrapper, saving && { opacity: 0.7 }]} 
-              onPress={handleSave} 
-              disabled={saving}
-            >
-              <LinearGradient colors={['#00b09b', '#96c93d']} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="check-decagram" size={22} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.saveBtnText}>CONFIRMAR Y GUARDAR</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fútbol 7</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="65000"
+                keyboardType="numeric"
+                value={precioF7}
+                onChangeText={setPrecioF7}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fútbol 11</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="120000"
+                keyboardType="numeric"
+                value={precioF11}
+                onChangeText={setPrecioF11}
+              />
+            </View>
+
+            <View style={styles.actions}>
+              <TouchableOpacity style={[styles.btn, styles.btnCancel]} onPress={onClose} disabled={saving}>
+                <Text style={styles.btnTextCancel}>CANCELAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, styles.btnSave, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnTextSave}>GUARDAR</Text>}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -167,50 +121,33 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20
   },
-  container: {
+  modalContainer: {
     width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    overflow: 'hidden',
-    elevation: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)'
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    overflow: 'hidden'
   },
   header: {
-    padding: 22,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)'
-  },
-  iconWrapper: {
-    backgroundColor: 'rgba(255,179,0,0.15)',
-    padding: 8,
-    borderRadius: 12,
-    marginRight: 12
+    borderBottomColor: '#f1f5f9'
   },
   title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 0.5
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0f172a'
   },
-  closeBtn: {
-    padding: 4
-  },
-  content: {
-    padding: 24,
-    backgroundColor: '#f8fafc'
+  body: {
+    padding: 20
   },
   infoBox: {
     flexDirection: 'row',
@@ -230,82 +167,46 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '600'
   },
-  inputsContainer: {
-    marginBottom: 10
-  },
   inputGroup: {
     marginBottom: 20
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
     marginBottom: 8
   },
-  label: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1e293b'
+  input: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#0f172a'
   },
-  badge: {
-    backgroundColor: '#009b3a',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10
+  },
+  btn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
     marginLeft: 10
   },
-  badgeText: {
+  btnCancel: {
+    backgroundColor: '#f1f5f9'
+  },
+  btnSave: {
+    backgroundColor: '#009b3a'
+  },
+  btnTextCancel: {
+    color: '#64748b',
+    fontWeight: 'bold'
+  },
+  btnTextSave: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '900'
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    overflow: 'hidden',
-    height: 55
-  },
-  currencyPrefix: {
-    paddingHorizontal: 15,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#94a3b8',
-    backgroundColor: '#f1f5f9',
-    height: '100%',
-    textAlignVertical: 'center',
-    ...Platform.select({ web: { lineHeight: '55px' } })
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 15,
-    fontSize: 18,
-    color: '#0f172a',
-    fontWeight: '700',
-    ...Platform.select({ web: { outlineStyle: 'none' } })
-  },
-  saveBtnWrapper: {
-    marginTop: 15,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#00b09b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8
-  },
-  saveBtn: {
-    paddingVertical: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1
+    fontWeight: 'bold'
   }
 });

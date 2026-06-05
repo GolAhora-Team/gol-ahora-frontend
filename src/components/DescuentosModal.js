@@ -102,6 +102,13 @@ export default function DescuentosModal({ visible, onClose }) {
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 40 }} />
           ) : (
             <ScrollView style={styles.body}>
+              <View style={styles.infoBox}>
+                <MaterialCommunityIcons name="information-outline" size={20} color="#3b82f6" />
+                <Text style={styles.infoText}>
+                  Ingresá el porcentaje de descuento. Se aplicará a todas las reservas de estos usuarios.
+                </Text>
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Descuento para Socio Activo (%)</Text>
                 <TextInput
@@ -168,6 +175,24 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 20
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#eff6ff',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    alignItems: 'center'
+  },
+  infoText: {
+    color: '#1e40af',
+    fontSize: 13,
+    lineHeight: 18,
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: '600'
   },
   inputGroup: {
     marginBottom: 20
