@@ -216,12 +216,12 @@ export default function StaffScreen({ route, navigation }) {
             <Text style={styles.actionBtnText}>Crear Clase</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#f97316' }]} onPress={() => handleOpenCreate('ENTRENAMIENTO')}>
-            <MaterialCommunityIcons name="whistle" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Crear Entrenam.</Text>
+            <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
+            <Text style={styles.actionBtnText}>Crear Entrenamiento</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
-            <MaterialCommunityIcons name="clipboard-account" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Asignar Clase/Entr.</Text>
+            <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
+            <Text style={styles.actionBtnText}>Asignar Profesor</Text>
           </TouchableOpacity>
         </View>
       )}
