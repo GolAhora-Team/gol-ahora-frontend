@@ -49,7 +49,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       } else {
         // Cliente se auto-inscribe
         const data = await clienteService.getAll();
-        const found = data?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+        const found = data?.find(c => c.id === idPersona || `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
         if (found) setSelectedCliente(found);
         setClientes(data || []);
       }

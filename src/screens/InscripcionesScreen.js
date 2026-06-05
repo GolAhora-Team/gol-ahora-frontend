@@ -33,9 +33,10 @@ export default function InscripcionesScreen({ route, navigation }) {
         const clases = await claseService.getAll();
         items = [...items, ...(clases || []).map(c => ({
           ...c, id: c.id?.toString(), tipo: 'CLASE',
-          cupo: c.cantidadAlumnos || c.alumnos?.length || c.clientes?.length || 0, max: c.maxAlumnos || c.capacidad || 20,
-          profe: c.profesorNombre || c.profe || 'Sin Asignar',
-          precio: c.precio || 5000
+          cupo: c.cantidadAlumnos || c.alumnos?.length || c.clientes?.length || 0, 
+          max: c.capacidadMax || c.maxAlumnos || c.capacidad || 20,
+          profe: c.profesor?.nombre ? `${c.profesor.nombre} ${c.profesor.apellido || ''}` : c.profesorNombre || c.profe || 'Sin Asignar',
+          precio: c.precioInscripcion || c.precio || 5000
         }))];
       } catch (e) { /* clases puede fallar */ }
 
@@ -43,8 +44,9 @@ export default function InscripcionesScreen({ route, navigation }) {
         const entrenamientos = await entrenamientoService.getAll();
         items = [...items, ...(entrenamientos || []).map(e => ({
           ...e, id: e.id?.toString(), tipo: 'ENTRENAMIENTO',
-          cupo: e.cantidadAlumnos || e.alumnos?.length || e.clientes?.length || 0, max: e.capacidad || e.maxAlumnos || 20,
-          profe: e.profesorNombre || e.profe || 'Sin Asignar',
+          cupo: e.cantidadAlumnos || e.alumnos?.length || e.clientes?.length || 0, 
+          max: e.cupoMaximo || e.capacidad || e.maxAlumnos || 20,
+          profe: e.profesor?.nombre ? `${e.profesor.nombre} ${e.profesor.apellido || ''}` : e.profesorNombre || e.profe || 'Sin Asignar',
           precio: e.precio || 5000
         }))];
       } catch (e) { /* entrenamientos puede fallar */ }
@@ -53,7 +55,8 @@ export default function InscripcionesScreen({ route, navigation }) {
         const competencias = await competicionService.getAll();
         items = [...items, ...(competencias || []).map(c => ({
           ...c, id: c.id?.toString(), tipo: 'LIGA',
-          cupo: c.inscriptos || 0, max: c.maxEquipos || 20,
+          cupo: c.inscriptos || 0, 
+          max: c.maxEquipos || 20,
           profe: 'N/A',
           precio: 0
         }))];
