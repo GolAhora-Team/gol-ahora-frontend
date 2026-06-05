@@ -200,7 +200,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                         <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
                           {filteredClientes.slice(0, 5).map(c => {
                             const isSelected = selectedCliente?.id === c.id;
-                            const tieneApto = c.tieneAptoMedicoArchivo;
+                            const tieneApto = c.aptoFisico || c.tieneAptoMedicoArchivo;
                             return (
                               <TouchableOpacity
                                 key={c.id}
