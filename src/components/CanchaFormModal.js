@@ -46,14 +46,12 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     onPress={() => {
                       let cap = "0";
                       let dim = "";
-                      let basePricePerHour = formData.original?.precioPorHora || (t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000);
+                      let basePricePerHour = formData.precioPorHora ?? (t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000);
                       if (t === 'F5') { cap = "10"; dim = "20x40m"; }
                       if (t === 'F7') { cap = "14"; dim = "30x50m"; }
                       if (t === 'F11') { cap = "22"; dim = "45x90m"; }
                       
-                      let duracion = formData.duracionMax || 60;
-                      let precioFinal = basePricePerHour * (duracion / 60);
-                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioBase: precioFinal});
+                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioPorHora: basePricePerHour});
                     }}
                   >
                     <Text style={[styles.choiceText, formData.tipo === t ? styles.whiteText : styles.greenText]}>{t}</Text>
@@ -81,7 +79,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
 
               <CustomInput 
                 label="PRECIO DEL TURNO - Autocalculado" 
-                value={formData.precioBase ? `$${formData.precioBase}` : ""} 
+                value={`$${(formData.precioPorHora || 0) * ((formData.duracionMax || 60) / 60)}`} 
                 editable={false}
                 containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
                 labelStyle={styles.greenLabelBold}
@@ -95,10 +93,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     key={d} 
                     style={[styles.choiceBtn, formData.duracionMax === d && styles.activeBtn]} 
                     onPress={() => {
-                      let basePricePerHour = formData.original?.precioPorHora || (formData.tipo === 'F5' ? 30000 : formData.tipo === 'F7' ? 65000 : 120000);
-                      
-                      let precioFinal = basePricePerHour * (d / 60);
-                      setFormData({...formData, duracionMax: d, precioBase: precioFinal});
+                      setFormData({...formData, duracionMax: d});
                     }}
                   >
                     <Text style={[styles.choiceText, formData.duracionMax === d ? styles.whiteText : styles.greenText]}>{d} min</Text>
@@ -110,10 +105,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                 value={formData.duracionMax ? formData.duracionMax.toString() : ""} 
                 onChangeText={v => {
                   let d = parseInt(v.replace(/[^0-9]/g, '')) || 0;
-                  let basePricePerHour = formData.original?.precioPorHora || (formData.tipo === 'F5' ? 30000 : formData.tipo === 'F7' ? 65000 : 120000);
-                  
-                  let precioFinal = basePricePerHour * (d / 60);
-                  setFormData({...formData, duracionMax: d, precioBase: precioFinal});
+                  setFormData({...formData, duracionMax: d});
                 }}
                 containerStyle={styles.cleanInput}
                 labelStyle={styles.greenLabelBold}

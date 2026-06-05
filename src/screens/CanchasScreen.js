@@ -84,10 +84,18 @@ export default function CanchaScreen({ route, navigation }) {
       if (cancha.tipo === 'F7') { dim = "30x50m"; precio = 65000; }
       else if (cancha.tipo === 'F11') { dim = "45x90m"; precio = 120000; }
       
-      setFormData({ ...cancha, dimensiones: dim, precioBase: cancha.original?.precioPorHora || precio, duracionMax: cancha.original?.duracionMax || 60 });
+      const pph = cancha.original?.precioPorHora ?? cancha.original?.PrecioPorHora ?? precio;
+      const dMax = cancha.original?.duracionMax ?? cancha.original?.DuracionMax ?? 60;
+
+      setFormData({ 
+        ...cancha, 
+        dimensiones: dim, 
+        precioPorHora: pph, 
+        duracionMax: dMax 
+      });
       setIsEditing(true);
     } else {
-      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioBase: 30000, enMantenimiento: false, duracionMax: 60 });
+      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioPorHora: 30000, enMantenimiento: false, duracionMax: 60 });
       setIsEditing(false);
     }
     setModalVisible(true);
@@ -116,7 +124,7 @@ export default function CanchaScreen({ route, navigation }) {
           HoraInicio: formData.original?.horaInicio ?? "08:00:00",
           HoraFin: formData.original?.horaFin ?? "23:00:00",
           DuracionMax: formData.duracionMax || 60,
-          PrecioPorHora: formData.precioBase ?? (formData.original?.precioPorHora ?? 30000)
+          PrecioPorHora: formData.precioPorHora ?? 30000
         };
         await canchaService.update(formData.id, payload);
         setSuccessMessage("Los cambios han sido guardados exitosamente.");
@@ -127,7 +135,7 @@ export default function CanchaScreen({ route, navigation }) {
           HoraInicio: "08:00:00",
           HoraFin: "23:00:00",
           DuracionMax: formData.duracionMax || 60,
-          PrecioPorHora: formData.precioBase ?? 30000
+          PrecioPorHora: formData.precioPorHora ?? 30000
         };
         await canchaService.create(payload);
         setSuccessMessage("La nueva cancha ha sido registrada exitosamente.");
