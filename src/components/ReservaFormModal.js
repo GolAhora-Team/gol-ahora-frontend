@@ -1038,7 +1038,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         const mpResponse = await mercadoPagoService.createPreference(
           title, 
           montoFinal, 
-          '', 
+          null, 
           webhookUrl, 
           reservaId ? reservaId.toString() : null
         );
