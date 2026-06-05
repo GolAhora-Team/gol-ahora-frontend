@@ -23,6 +23,11 @@ export default function FacturacionScreen({ route, navigation }) {
   const [editingFactura, setEditingFactura] = useState(null);
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [editTotal, setEditTotal] = useState('');
+  const [editClienteId, setEditClienteId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [clientesList, setClientesList] = useState([]);
+  const [anuladasMap, setAnuladasMap] = useState({});
   const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
@@ -38,21 +43,40 @@ export default function FacturacionScreen({ route, navigation }) {
       try {
         const facturas = await facturaService.getAll();
         const clientes = await clienteService.getAll();
+        setClientesList(clientes || []);
         const clienteMap = {};
         (clientes || []).forEach(c => { clienteMap[c.id] = c; });
+
+        const anuladas = {};
+        (facturas || []).forEach(f => {
+          if (f.concepto === 'ANULACION' && f.descripcion) {
+            const originalId = parseInt(f.descripcion);
+            if (!isNaN(originalId)) anuladas[originalId] = true;
+          }
+        });
+        setAnuladasMap(anuladas);
 
         const itemsF = (facturas || []).map(f => {
           const cliente = clienteMap[f.clienteId];
           const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellido}` : `Cliente #${f.clienteId}`;
           const fecha = f.fechaEmision ? new Date(f.fechaEmision) : new Date();
           const html = generateFacturaAfipHtml(f, nombreCliente, fecha);
+          
+          let dni = cliente && cliente.dni ? cliente.dni : 'SINDNI';
+          let refStr = f.id.toString().padStart(8, '0');
+          if ((f.total || 0) < 0 && f.descripcion) {
+             refStr = String(f.descripcion).padStart(8, '0');
+          }
+          let pdfName = (f.total || 0) < 0 ? `Nota de Credito - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}` : `Factura B - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}`;
+
           return {
             id: f.id,
             clienteId: f.clienteId,
             nombreCliente,
             total: f.total || 2000,
             fecha: fecha.toISOString(),
-            fileName: `Factura-${f.id.toString().padStart(8, '0')}`,
+            fileName: pdfName,
+            isAnulada: !!anuladas[f.id],
             html
           };
         });
@@ -145,37 +169,49 @@ export default function FacturacionScreen({ route, navigation }) {
 
   const editComprobante = (comprobante) => {
     setEditingFactura(comprobante);
-    setEditTotal(String(comprobante.total || 0));
     setIsEditingForm(false);
     setEditModalVisible(true);
   };
 
   const handleAnularFactura = () => {
     if (Platform.OS === 'web') {
-      if (window.confirm('¿Estás seguro que deseas anular esta factura de forma definitiva?')) {
-        ejecutarAnulacion();
+      if (window.confirm('¿Estás seguro que deseas emitir una Nota de Crédito para esta factura? Esto no se puede deshacer.')) {
+        ejecutarNotaDeCredito();
       }
     } else {
-      Alert.alert('Confirmar Anulación', '¿Estás seguro que deseas anular esta factura de forma definitiva?', [
+      Alert.alert('Emitir Nota de Crédito', '¿Estás seguro que deseas emitir una Nota de Crédito para esta factura? Esto no se puede deshacer.', [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sí, Anular', style: 'destructive', onPress: ejecutarAnulacion }
+        { text: 'Sí, Emitir', style: 'destructive', onPress: ejecutarNotaDeCredito }
       ]);
     }
   };
 
-  const ejecutarAnulacion = async () => {
+  const ejecutarNotaDeCredito = async () => {
     try {
-      await facturaService.delete(editingFactura.id);
+      // Crear una nueva factura con el total en negativo para anular la original (Nota de Crédito)
+      const payload = {
+        total: -(Math.abs(editingFactura.total || 0)),
+        fechaEmision: new Date().toISOString(),
+        clienteId: editingFactura.clienteId,
+        concepto: "ANULACION",
+        descripcion: editingFactura.id.toString()
+      };
+      await facturaService.create(payload);
       setEditModalVisible(false);
-      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Factura anulada correctamente.');
+      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Nota de Crédito emitida correctamente.');
       loadData();
     } catch (e) {
-      if (Platform.OS !== 'web') Alert.alert('Error', 'No se pudo anular la factura.');
-      else window.alert('Error: No se pudo anular la factura.');
+      if (Platform.OS !== 'web') Alert.alert('Error', 'No se pudo generar la Nota de Crédito.');
+      else window.alert('Error: No se pudo generar la Nota de Crédito.');
     }
   };
 
-  const handleGuardarCambios = async () => {
+  const handleRectificarCompleto = async () => {
+    if (!editClienteId) {
+      if (Platform.OS !== 'web') Alert.alert('Error', 'Debe seleccionar un cliente válido de la lista.');
+      else window.alert('Error: Debe seleccionar un cliente válido de la lista.');
+      return;
+    }
     if (!editTotal || isNaN(editTotal)) {
       if (Platform.OS !== 'web') Alert.alert('Error', 'Debe ingresar un monto válido.');
       else window.alert('Error: Debe ingresar un monto válido.');
@@ -183,26 +219,48 @@ export default function FacturacionScreen({ route, navigation }) {
     }
     
     try {
-      const payload = {
-        total: parseFloat(editTotal),
-        fechaEmision: editingFactura.fecha,
-        clienteId: editingFactura.clienteId
+      // 1. Emitir Nota de Crédito (Anular la vieja)
+      const ncPayload = {
+        total: -(Math.abs(editingFactura.total || 0)),
+        fechaEmision: new Date().toISOString(),
+        clienteId: editingFactura.clienteId,
+        concepto: "ANULACION",
+        descripcion: editingFactura.id.toString()
       };
-      await facturaService.update(editingFactura.id, payload);
+      await facturaService.create(ncPayload);
+
+      // 2. Emitir Factura Nueva Rectificada
+      const nuevaPayload = {
+        total: parseFloat(editTotal),
+        fechaEmision: new Date().toISOString(),
+        clienteId: editClienteId || editingFactura.clienteId
+      };
+      await facturaService.create(nuevaPayload);
+
       setEditModalVisible(false);
-      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Datos de la factura rectificados correctamente.');
+      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Factura rectificada (NC + Factura Nueva generadas).');
       loadData();
     } catch (e) {
-      if (Platform.OS !== 'web') Alert.alert('Error', 'No se pudieron guardar los cambios.');
-      else window.alert('Error: No se pudieron guardar los cambios.');
+      if (Platform.OS !== 'web') Alert.alert('Error', 'Hubo un error al rectificar.');
+      else window.alert('Error: Hubo un error al rectificar.');
     }
   };
+
 
   const generateFacturaAfipHtml = (factura, nombreCliente, fecha) => {
     const numFactura = String(factura.id).padStart(8, '0');
     const cae = Math.floor(10000000000000 + Math.random() * 90000000000000); 
     const vtoCae = new Date(fecha.getTime() + 10 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR');
-    const totalFormat = (factura.total || 2000).toLocaleString('es-AR', {minimumFractionDigits: 2});
+    const esNotaDeCredito = (factura.total || 0) < 0;
+    const tipoDocumento = esNotaDeCredito ? "NOTA DE CRÉDITO" : "FACTURA";
+    const codigoDocumento = esNotaDeCredito ? "COD. 008" : "COD. 006";
+    const totalAbsoluto = Math.abs(factura.total || 2000);
+    const totalFormat = totalAbsoluto.toLocaleString('es-AR', {minimumFractionDigits: 2});
+    
+    let compRefNro = numFactura;
+    if (esNotaDeCredito && factura.descripcion) {
+       compRefNro = String(factura.descripcion).padStart(8, '0');
+    }
     
     return `
       <html>
@@ -267,7 +325,7 @@ export default function FacturacionScreen({ route, navigation }) {
               <div class="header-flex">
                 <div class="letra-box">
                   <div class="letra-b">B</div>
-                  <div class="letra-cod">COD. 006</div>
+                  <div class="letra-cod">${codigoDocumento}</div>
                 </div>
                 
                 <div class="header-left">
@@ -280,9 +338,9 @@ export default function FacturacionScreen({ route, navigation }) {
                 </div>
                 
                 <div class="header-right">
-                  <div class="factura-title">FACTURA</div>
+                  <div class="factura-title">${tipoDocumento}</div>
                   <div class="factura-details">
-                    <strong>Punto de Venta: 0001</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Comp. Nro: ${numFactura}</strong><br>
+                    <strong>Punto de Venta: 0001</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Comp. Nro: ${compRefNro}</strong><br>
                     <strong>Fecha de Emisión: ${fecha.toLocaleDateString('es-AR')}</strong><br><br>
                     <strong>CUIT:</strong> 30-12345678-9<br>
                     <strong>Ingresos Brutos:</strong> 30-12345678-9<br>
@@ -325,7 +383,7 @@ export default function FacturacionScreen({ route, navigation }) {
                 <tbody>
                   <tr>
                     <td>SRV-001</td>
-                    <td>Servicios Deportivos y Reservas</td>
+                    <td>${esNotaDeCredito ? 'Anulación de comprobante anterior' : 'Servicios Deportivos y Reservas'}</td>
                     <td class="td-center">1,00</td>
                     <td class="td-center">otras unidades</td>
                     <td class="td-right">${totalFormat}</td>
@@ -512,11 +570,13 @@ export default function FacturacionScreen({ route, navigation }) {
                 const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
                 return sortDesc ? d2 - d1 : d1 - d2;
               }).map(comp => (
-                <View key={comp.id} style={styles.comprobanteCard}>
+                <View key={comp.id} style={[styles.comprobanteCard, comp.isAnulada && { opacity: 0.5, backgroundColor: '#f1f5f9' }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
+                    <MaterialCommunityIcons name="file-pdf-box" size={36} color={comp.isAnulada ? "#94a3b8" : "#ef4444"} />
                     <View style={{ marginLeft: 12, flex: 1 }}>
-                      <Text style={styles.comprobanteName}>{comp.fileName || 'Factura B'}</Text>
+                      <Text style={[styles.comprobanteName, comp.isAnulada && { color: '#64748b', textDecorationLine: 'line-through' }]}>
+                        {comp.total < 0 ? 'Nota de Crédito' : 'Factura B'} {comp.isAnulada && '(ANULADA)'}
+                      </Text>
                       <Text style={styles.comprobanteFecha}>
                         {comp.nombreCliente} - {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
                       </Text>
@@ -524,32 +584,36 @@ export default function FacturacionScreen({ route, navigation }) {
                   </View>
                   <View style={styles.comprobanteBtns}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#009b3a' }]}
                       onPress={() => downloadPdf(comp)}
+                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="download" size={16} color="#fff" />
-                      <Text style={styles.compBtnText}>Descargar</Text>
+                      <MaterialCommunityIcons name="download" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
+                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#3b82f6' }]}
                       onPress={() => viewComprobante(comp)}
+                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="eye" size={16} color="#fff" />
-                      <Text style={styles.compBtnText}>Ver</Text>
+                      <MaterialCommunityIcons name="eye" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
+                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#ffb300' }]}
                       onPress={() => printComprobante(comp)}
+                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="printer" size={16} color="#000" />
-                      <Text style={[styles.compBtnText, { color: '#000' }]}>Imprimir</Text>
+                      <MaterialCommunityIcons name="printer" size={16} color={comp.isAnulada ? "#64748b" : "#000"} />
+                      <Text style={[styles.compBtnText, { color: comp.isAnulada ? '#64748b' : '#000' }]}>Imprimir</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#ef4444' }]}
+                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#ef4444' }]}
                       onPress={() => editComprobante(comp)}
+                      disabled={comp.isAnulada || comp.total < 0}
                     >
-                      <MaterialCommunityIcons name="pencil-remove" size={16} color="#fff" />
-                      <Text style={styles.compBtnText}>Editar</Text>
+                      <MaterialCommunityIcons name="pencil-remove" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
+                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Editar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -738,56 +802,97 @@ export default function FacturacionScreen({ route, navigation }) {
                 <Text style={{ color: '#475569', marginBottom: 15 }}>{editingFactura?.nombreCliente}</Text>
                 
                 <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Total Actual:</Text>
-                {isEditingForm ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 18, color: '#1e293b', fontWeight: 'bold', marginRight: 5 }}>$</Text>
-                    <TextInput 
-                      style={{ flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 8, fontSize: 16 }}
-                      keyboardType="numeric"
-                      value={editTotal}
-                      onChangeText={setEditTotal}
-                    />
-                  </View>
-                ) : (
-                  <Text style={{ color: '#009b3a', fontSize: 18, fontWeight: '900' }}>
-                    ${(editingFactura?.total || 0).toLocaleString('es-AR')}
-                  </Text>
-                )}
+                <Text style={{ color: '#009b3a', fontSize: 18, fontWeight: '900' }}>
+                  ${(editingFactura?.total || 0).toLocaleString('es-AR')}
+                </Text>
               </View>
 
               {!isEditingForm ? (
                 <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
                   <TouchableOpacity 
-                    style={{ flex: 1, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                    style={{ flex: 1, backgroundColor: '#10b981', padding: 15, borderRadius: 12, alignItems: 'center' }}
                     onPress={handleAnularFactura}
                   >
-                    <MaterialCommunityIcons name="file-cancel" size={24} color="#fff" />
-                    <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Anular Definitivo</Text>
+                    <MaterialCommunityIcons name="receipt-text-minus" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Emitir Nota de Crédito</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
                     style={{ flex: 1, backgroundColor: '#3b82f6', padding: 15, borderRadius: 12, alignItems: 'center' }}
-                    onPress={() => setIsEditingForm(true)}
+                    onPress={() => {
+                       setEditTotal(String(editingFactura?.total || 0));
+                       setEditClienteId(editingFactura?.clienteId);
+                       setSearchQuery(editingFactura?.nombreCliente || '');
+                       setShowDropdown(false);
+                       setIsEditingForm(true);
+                    }}
                   >
                     <MaterialCommunityIcons name="file-document-edit" size={24} color="#fff" />
                     <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Rectificar Datos</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
-                  <TouchableOpacity 
-                    style={{ flex: 1, backgroundColor: '#94a3b8', padding: 15, borderRadius: 12, alignItems: 'center' }}
-                    onPress={() => setIsEditingForm(false)}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar Edición</Text>
-                  </TouchableOpacity>
+                <View>
+                  <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Nuevo Cliente:</Text>
+                  <TextInput 
+                    style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 16, marginBottom: showDropdown ? 0 : 15 }}
+                    value={searchQuery}
+                    onChangeText={(text) => {
+                      setSearchQuery(text);
+                      setShowDropdown(true);
+                      setEditClienteId(null);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    placeholder="Escriba para buscar un cliente..."
+                  />
+                  {showDropdown && (
+                    <ScrollView style={{ maxHeight: 150, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderTopWidth: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, marginBottom: 15 }}>
+                      {clientesList.filter(c => (c.nombre + ' ' + c.apellido).toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+                        <Text style={{ padding: 10, color: '#64748b' }}>No se encontraron clientes.</Text>
+                      ) : (
+                        clientesList.filter(c => (c.nombre + ' ' + c.apellido).toLowerCase().includes(searchQuery.toLowerCase())).map(c => (
+                          <TouchableOpacity 
+                            key={c.id} 
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', backgroundColor: editClienteId === c.id ? '#e2e8f0' : 'transparent' }}
+                            onPress={() => {
+                              setSearchQuery(`${c.nombre} ${c.apellido}`);
+                              setEditClienteId(c.id);
+                              setShowDropdown(false);
+                            }}
+                          >
+                            <Text style={{ color: '#333', fontWeight: editClienteId === c.id ? 'bold' : 'normal' }}>{c.nombre} {c.apellido}</Text>
+                          </TouchableOpacity>
+                        ))
+                      )}
+                    </ScrollView>
+                  )}
+                  
+                  <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Nuevo Total:</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                    <Text style={{ fontSize: 18, color: '#1e293b', fontWeight: 'bold', marginRight: 5 }}>$</Text>
+                    <TextInput 
+                      style={{ flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 10, fontSize: 16 }}
+                      keyboardType="numeric"
+                      value={editTotal}
+                      onChangeText={setEditTotal}
+                    />
+                  </View>
 
-                  <TouchableOpacity 
-                    style={{ flex: 1, backgroundColor: '#009b3a', padding: 15, borderRadius: 12, alignItems: 'center' }}
-                    onPress={handleGuardarCambios}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Guardar Cambios</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
+                    <TouchableOpacity 
+                      style={{ flex: 1, backgroundColor: '#94a3b8', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                      onPress={() => setIsEditingForm(false)}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={{ flex: 1, backgroundColor: '#009b3a', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                      onPress={handleRectificarCompleto}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Rectificar y Generar</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
