@@ -160,6 +160,14 @@ export default function Dashboard({ route, navigation }) {
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [unsubscribeModalVisible, setUnsubscribeModalVisible] = useState(false);
 
+  const getPrecioMembresia = () => {
+    try {
+      const saved = localStorage.getItem('GOL_AHORA_PRECIO_MEMBRESIA');
+      if (saved) return parseInt(saved);
+    } catch (e) { /* ignore */ }
+    return 2000;
+  };
+
   React.useEffect(() => {
     if (role === 'CLIENTE' && idPersona) {
       loadCliente();
@@ -235,7 +243,7 @@ export default function Dashboard({ route, navigation }) {
                   now.setHours(now.getHours() - 3);
                   await facturaService.create({
                     fechaEmision: now.toISOString(),
-                    total: 2000,
+                    total: getPrecioMembresia(),
                     estado: 2,
                     tipo: 1,
                     descripcion: `Suscripción Socio Activo - Online (MERCADOPAGO)`,
@@ -278,7 +286,7 @@ export default function Dashboard({ route, navigation }) {
   const handlePaySocio = async () => {
     try {
       let returnUrl = window.location.origin + `/dashboard?role=${role}&idPersona=${idPersona}&nombreUsuario=${userName}&pagoSocio=true`;
-      const response = await mercadoPagoService.createPreference("Suscripción Socio Activo", 2000, returnUrl);
+      const response = await mercadoPagoService.createPreference("Suscripción Socio Activo", getPrecioMembresia(), returnUrl);
       if (response && response.initPoint) {
         window.location.href = response.initPoint;
       }
@@ -511,7 +519,7 @@ export default function Dashboard({ route, navigation }) {
                           </Text>
                           {!currentCliente.esSocioActivo ? (
                             <TouchableOpacity style={styles.actionBtn} onPress={() => setConfirmModalVisible(true)}>
-                              <Text style={styles.actionBtnText}>HACERME SOCIO ($2000)</Text>
+                              <Text style={styles.actionBtnText}>HACERME SOCIO (${getPrecioMembresia().toLocaleString('es-AR')})</Text>
                             </TouchableOpacity>
                           ) : (
                             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ef4444' }]} onPress={() => setUnsubscribeModalVisible(true)}>

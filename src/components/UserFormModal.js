@@ -174,15 +174,24 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
     setCobroModalVisible(true);
   };
 
+  const getPrecioMembresia = () => {
+    try {
+      const saved = localStorage.getItem('GOL_AHORA_PRECIO_MEMBRESIA');
+      if (saved) return parseInt(saved);
+    } catch (e) { /* ignore */ }
+    return 2000;
+  };
+
   const handleCobrarMembresia = async (metodoPago) => {
     setCobroModalVisible(false);
     try {
+      const precio = getPrecioMembresia();
       const now = new Date();
       now.setHours(now.getHours() - 3); // Ajuste horario para Argentina (UTC-3)
 
       const payload = {
         fechaEmision: now.toISOString(),
-        total: 2000,
+        total: precio,
         estado: 1,
         tipo: 1,
         descripcion: `Suscripción Socio Activo - Presencial (${metodoPago})`,
@@ -353,7 +362,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 {(!formData.esSocioActivo && isEditing) && (
                   <TouchableOpacity style={styles.payBtn} onPress={handleCobroBoton}>
                     <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
-                    <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
+                    <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL (${getPrecioMembresia().toLocaleString('es-AR')})</Text>
                   </TouchableOpacity>
                 )}
 
@@ -606,7 +615,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         visible={cobroModalVisible}
         onClose={() => setCobroModalVisible(false)}
         onSuccess={handleCobrarMembresia}
-        precioBase={2000}
+        precioBase={getPrecioMembresia()}
       />
       <SuccessModal
         visible={!!successMessage}

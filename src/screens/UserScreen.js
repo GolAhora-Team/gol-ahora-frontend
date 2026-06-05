@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import UserCard from '../components/UserCard';
@@ -16,6 +16,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from '../services/apiConfig';
+import { http } from '../services/apiConfig';
 
 // Helper: convierte un blob URI a un File real para web FormData
 const uriToFile = async (uri, name, mimeType) => {
@@ -47,6 +48,10 @@ export default function UserScreen({ route, navigation }) {
   const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
   const [userToReport, setUserToReport] = useState(null);
   const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
+  const [precioModalVisible, setPrecioModalVisible] = useState(false);
+  const [precioMembresia, setPrecioMembresia] = useState('2000');
+  const [precioInput, setPrecioInput] = useState('2000');
+  const [savingPrecio, setSavingPrecio] = useState(false);
   
   const initialFormState = {
     dni: '', nombre: '', apellido: '', genero: 'Masculino',
@@ -62,7 +67,50 @@ export default function UserScreen({ route, navigation }) {
   // CARGA INICIAL DESDE EL BACKEND
   useEffect(() => {
     loadUsers();
+    loadPrecioMembresia();
   }, []);
+
+  const loadPrecioMembresia = () => {
+    try {
+      const saved = localStorage.getItem('GOL_AHORA_PRECIO_MEMBRESIA');
+      if (saved) {
+        setPrecioMembresia(saved);
+        setPrecioInput(saved);
+      }
+    } catch (e) { /* ignore */ }
+  };
+
+  const handleSavePrecio = async () => {
+    const num = parseInt(precioInput);
+    if (isNaN(num) || num <= 0) {
+      Alert.alert('Error', 'Ingresá un monto válido mayor a 0.');
+      return;
+    }
+    setSavingPrecio(true);
+    try {
+      localStorage.setItem('GOL_AHORA_PRECIO_MEMBRESIA', num.toString());
+      setPrecioMembresia(num.toString());
+
+      // Enviar notificación a todos
+      try {
+        await http.post(`${API_BASE_URL}/Notificacion/general`, {
+          mensaje: `El precio de la membresía de socio ha cambiado a $${num.toLocaleString('es-AR')}.`,
+          rolesDestino: 'ADMIN,PERSONAL,CLIENTE',
+          tipo: 'CambioPrecio'
+        });
+      } catch (e) {
+        console.log('Error enviando notificación:', e);
+      }
+
+      setPrecioModalVisible(false);
+      setSuccessMessage(`El precio de la membresía se actualizó a $${num.toLocaleString('es-AR')}.`);
+      setSuccessVisible(true);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo guardar el precio.');
+    } finally {
+      setSavingPrecio(false);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -591,14 +639,23 @@ export default function UserScreen({ route, navigation }) {
                 sectionPositions.current[section.role] = layout.y;
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, flexWrap: 'wrap', gap: 10 }}>
                 <View style={[styles.roleHeader, { marginBottom: 0 }]}>
                   <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#000" />
                   <Text style={styles.roleHeaderText}>{section.role}</Text>
                 </View>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12 }}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.totalCount}</Text>
                 </View>
+                {section.role === 'CLIENTE' && canCreate && (
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, gap: 6 }}
+                    onPress={() => { setPrecioInput(precioMembresia); setPrecioModalVisible(true); }}
+                  >
+                    <MaterialCommunityIcons name="tag-outline" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>Precio membresía socios</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {section.data.map(item => (
                 <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} onDownloadCert={handleDownloadCert} canModify={canModifyTarget(item)} />
@@ -643,6 +700,63 @@ export default function UserScreen({ route, navigation }) {
         confirmText="SÍ"
         cancelText="CANCELAR"
       />
+
+      {/* Modal Precio Membresía */}
+      <Modal visible={precioModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 25, width: '100%', maxWidth: 400 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Precio Membresía Socios</Text>
+              <TouchableOpacity onPress={() => setPrecioModalVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ backgroundColor: '#f8fafc', padding: 15, borderRadius: 14, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginBottom: 8 }}>PRECIO ACTUAL</Text>
+              <Text style={{ fontSize: 28, fontWeight: '900', color: '#009b3a' }}>${parseInt(precioMembresia).toLocaleString('es-AR')}</Text>
+            </View>
+
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginBottom: 8 }}>NUEVO PRECIO</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 15, borderWidth: 1.5, borderColor: '#3b82f6', marginBottom: 20 }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: '#3b82f6', marginRight: 5 }}>$</Text>
+              <TextInput
+                style={{ flex: 1, fontSize: 20, fontWeight: '800', color: '#1e293b', paddingVertical: 12 }}
+                value={precioInput}
+                onChangeText={(t) => setPrecioInput(t.replace(/[^0-9]/g, ''))}
+                keyboardType="numeric"
+                placeholder="Ej: 3000"
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
+
+            <View style={{ backgroundColor: '#eff6ff', padding: 12, borderRadius: 10, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <MaterialCommunityIcons name="information-outline" size={18} color="#3b82f6" />
+              <Text style={{ flex: 1, fontSize: 11, color: '#3b82f6', fontWeight: '600' }}>Al guardar, se notificará a todos los administradores, personal y clientes del cambio de precio.</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
+                onPress={() => setPrecioModalVisible(false)}
+              >
+                <Text style={{ fontWeight: '800', color: '#64748b' }}>CANCELAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#009b3a', alignItems: 'center' }}
+                onPress={handleSavePrecio}
+                disabled={savingPrecio}
+              >
+                {savingPrecio ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ fontWeight: '900', color: '#fff' }}>GUARDAR</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenTemplate>
   );
 }
