@@ -545,62 +545,78 @@ export default function CompetenciasScreen({ route, navigation }) {
             )}
           </View>
           <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
-            {competencias.map(item => {
-              const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
-              return isCliente ? (
-                <View key={item.id} style={styles.clienteCompCard}>
-                  <View style={styles.clienteCompInfo}>
-                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
-                      <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
-                        <Text style={styles.badgeText}>{item.tipo}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.clienteCompTitle}>{item.nombre}</Text>
-                    <Text style={styles.clienteCompDate}>Inicia: {item.fechaInicio}{item.fechaFin ? ` — Fin: ${item.fechaFin}` : ''}</Text>
-                    <Text style={styles.clienteCompDetail}>Cupos: {item.inscriptos} / {item.maxEquipos}</Text>
-                    <Text style={styles.clienteCompPrice}>Inscripción: ${(item.precioInscripcion || 50000).toLocaleString('es-AR')}</Text>
+            {[
+              { key: "TORNEO", titulo: "TORNEOS", icon: "tournament", data: competencias.filter(c => c.tipo === "TORNEO") },
+              { key: "LIGA", titulo: "LIGAS", icon: "format-list-numbered", data: competencias.filter(c => c.tipo === "LIGA") }
+            ].filter(s => s.data.length > 0).map(section => (
+              <View key={section.key} style={{ marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                  <View style={{ backgroundColor: '#fbbf24', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
+                    <MaterialCommunityIcons name={section.icon} size={20} color="#000" />
+                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8, textTransform: 'uppercase' }}>{section.titulo}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                    <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerDetalle(item)}>
-                      <Text style={styles.clienteCompBtnText}>VER</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
-                      <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
-                    </TouchableOpacity>
-                    {item.tipo === 'LIGA' && (
-                      <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerTabla(item)}>
-                        <Text style={styles.clienteCompBtnText}>TABLA</Text>
-                      </TouchableOpacity>
-                    )}
-                    {item.estado === 'inscripcion' && (
-                      <TouchableOpacity 
-                        style={[styles.clienteInscribirBtn, cupoCompleto && { backgroundColor: '#e2e8f0' }]}
-                        onPress={!cupoCompleto ? () => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); } : null}
-                        disabled={cupoCompleto}
-                      >
-                        <MaterialCommunityIcons name="trophy" size={16} color={cupoCompleto ? '#94a3b8' : '#fff'} />
-                        <Text style={[styles.clienteInscribirText, cupoCompleto && { color: '#94a3b8' }]}>INSCRIBIR MI EQUIPO</Text>
-                      </TouchableOpacity>
-                    )}
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.data.length}</Text>
                   </View>
                 </View>
-              ) : (
-                <CompetenciaCard 
-                  key={item.id} 
-                  item={item} 
-                  canModify={isStaff}
-                  onInscribir={() => handleInscripcion(item)}
-                  onEliminarEquipos={() => handleEliminarEquipos(item)}
-                  onVerDetalle={() => handleVerDetalle(item)}
-                  onVerFixture={() => handleVerFixture(item)}
-                  onVerTabla={() => handleVerTabla(item)}
-                  onGenerarFixture={() => handleGenerarFixture(item)}
-                  onDelete={() => askDeleteCompeticion(item)}
-                  onIniciar={() => handleIniciarCompeticion(item)}
-                  onEstado={() => handleEstadoTorneo(item)}
-                />
-              );
-            })}
+                {section.data.map(item => {
+                  const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
+                  return isCliente ? (
+                    <View key={item.id} style={styles.clienteCompCard}>
+                      <View style={styles.clienteCompInfo}>
+                        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
+                          <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
+                            <Text style={styles.badgeText}>{item.tipo}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.clienteCompTitle}>{item.nombre}</Text>
+                        <Text style={styles.clienteCompDate}>Inicia: {item.fechaInicio}{item.fechaFin ? ` — Fin: ${item.fechaFin}` : ''}</Text>
+                        <Text style={styles.clienteCompDetail}>Cupos: {item.inscriptos} / {item.maxEquipos}</Text>
+                        <Text style={styles.clienteCompPrice}>Inscripción: ${(item.precioInscripcion || 50000).toLocaleString('es-AR')}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                        <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerDetalle(item)}>
+                          <Text style={styles.clienteCompBtnText}>VER</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
+                          <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
+                        </TouchableOpacity>
+                        {item.tipo === 'LIGA' && (
+                          <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerTabla(item)}>
+                            <Text style={styles.clienteCompBtnText}>TABLA</Text>
+                          </TouchableOpacity>
+                        )}
+                        {item.estado === 'inscripcion' && (
+                          <TouchableOpacity 
+                            style={[styles.clienteInscribirBtn, cupoCompleto && { backgroundColor: '#e2e8f0' }]}
+                            onPress={!cupoCompleto ? () => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); } : null}
+                            disabled={cupoCompleto}
+                          >
+                            <MaterialCommunityIcons name="trophy" size={16} color={cupoCompleto ? '#94a3b8' : '#fff'} />
+                            <Text style={[styles.clienteInscribirText, cupoCompleto && { color: '#94a3b8' }]}>INSCRIBIR MI EQUIPO</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    <CompetenciaCard 
+                      key={item.id} 
+                      item={item} 
+                      canModify={isStaff}
+                      onInscribir={() => handleInscripcion(item)}
+                      onEliminarEquipos={() => handleEliminarEquipos(item)}
+                      onVerDetalle={() => handleVerDetalle(item)}
+                      onVerFixture={() => handleVerFixture(item)}
+                      onVerTabla={() => handleVerTabla(item)}
+                      onGenerarFixture={() => handleGenerarFixture(item)}
+                      onDelete={() => askDeleteCompeticion(item)}
+                      onIniciar={() => handleIniciarCompeticion(item)}
+                      onEstado={() => handleEstadoTorneo(item)}
+                    />
+                  );
+                })}
+              </View>
+            ))}
           </ScrollView>
         </>
       ) : (
