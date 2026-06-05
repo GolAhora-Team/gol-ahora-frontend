@@ -518,8 +518,9 @@ export default function ReservaScreen({ route, navigation }) {
             <Text style={styles.addButtonText}>Nueva reserva</Text>
           </TouchableOpacity>
           {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
-            <TouchableOpacity style={[styles.addButton, { backgroundColor: '#0f172a', marginLeft: 10 }]} onPress={() => setModalPoliticasVisible(true)}>
+            <TouchableOpacity style={[styles.addButton, { backgroundColor: '#ef4444', marginLeft: 10 }]} onPress={() => setModalPoliticasVisible(true)}>
               <MaterialCommunityIcons name="shield-lock-outline" size={24} color="#fff" />
+              <Text style={styles.addButtonText}>Políticas</Text>
             </TouchableOpacity>
           )}
         </View>
