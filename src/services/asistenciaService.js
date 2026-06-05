@@ -41,5 +41,29 @@ export const asistenciaService = {
       throw error;
     }
   },
+
+  /**
+   * DELETE /api/Asistencia/actividad/{actividadId}/cliente/{clienteId}?esClase=
+   * Elimina la asistencia registrada hoy para un alumno.
+   */
+  eliminarAsistencia: async (actividadId, clienteId, esClase) => {
+    try {
+      return await http.delete(`${API_BASE_URL}/Asistencia/actividad/${actividadId}/cliente/${clienteId}?esClase=${esClase}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * GET /api/Asistencia/historial/{actividadId}/cliente/{clienteId}?esClase=
+   * Obtiene el historial de asistencias pasadas de un alumno.
+   */
+  getHistorialAsistencias: async (actividadId, clienteId, esClase) => {
+    try {
+      return await http.get(`${API_BASE_URL}/Asistencia/historial/${actividadId}/cliente/${clienteId}?esClase=${esClase}`);
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 

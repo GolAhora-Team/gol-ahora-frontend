@@ -39,6 +39,11 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
   const [scanMessage, setScanMessage] = useState(null); // { type: 'success'|'error', text }
   const [scanHistory, setScanHistory] = useState([]);
   
+  // Historial estado
+  const [historialData, setHistorialData] = useState([]);
+  const [historialLoading, setHistorialLoading] = useState(false);
+  const [historialAlumno, setHistorialAlumno] = useState(null);
+  
   // Estado cámara (solo web con BarcodeDetector API)
   const [cameraActive, setCameraActive] = useState(false);
   const videoRef = useRef(null);
@@ -81,10 +86,43 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
     }
   };
 
-  // ── Marcar / desmarcar asistencia manual ──────────────────
   const togglePresente = async (alumno) => {
     if (alumno.presente) {
-      Alert.alert('Info', 'La asistencia ya fue registrada. No se puede desmarcar desde aquí.');
+      if (Platform.OS === 'web') {
+         if (window.confirm(`¿Querés desmarcar la asistencia de ${alumno.nombre} de hoy?`)) {
+            setSaving(true);
+            try {
+              await asistenciaService.eliminarAsistencia(claseId, alumno.clienteId, !esEntrenamiento);
+              setAlumnos(prev => prev.map(a => a.id === alumno.id ? { ...a, presente: false } : a));
+            } catch (e) {
+              Alert.alert('Error', e.message || 'No se pudo desmarcar la asistencia.');
+            } finally {
+              setSaving(false);
+            }
+         }
+      } else {
+          Alert.alert(
+            'Desmarcar Asistencia',
+            `¿Querés desmarcar la asistencia de ${alumno.nombre} de hoy?`,
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Desmarcar', style: 'destructive',
+                onPress: async () => {
+                  setSaving(true);
+                  try {
+                    await asistenciaService.eliminarAsistencia(claseId, alumno.clienteId, !esEntrenamiento);
+                    setAlumnos(prev => prev.map(a => a.id === alumno.id ? { ...a, presente: false } : a));
+                  } catch (e) {
+                    Alert.alert('Error', e.message || 'No se pudo desmarcar la asistencia.');
+                  } finally {
+                    setSaving(false);
+                  }
+                }
+              }
+            ]
+          );
+      }
       return;
     }
     setSaving(true);
@@ -95,6 +133,23 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
       Alert.alert('Error', e.message || 'No se pudo registrar la asistencia.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const cargarHistorial = async (alumno) => {
+    if (historialAlumno?.id === alumno.id) {
+        setHistorialAlumno(null); // toggle
+        return;
+    }
+    setHistorialAlumno(alumno);
+    setHistorialLoading(true);
+    try {
+      const data = await asistenciaService.getHistorialAsistencias(claseId, alumno.clienteId, !esEntrenamiento);
+      setHistorialData(data);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo cargar el historial.');
+    } finally {
+      setHistorialLoading(false);
     }
   };
 
@@ -242,6 +297,13 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
               <MaterialCommunityIcons name="barcode-scan" size={16} color={activeTab === 'barcode' ? '#fff' : '#64748b'} />
               <Text style={[styles.tabText, activeTab === 'barcode' && styles.tabTextActive]}>Escaneo</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'historial' && styles.tabActive]}
+              onPress={() => { setActiveTab('historial'); stopCamera(); setHistorialAlumno(null); }}
+            >
+              <MaterialCommunityIcons name="history" size={16} color={activeTab === 'historial' ? '#fff' : '#64748b'} />
+              <Text style={[styles.tabText, activeTab === 'historial' && styles.tabTextActive]}>Historial</Text>
+            </TouchableOpacity>
           </View>
 
           {/* ── TAB: LISTA MANUAL ─────────────────────────── */}
@@ -373,6 +435,48 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
                   </View>
                 )}
               </View>
+            </ScrollView>
+          )}
+
+          {/* ── TAB: HISTORIAL ─────────────────────────────── */}
+          {activeTab === 'historial' && (
+            <ScrollView style={styles.list} showsVerticalScrollIndicator>
+              <Text style={styles.sectionLabel}>Seleccioná un alumno para ver su historial:</Text>
+              {alumnos.map((alumno, idx) => (
+                <View key={alumno.id || idx}>
+                  <TouchableOpacity
+                    style={[styles.row, { paddingVertical: 12 }]}
+                    onPress={() => cargarHistorial(alumno)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.alumnoLeft}>
+                      <MaterialCommunityIcons name={historialAlumno?.id === alumno.id ? "chevron-down" : "chevron-right"} size={20} color="#64748b" />
+                      <Text style={[styles.alumnoName, { marginLeft: 8 }]}>{alumno.nombre}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  {historialAlumno?.id === alumno.id && (
+                    <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginBottom: 8, marginHorizontal: 4 }}>
+                      {historialLoading ? (
+                        <ActivityIndicator size="small" color="#009b3a" />
+                      ) : historialData.length === 0 ? (
+                        <Text style={{ color: '#64748b', fontSize: 13, fontStyle: 'italic' }}>No hay registros de asistencia pasados.</Text>
+                      ) : (
+                        historialData.map((reg, i) => (
+                          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                            <MaterialCommunityIcons name="check-circle" size={16} color="#16a34a" style={{ marginRight: 6 }} />
+                            <Text style={{ color: '#334155', fontSize: 13, fontWeight: '500' }}>
+                                {new Date(reg.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </Text>
+                            {reg.metodoRegistro === 'CodigoBarras' && (
+                                <Text style={{ color: '#94a3b8', fontSize: 11, marginLeft: 8 }}>[Escáner]</Text>
+                            )}
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
             </ScrollView>
           )}
 
