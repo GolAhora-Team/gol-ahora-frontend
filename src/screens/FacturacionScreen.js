@@ -139,6 +139,18 @@ export default function FacturacionScreen({ route, navigation }) {
     }
   };
 
+  const editComprobante = (comprobante) => {
+    Alert.alert(
+      'Opciones de Edición',
+      `¿Qué acción deseas realizar sobre la factura #${comprobante.id}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Editar Datos', onPress: () => console.log('Editar', comprobante.id) },
+        { text: 'Anular Factura', onPress: () => console.log('Anular', comprobante.id), style: 'destructive' }
+      ]
+    );
+  };
+
   const generateFacturaAfipHtml = (factura, nombreCliente, fecha) => {
     const numFactura = String(factura.id).padStart(8, '0');
     const cae = Math.floor(10000000000000 + Math.random() * 90000000000000); 
@@ -484,6 +496,13 @@ export default function FacturacionScreen({ route, navigation }) {
                     >
                       <MaterialCommunityIcons name="printer" size={16} color="#000" />
                       <Text style={[styles.compBtnText, { color: '#000' }]}>Imprimir</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.compBtn, { backgroundColor: '#ef4444' }]}
+                      onPress={() => editComprobante(comp)}
+                    >
+                      <MaterialCommunityIcons name="pencil-remove" size={16} color="#fff" />
+                      <Text style={styles.compBtnText}>Editar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
