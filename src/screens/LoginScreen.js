@@ -348,15 +348,19 @@ const LoginScreen = ({ navigation, route }) => {
                 style={styles.dataFiscalImage}
               />
             </View>
-            <TouchableOpacity 
-              style={styles.devLinkContainer} 
-              onPress={() => navigation?.navigate('DesarrolladoPor')}
-            >
-              <MaterialCommunityIcons name="cog" size={16} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.devLinkText}>Desarrollado por</Text>
-            </TouchableOpacity>
+
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <LinearGradient 
+          colors={['transparent', 'rgba(0, 30, 0, 0.6)']}
+          style={{ width: '100%', paddingVertical: 12, alignItems: 'center', zIndex: 10 }}
+        >
+          <TouchableOpacity onPress={() => navigation?.navigate('DesarrolladoPor')}>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 'bold' }}>Desarrollado por GRUPO 4</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
       </SafeAreaView>
 
       <Modal visible={showInactivityModal} transparent animationType="fade">

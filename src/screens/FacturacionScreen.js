@@ -67,7 +67,7 @@ export default function FacturacionScreen({ route, navigation }) {
           if ((f.total || 0) < 0 && f.descripcion) {
              refStr = String(f.descripcion).padStart(8, '0');
           }
-          let pdfName = (f.total || 0) < 0 ? `Nota de Credito - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}` : `Factura B - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}`;
+          let pdfName = (f.total || 0) < 0 ? `Nota de Credito - ${nombreCliente.toUpperCase()} - ${dni} - Comp. Nro. ${refStr}` : `Factura B - ${nombreCliente.toUpperCase()} - ${dni} - Comp. Nro. ${refStr}`;
 
           return {
             id: f.id,
@@ -248,14 +248,18 @@ export default function FacturacionScreen({ route, navigation }) {
 
 
   const generateFacturaAfipHtml = (factura, nombreCliente, fecha) => {
+    const pad = (n) => n.toString().padStart(2, '0');
+    const formatDateStr = (d) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    const fechaStr = formatDateStr(fecha);
+
     const numFactura = String(factura.id).padStart(8, '0');
     const cae = Math.floor(10000000000000 + Math.random() * 90000000000000); 
-    const vtoCae = new Date(fecha.getTime() + 10 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR');
+    const vtoCae = formatDateStr(new Date(fecha.getTime() + 10 * 24 * 60 * 60 * 1000));
     const esNotaDeCredito = (factura.total || 0) < 0;
     const tipoDocumento = esNotaDeCredito ? "NOTA DE CRÉDITO" : "FACTURA";
     const codigoDocumento = esNotaDeCredito ? "COD. 008" : "COD. 006";
     const totalAbsoluto = Math.abs(factura.total || 2000);
-    const totalFormat = totalAbsoluto.toLocaleString('es-AR', {minimumFractionDigits: 2});
+    const totalFormat = (esNotaDeCredito ? "- " : "") + totalAbsoluto.toLocaleString('es-AR', {minimumFractionDigits: 2});
     
     let compRefNro = numFactura;
     if (esNotaDeCredito && factura.descripcion) {
@@ -341,7 +345,7 @@ export default function FacturacionScreen({ route, navigation }) {
                   <div class="factura-title">${tipoDocumento}</div>
                   <div class="factura-details">
                     <strong>Punto de Venta: 0001</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Comp. Nro: ${compRefNro}</strong><br>
-                    <strong>Fecha de Emisión: ${fecha.toLocaleDateString('es-AR')}</strong><br><br>
+                    <strong>Fecha de Emisión: ${fechaStr}</strong><br><br>
                     <strong>CUIT:</strong> 30-12345678-9<br>
                     <strong>Ingresos Brutos:</strong> 30-12345678-9<br>
                     <strong>Fecha de Inicio de Actividades:</strong> 01/01/2026
@@ -350,9 +354,9 @@ export default function FacturacionScreen({ route, navigation }) {
               </div>
 
               <div class="period-row">
-                <div>Período Facturado Desde: &nbsp;&nbsp;${fecha.toLocaleDateString('es-AR')}</div>
-                <div>Hasta: &nbsp;&nbsp;${fecha.toLocaleDateString('es-AR')}</div>
-                <div>Fecha de Vto. para el pago: &nbsp;&nbsp;${fecha.toLocaleDateString('es-AR')}</div>
+                <div>Período Facturado Desde: &nbsp;&nbsp;${fechaStr}</div>
+                <div>Hasta: &nbsp;&nbsp;${fechaStr}</div>
+                <div>Fecha de Vto. para el pago: &nbsp;&nbsp;${fechaStr}</div>
               </div>
 
               <div class="client-box">
@@ -566,16 +570,14 @@ export default function FacturacionScreen({ route, navigation }) {
               </View>
             ) : (
               [...facturasOficiales].sort((a, b) => {
-                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
-                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
-                return sortDesc ? d2 - d1 : d1 - d2;
+                return sortDesc ? b.id - a.id : a.id - b.id;
               }).map(comp => (
-                <View key={comp.id} style={[styles.comprobanteCard, comp.isAnulada && { opacity: 0.5, backgroundColor: '#f1f5f9' }]}>
+                <View key={comp.id} style={styles.comprobanteCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={36} color={comp.isAnulada ? "#94a3b8" : "#ef4444"} />
+                    <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={[styles.comprobanteName, comp.isAnulada && { color: '#64748b', textDecorationLine: 'line-through' }]}>
-                        {comp.total < 0 ? 'Nota de Crédito' : 'Factura B'} {comp.isAnulada && '(ANULADA)'}
+                        {comp.fileName} {comp.isAnulada && '(ANULADA)'}
                       </Text>
                       <Text style={styles.comprobanteFecha}>
                         {comp.nombreCliente} - {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
@@ -584,37 +586,35 @@ export default function FacturacionScreen({ route, navigation }) {
                   </View>
                   <View style={styles.comprobanteBtns}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
                       onPress={() => downloadPdf(comp)}
-                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="download" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
-                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Descargar</Text>
+                      <MaterialCommunityIcons name="download" size={16} color="#fff" />
+                      <Text style={styles.compBtnText}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
                       onPress={() => viewComprobante(comp)}
-                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="eye" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
-                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Ver</Text>
+                      <MaterialCommunityIcons name="eye" size={16} color="#fff" />
+                      <Text style={styles.compBtnText}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
                       onPress={() => printComprobante(comp)}
-                      disabled={comp.isAnulada}
                     >
-                      <MaterialCommunityIcons name="printer" size={16} color={comp.isAnulada ? "#64748b" : "#000"} />
-                      <Text style={[styles.compBtnText, { color: comp.isAnulada ? '#64748b' : '#000' }]}>Imprimir</Text>
+                      <MaterialCommunityIcons name="printer" size={16} color="#000" />
+                      <Text style={[styles.compBtnText, { color: '#000' }]}>Imprimir</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#cbd5e1' : '#ef4444' }]}
-                      onPress={() => editComprobante(comp)}
-                      disabled={comp.isAnulada || comp.total < 0}
-                    >
-                      <MaterialCommunityIcons name="pencil-remove" size={16} color={comp.isAnulada ? "#64748b" : "#fff"} />
-                      <Text style={[styles.compBtnText, comp.isAnulada && { color: '#64748b' }]}>Editar</Text>
-                    </TouchableOpacity>
+                    {(!comp.isAnulada && comp.total > 0) && (
+                      <TouchableOpacity 
+                        style={[styles.compBtn, { backgroundColor: '#ef4444' }]}
+                        onPress={() => editComprobante(comp)}
+                      >
+                        <MaterialCommunityIcons name="pencil-remove" size={16} color="#fff" />
+                        <Text style={styles.compBtnText}>Editar</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))
