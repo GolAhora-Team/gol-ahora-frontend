@@ -554,9 +554,14 @@ export default function UserScreen({ route, navigation }) {
                 sectionPositions.current[section.role] = layout.y;
               }}
             >
-              <View style={styles.roleHeader}>
-                <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#000" />
-                <Text style={styles.roleHeaderText}>{section.role}  {section.totalCount}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={[styles.roleHeader, { marginBottom: 0 }]}>
+                  <MaterialCommunityIcons name={rolesIcons[section.role]} size={20} color="#000" />
+                  <Text style={styles.roleHeaderText}>{section.role}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>({section.totalCount})</Text>
+                </View>
               </View>
               {section.data.map(item => (
                 <UserCard key={item.id} item={item} onEdit={handleOpenModal} onDelete={handleDelete} onReport={handleGenerateReport} onDownloadCert={handleDownloadCert} canModify={canModifyTarget(item)} />
