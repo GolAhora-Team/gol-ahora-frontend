@@ -31,6 +31,7 @@ export default function FacturacionScreen({ route, navigation }) {
   const [clientesList, setClientesList] = useState([]);
   const [anuladasMap, setAnuladasMap] = useState({});
   const [sortDesc, setSortDesc] = useState(true);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -537,6 +538,21 @@ export default function FacturacionScreen({ route, navigation }) {
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
+      <View style={[styles.searchWrapper, isSearchFocused && styles.searchWrapperFocused]}>
+        <View style={styles.searchInner}>
+            <MaterialCommunityIcons name="magnify" size={22} color={isSearchFocused ? "#009b3a" : "#94a3b8"} />
+            <TextInput
+              style={[styles.searchInputNav, { outlineStyle: 'none' }]}
+              placeholder="Buscar comprobante o cliente..."
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+        </View>
+      </View>
+
       <Text style={styles.title}>Facturación y Cobros</Text>
 
       {/* Tabs */}
@@ -562,17 +578,6 @@ export default function FacturacionScreen({ route, navigation }) {
           <MaterialCommunityIcons name="card-account-details-star" size={18} color={activeTab === 'MEMBRESIAS' ? '#fff' : '#009b3a'} />
           <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes de Membresias</Text>
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar comprobante o cliente..."
-          placeholderTextColor="#94a3b8"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
       </View>
       
       <ScrollView showsVerticalScrollIndicator={true}>
@@ -938,8 +943,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 15 },
 
   // Search
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10, marginBottom: 15 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
+  searchWrapper: { width: '100%', backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, elevation: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+  searchWrapperFocused: { borderColor: '#009b3a', borderWidth: 1.5 },
+  searchInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 55 },
+  searchInputNav: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '600', color: '#1e293b' },
 
   // Tabs
   tabRow: { flexDirection: 'row', marginBottom: 18, gap: 8 },

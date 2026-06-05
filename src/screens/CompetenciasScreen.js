@@ -32,6 +32,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [equipos, setEquipos] = useState([]);
   const [searchEquipo, setSearchEquipo] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
   const [misJugadores, setMisJugadores] = useState([]); // Array of Jugador entities for the current user
@@ -631,15 +632,19 @@ export default function CompetenciasScreen({ route, navigation }) {
             )}
           </View>
 
-          <View style={styles.searchRow}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#64748b" />
-            <TextInput 
-              style={styles.searchInput}
-              placeholder="Buscar equipo por nombre..."
-              value={searchEquipo}
-              onChangeText={setSearchEquipo}
-              placeholderTextColor="#64748b"
-            />
+          <View style={[styles.searchWrapper, isSearchFocused && styles.searchWrapperFocused]}>
+            <View style={styles.searchInner}>
+                <MaterialCommunityIcons name="magnify" size={22} color={isSearchFocused ? "#009b3a" : "#94a3b8"} />
+                <TextInput 
+                  style={[styles.searchInputNav, { outlineStyle: 'none' }]}
+                  placeholder="Buscar equipo por nombre..."
+                  value={searchEquipo}
+                  onChangeText={setSearchEquipo}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  placeholderTextColor="#94a3b8"
+                />
+            </View>
           </View>
 
             <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -843,8 +848,10 @@ const styles = StyleSheet.create({
   tabText: { fontWeight: '700', color: '#64748b' },
   tabTextActive: { color: '#009b3a', fontWeight: '900' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#1e293b' },
+  searchWrapper: { width: '100%', backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, elevation: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+  searchWrapperFocused: { borderColor: '#009b3a', borderWidth: 1.5 },
+  searchInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 55 },
+  searchInputNav: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '600', color: '#1e293b' },
   mainTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 6, color: '#fff' },

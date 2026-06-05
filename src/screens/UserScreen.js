@@ -619,7 +619,7 @@ export default function UserScreen({ route, navigation }) {
       <View style={[styles.searchWrapper, isSearchFocused && styles.searchWrapperFocused]}>
         <View style={styles.searchInner}>
             <MaterialCommunityIcons name="account-search-outline" size={22} color={isSearchFocused ? "#009b3a" : "#94a3b8"} />
-            <TextInput placeholder="Buscar por nombre, apellido o DNI..." placeholderTextColor="#94a3b8" value={search} onChangeText={setSearch} onFocus={() => setIsSearchFocused(true)} onBlur={() => setIsSearchFocused(false)} style={styles.searchInputNav} />
+            <TextInput placeholder="Buscar por nombre, apellido o DNI..." placeholderTextColor="#94a3b8" value={search} onChangeText={setSearch} onFocus={() => setIsSearchFocused(true)} onBlur={() => setIsSearchFocused(false)} style={[styles.searchInputNav, { outlineStyle: 'none' }]} />
         </View>
       </View>
 
