@@ -542,7 +542,22 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 <View style={{flex: 1, marginLeft: 10}}><CustomInput label="PROVINCIA" value={formData.provincia} onChangeText={v => setFormData({...formData, provincia: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
               </View>
               <CustomInput label="PAÍS" value={formData.pais} onChangeText={v => setFormData({...formData, pais: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
-              <CustomInput label="CONTACTO EMERG." value={formData.contactoEmergencia} onChangeText={v => setFormData({...formData, contactoEmergencia: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+              <CustomInput 
+                label="CONTACTO EMERG." 
+                value={formData.contactoEmergencia} 
+                onChangeText={v => {
+                  const newVal = v.replace(/[^0-9]/g, '');
+                  if (newVal !== '' && newVal === formData.telefono) {
+                    alert("El contacto de emergencia no puede ser igual al teléfono principal.");
+                  } else {
+                    setFormData({...formData, contactoEmergencia: newVal});
+                  }
+                }} 
+                keyboardType="phone-pad"
+                containerStyle={styles.cleanInput} 
+                labelStyle={styles.greenLabelBold} 
+                inputStyle={styles.greenInputText}
+              />
             </View>
 
             <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
@@ -557,6 +572,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         onClose={() => setCalendarVisible(false)}
         onSelect={(date) => setFormData({...formData, fechaNacimiento: date})}
         initialDate={formData.fechaNacimiento}
+        maxDate={new Date().toISOString().split('T')[0]}
       />
       
       <DatePickerModal 
@@ -633,7 +649,7 @@ const styles = StyleSheet.create({
   payBtnText: { color: '#000', fontWeight: '900', fontSize: 13, marginLeft: 8 },
   saveBtn: { backgroundColor: '#009b3a', padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 15 },
   saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 17 },
-  fileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', padding: 15, borderRadius: 14, marginBottom: 15 },
+  fileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', paddingHorizontal: 15, height: 56, justifyContent: 'center', borderRadius: 14, marginBottom: 15 },
   fileBtnText: { marginLeft: 10, fontSize: 13, color: '#1e293b', fontWeight: '800', flex: 1 },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },

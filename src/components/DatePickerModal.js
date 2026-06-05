@@ -17,7 +17,7 @@ const MONTHS = [
 ];
 const DAYS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 
-export default function DatePickerModal({ visible, onClose, onSelect, initialDate, minDate }) {
+export default function DatePickerModal({ visible, onClose, onSelect, initialDate, minDate, maxDate }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   
@@ -122,6 +122,9 @@ export default function DatePickerModal({ visible, onClose, onSelect, initialDat
       let isDisabled = false;
       if (minDate) {
         isDisabled = dateStr < minDate;
+      }
+      if (maxDate && !isDisabled) {
+        isDisabled = dateStr > maxDate;
       }
 
       daysArray.push(
