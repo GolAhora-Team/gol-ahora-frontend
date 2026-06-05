@@ -37,8 +37,9 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     }
   } catch (e) {}
 
-  // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas
-  const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada;
+  // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas, y no son actividades virtuales
+  const isActividad = item.estado === 'Clase' || item.estado === 'Entrenamiento';
+  const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada && !isActividad;
 
   useEffect(() => {
     let interval;

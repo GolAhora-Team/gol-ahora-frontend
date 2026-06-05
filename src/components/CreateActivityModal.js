@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { profesorService } from '../services/profesorService';
 import { canchaService } from '../services/canchaService';
@@ -15,6 +15,31 @@ const DIAS = [
 ];
 
 export default function CreateActivityModal({ visible, onClose, onSave, title, type, initialData = null }) {
+  const profScrollRef = useRef(null);
+  const canchaScrollRef = useRef(null);
+
+  const scrollLeft = (ref) => {
+    if (ref.current) {
+      const node = ref.current.getScrollableNode ? ref.current.getScrollableNode() : ref.current;
+      if (node && typeof node.scrollBy === 'function') {
+        node.scrollBy({ left: -200, behavior: 'smooth' });
+      } else if (node) {
+        node.scrollLeft = Math.max(0, node.scrollLeft - 200);
+      }
+    }
+  };
+
+  const scrollRight = (ref) => {
+    if (ref.current) {
+      const node = ref.current.getScrollableNode ? ref.current.getScrollableNode() : ref.current;
+      if (node && typeof node.scrollBy === 'function') {
+        node.scrollBy({ left: 200, behavior: 'smooth' });
+      } else if (node) {
+        node.scrollLeft = node.scrollLeft + 200;
+      }
+    }
+  };
+
   const [formData, setFormData] = useState({
     nombre: '',
     diasSeleccionados: [],
@@ -275,26 +300,43 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
             {loading ? (
               <ActivityIndicator size="small" color="#009b3a" style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
-                <TouchableOpacity 
-                  style={[styles.profCard, formData.profesorId === null && styles.profCardSelected]}
-                  onPress={() => setFormData({...formData, profesorId: null})}
-                >
-                  <MaterialCommunityIcons name="account-cancel" size={24} color={formData.profesorId === null ? '#fff' : '#64748b'} />
-                  <Text style={[styles.profName, formData.profesorId === null && { color: '#fff' }]}>Sin Asignar</Text>
-                </TouchableOpacity>
-
-                {profesores.map(p => (
-                  <TouchableOpacity 
-                    key={p.id} 
-                    style={[styles.profCard, formData.profesorId === p.id && styles.profCardSelected]}
-                    onPress={() => setFormData({...formData, profesorId: p.id})}
-                  >
-                    <MaterialCommunityIcons name="whistle" size={24} color={formData.profesorId === p.id ? '#fff' : '#009b3a'} />
-                    <Text style={[styles.profName, formData.profesorId === p.id && { color: '#fff' }]}>{p.nombre} {p.apellido}</Text>
+              <View style={styles.scrollContainer}>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity style={styles.arrowButton} onPress={() => scrollLeft(profScrollRef)}>
+                    <MaterialCommunityIcons name="chevron-left" size={24} color="#009b3a" />
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                )}
+                <ScrollView 
+                  ref={profScrollRef}
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  style={[styles.hScroll, { flex: 1 }]}
+                >
+                  <TouchableOpacity 
+                    style={[styles.profCard, formData.profesorId === null && styles.profCardSelected]}
+                    onPress={() => setFormData({...formData, profesorId: null})}
+                  >
+                    <MaterialCommunityIcons name="account-cancel" size={24} color={formData.profesorId === null ? '#fff' : '#64748b'} />
+                    <Text style={[styles.profName, formData.profesorId === null && { color: '#fff' }]}>Sin Asignar</Text>
+                  </TouchableOpacity>
+
+                  {profesores.map(p => (
+                    <TouchableOpacity 
+                      key={p.id} 
+                      style={[styles.profCard, formData.profesorId === p.id && styles.profCardSelected]}
+                      onPress={() => setFormData({...formData, profesorId: p.id})}
+                    >
+                      <MaterialCommunityIcons name="whistle" size={24} color={formData.profesorId === p.id ? '#fff' : '#009b3a'} />
+                      <Text style={[styles.profName, formData.profesorId === p.id && { color: '#fff' }]}>{p.nombre} {p.apellido}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity style={styles.arrowButton} onPress={() => scrollRight(profScrollRef)}>
+                    <MaterialCommunityIcons name="chevron-right" size={24} color="#009b3a" />
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* SELECTOR DE CANCHA */}
@@ -302,26 +344,43 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
             {loading ? (
               <ActivityIndicator size="small" color="#009b3a" style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
-                <TouchableOpacity 
-                  style={[styles.profCard, formData.canchaId === null && styles.profCardSelected]}
-                  onPress={() => setFormData({...formData, canchaId: null})}
-                >
-                  <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === null ? '#fff' : '#64748b'} />
-                  <Text style={[styles.profName, formData.canchaId === null && { color: '#fff' }]}>Sin Cancha</Text>
-                </TouchableOpacity>
-
-                {canchas.map(c => (
-                  <TouchableOpacity 
-                    key={c.id} 
-                    style={[styles.profCard, formData.canchaId === c.id && styles.profCardSelected]}
-                    onPress={() => setFormData({...formData, canchaId: c.id})}
-                  >
-                    <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === c.id ? '#fff' : '#009b3a'} />
-                    <Text style={[styles.profName, formData.canchaId === c.id && { color: '#fff' }]}>{c.nombre}</Text>
+              <View style={styles.scrollContainer}>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity style={styles.arrowButton} onPress={() => scrollLeft(canchaScrollRef)}>
+                    <MaterialCommunityIcons name="chevron-left" size={24} color="#009b3a" />
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                )}
+                <ScrollView 
+                  ref={canchaScrollRef}
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  style={[styles.hScroll, { flex: 1 }]}
+                >
+                  <TouchableOpacity 
+                    style={[styles.profCard, formData.canchaId === null && styles.profCardSelected]}
+                    onPress={() => setFormData({...formData, canchaId: null})}
+                  >
+                    <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === null ? '#fff' : '#64748b'} />
+                    <Text style={[styles.profName, formData.canchaId === null && { color: '#fff' }]}>Sin Cancha</Text>
+                  </TouchableOpacity>
+
+                  {canchas.map(c => (
+                    <TouchableOpacity 
+                      key={c.id} 
+                      style={[styles.profCard, formData.canchaId === c.id && styles.profCardSelected]}
+                      onPress={() => setFormData({...formData, canchaId: c.id})}
+                    >
+                      <MaterialCommunityIcons name="soccer-field" size={24} color={formData.canchaId === c.id ? '#fff' : '#009b3a'} />
+                      <Text style={[styles.profName, formData.canchaId === c.id && { color: '#fff' }]}>{c.nombre}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity style={styles.arrowButton} onPress={() => scrollRight(canchaScrollRef)}>
+                    <MaterialCommunityIcons name="chevron-right" size={24} color="#009b3a" />
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
           </ScrollView>
@@ -372,5 +431,20 @@ const styles = StyleSheet.create({
   profName: { fontSize: 12, fontWeight: '700', color: '#1e293b', marginTop: 5, textAlign: 'center' },
   
   saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 20 },
-  saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 }
+  saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  scrollContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  arrowButton: {
+    padding: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 20,
+    marginHorizontal: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  }
 });
