@@ -9,6 +9,7 @@ import { getEstadisticas } from '../components/DataReportes';
 import { reportHistoryService } from '../services/reportHistoryService';
 import { claseService } from '../services/claseService';
 import { pagoService } from '../services/pagoService';
+import { entrenamientoService } from '../services/entrenamientoService';
 import { reservaService } from '../services/reservaService';
 import { facturaService } from '../services/facturaService';
 import { clienteService } from '../services/clienteService';
@@ -220,34 +221,47 @@ export default function ReportesScreen({ route, navigation }) {
   const loadAsistenciaData = async () => {
     setAsistenciaLoading(true);
     try {
-      const clases = await claseService.getAll();
-      const result = (clases || []).map(clase => {
-        const allRecords = asistenciaStorage.getAll(clase.id?.toString());
+      let clases = [];
+      let entrenamientos = [];
+      try { clases = await claseService.getAll() || []; } catch(e){}
+      try { entrenamientos = await entrenamientoService.getAll() || []; } catch(e){}
+
+      const combined = [
+        ...clases.map(c => ({ ...c, tipo: 'CLASE' })),
+        ...entrenamientos.map(e => ({ ...e, tipo: 'ENTRENAMIENTO' }))
+      ];
+
+      const result = combined.map(actividad => {
+        const allRecords = asistenciaStorage.getAll(actividad.id?.toString());
         const dates = Object.keys(allRecords);
-        const alumnos = clase.clientes || [];
+        const alumnos = actividad.clientes || [];
 
         const alumnosStats = alumnos.map(alumno => {
           let presentes = 0;
+          let inasistencias = 0;
           let totalClases = dates.length;
           dates.forEach(fecha => {
             const reg = allRecords[fecha];
             const found = reg?.find(r => r.id === alumno.id);
             if (found && found.estado === true) presentes++;
           });
+          inasistencias = totalClases - presentes;
           const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : 0;
           return {
             id: alumno.id,
             nombre: `${alumno.nombre} ${alumno.apellido || ''}`.trim(),
             presentes,
+            inasistencias,
             totalClases,
             porcentaje
           };
         });
 
         return {
-          id: clase.id?.toString(),
-          nombre: clase.nombre,
-          horario: clase.horario,
+          id: `${actividad.tipo}-${actividad.id?.toString()}`,
+          originalId: actividad.id?.toString(),
+          nombre: `${actividad.nombre} (${actividad.tipo === 'ENTRENAMIENTO' ? 'Entrenamiento' : 'Clase'})`,
+          horario: actividad.horario || 'Sin horario',
           totalAlumnos: alumnos.length,
           totalClasesRegistradas: dates.length,
           alumnosStats
@@ -681,6 +695,7 @@ export default function ReportesScreen({ route, navigation }) {
                       <View style={[styles.tableHeaderRow, isMobile && { paddingHorizontal: 10 }]}>
                         <Text style={[styles.tableHeaderCell, { flex: 2 }, isMobile && { fontSize: 10 }]}>Alumno</Text>
                         <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>Presentes</Text>
+                        <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>Ausentes</Text>
                         <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>Total</Text>
                         <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>%</Text>
                       </View>
@@ -691,6 +706,7 @@ export default function ReportesScreen({ route, navigation }) {
                           <View key={alumno.id} style={[styles.tableRow, isMobile && { paddingHorizontal: 10 }]}>
                             <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }, isMobile && { fontSize: 11 }]}>{alumno.nombre}</Text>
                             <Text style={[styles.tableCell, isMobile && { fontSize: 11 }]}>{alumno.presentes}</Text>
+                            <Text style={[styles.tableCell, isMobile && { fontSize: 11 }]}>{alumno.inasistencias}</Text>
                             <Text style={[styles.tableCell, isMobile && { fontSize: 11 }]}>{alumno.totalClases}</Text>
                             <View style={[styles.pctBadge, { backgroundColor: alumno.porcentaje >= 75 ? '#f0fdf4' : alumno.porcentaje >= 50 ? '#fffbeb' : '#fef2f2' }, isMobile && { paddingHorizontal: 4 }]}>
                               <Text style={[styles.pctText, { color: alumno.porcentaje >= 75 ? '#16a34a' : alumno.porcentaje >= 50 ? '#d97706' : '#ef4444' }, isMobile && { fontSize: 11 }]}>
