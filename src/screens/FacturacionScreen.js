@@ -627,18 +627,24 @@ export default function FacturacionScreen({ route, navigation }) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={true}>
-              <View style={styles.viewBrand}>
-                <Text style={styles.viewBrandText}>GOL AHORA</Text>
-                <Text style={styles.viewBrandSub}>COMPROBANTE DE RESERVA</Text>
-              </View>
-              <View style={styles.viewDivider} />
+              {Platform.OS === 'web' ? (
+                <iframe srcDoc={viewingComprobante?.html} style={{ width: '100%', height: 600, border: 'none', backgroundColor: '#fff' }} />
+              ) : (
+                <>
+                  <View style={styles.viewBrand}>
+                    <Text style={styles.viewBrandText}>GOL AHORA</Text>
+                    <Text style={styles.viewBrandSub}>COMPROBANTE</Text>
+                  </View>
+                  <View style={styles.viewDivider} />
 
-              {viewingComprobante && extractDataFromHtml(viewingComprobante.html).map((row, i) => (
-                <View key={i} style={[styles.viewRow, row.isTotal && styles.viewRowTotal]}>
-                  <Text style={[styles.viewLabel, row.isTotal && { fontWeight: '900', color: '#1e293b' }]}>{row.label}</Text>
-                  <Text style={[styles.viewValue, row.isTotal && { fontSize: 20, color: '#009b3a' }]}>{row.value}</Text>
-                </View>
-              ))}
+                  {viewingComprobante && extractDataFromHtml(viewingComprobante.html).map((row, i) => (
+                    <View key={i} style={[styles.viewRow, row.isTotal && styles.viewRowTotal]}>
+                      <Text style={[styles.viewLabel, row.isTotal && { fontWeight: '900', color: '#1e293b' }]}>{row.label}</Text>
+                      <Text style={[styles.viewValue, row.isTotal && { fontSize: 20, color: '#009b3a' }]}>{row.value}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -698,7 +704,7 @@ const styles = StyleSheet.create({
 
   // View Modal
   viewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  viewContainer: { width: '100%', maxWidth: 450, backgroundColor: '#fff', borderRadius: 24, padding: 25, maxHeight: '80%' },
+  viewContainer: { width: '100%', maxWidth: 850, backgroundColor: '#fff', borderRadius: 24, padding: 25, maxHeight: '90%' },
   viewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   viewTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
   viewBrand: { alignItems: 'center', marginBottom: 10 },
