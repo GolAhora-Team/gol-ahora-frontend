@@ -470,22 +470,14 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
             </TouchableOpacity>
           </View>
 
-          {!isTorneo && (
-             <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', marginHorizontal: 20, marginTop: 10, borderRadius: 8, padding: 4 }}>
-                <TouchableOpacity style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'FIXTURE' ? '#fff' : 'transparent', borderRadius: 6, elevation: activeTab === 'FIXTURE' ? 1 : 0 }} onPress={() => setActiveTab('FIXTURE')}>
-                   <Text style={{ fontWeight: '800', color: activeTab === 'FIXTURE' ? '#009b3a' : '#64748b' }}>FIXTURE</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'TABLA' ? '#fff' : 'transparent', borderRadius: 6, elevation: activeTab === 'TABLA' ? 1 : 0 }} onPress={() => setActiveTab('TABLA')}>
-                   <Text style={{ fontWeight: '800', color: activeTab === 'TABLA' ? '#009b3a' : '#64748b' }}>TABLA DE POSICIONES</Text>
-                </TouchableOpacity>
-             </View>
-          )}
 
           {/* Empty state & Actions */}
           {!hasMatches && !loading && (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="tournament" size={48} color="#cbd5e1" />
-              <Text style={styles.emptyText}>El fixture aún no ha sido generado.</Text>
+              <Text style={styles.emptyText}>
+                {activeTab === 'TABLA' ? 'La tabla aún no ha sido generada.' : 'El fixture aún no ha sido generado.'}
+              </Text>
               
               <TouchableOpacity style={styles.demoBtn} onPress={() => setDemoMode(!demoMode)}>
                 <MaterialCommunityIcons name="eye-outline" size={20} color="#009b3a" />
