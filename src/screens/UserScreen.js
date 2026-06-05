@@ -584,7 +584,7 @@ export default function UserScreen({ route, navigation }) {
                   <Text style={styles.roleHeaderText}>{section.role}</Text>
                 </View>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>({section.totalCount})</Text>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.totalCount}</Text>
                 </View>
               </View>
               {section.data.map(item => (
