@@ -572,9 +572,9 @@ export default function FacturacionScreen({ route, navigation }) {
               [...facturasOficiales].sort((a, b) => {
                 return sortDesc ? b.id - a.id : a.id - b.id;
               }).map(comp => (
-                <View key={comp.id} style={[styles.comprobanteCard, comp.isAnulada && { opacity: 0.5, backgroundColor: '#f1f5f9' }]}>
+                <View key={comp.id} style={styles.comprobanteCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={36} color={comp.isAnulada ? "#94a3b8" : "#ef4444"} />
+                    <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={[styles.comprobanteName, comp.isAnulada && { color: '#64748b', textDecorationLine: 'line-through' }]}>
                         {comp.fileName} {comp.isAnulada && '(ANULADA)'}
@@ -586,25 +586,25 @@ export default function FacturacionScreen({ route, navigation }) {
                   </View>
                   <View style={styles.comprobanteBtns}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#94a3b8' : '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
                       onPress={() => downloadPdf(comp)}
                     >
                       <MaterialCommunityIcons name="download" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#94a3b8' : '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
                       onPress={() => viewComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="eye" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: comp.isAnulada ? '#94a3b8' : '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
                       onPress={() => printComprobante(comp)}
                     >
-                      <MaterialCommunityIcons name="printer" size={16} color={comp.isAnulada ? '#fff' : '#000'} />
-                      <Text style={[styles.compBtnText, { color: comp.isAnulada ? '#fff' : '#000' }]}>Imprimir</Text>
+                      <MaterialCommunityIcons name="printer" size={16} color="#000" />
+                      <Text style={[styles.compBtnText, { color: '#000' }]}>Imprimir</Text>
                     </TouchableOpacity>
                     {(!comp.isAnulada && comp.total > 0) && (
                       <TouchableOpacity 
