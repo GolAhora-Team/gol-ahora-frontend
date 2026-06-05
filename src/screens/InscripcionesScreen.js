@@ -54,9 +54,8 @@ export default function InscripcionesScreen({ route, navigation }) {
       try {
         const competencias = await competicionService.getAll();
         items = [...items, ...(competencias || []).map(c => ({
-          ...c, id: c.id?.toString(), tipo: 'LIGA',
-          cupo: c.inscriptos || 0, 
-          max: c.maxEquipos || 20,
+          ...c, id: c.id?.toString(), tipo: c.tipo === 1 ? 'LIGA' : 'TORNEO',
+          cupo: c.inscriptos || 0, max: c.maxEquipos || 20,
           profe: 'N/A',
           precio: 0
         }))];
@@ -70,8 +69,8 @@ export default function InscripcionesScreen({ route, navigation }) {
     }
   };
   const handleManage = (item) => {
-    if (item.tipo === 'LIGA') {
-      Alert.alert('Información', 'La gestión de equipos de Liga se maneja desde Competencias.');
+    if (item.tipo === 'LIGA' || item.tipo === 'TORNEO') {
+      Alert.alert('Información', 'La gestión de equipos se maneja desde Competencias.');
       return;
     }
     setSelectedActividad(item);
@@ -79,8 +78,8 @@ export default function InscripcionesScreen({ route, navigation }) {
   };
 
   const handleInscribirse = (item) => {
-    if (item.tipo === 'LIGA') {
-      Alert.alert('Información', 'Para inscribirte en una Liga, dirigite a Competencias.');
+    if (item.tipo === 'LIGA' || item.tipo === 'TORNEO') {
+      Alert.alert('Información', 'Para inscribirte en una Competencia, dirigite a Competencias.');
       return;
     }
     if (item.cupo >= item.max) {
@@ -109,6 +108,7 @@ export default function InscripcionesScreen({ route, navigation }) {
     if (item.cupo >= item.max) return '#ef4444';
     if (item.tipo === 'CLASE') return '#6366f1';
     if (item.tipo === 'ENTRENAMIENTO') return '#f97316';
+    if (item.tipo === 'TORNEO') return '#ffb300';
     return '#009b3a';
   };
 
@@ -136,7 +136,7 @@ export default function InscripcionesScreen({ route, navigation }) {
       </View>
       
       <View style={styles.btnColumn}>
-        {canCreate && item.tipo !== 'LIGA' && (
+        {canCreate && item.tipo !== 'LIGA' && item.tipo !== 'TORNEO' && (
           <TouchableOpacity 
             style={styles.manageBtn}
             onPress={() => handleManage(item)}
@@ -146,7 +146,7 @@ export default function InscripcionesScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {item.tipo !== 'LIGA' && (
+        {item.tipo !== 'LIGA' && item.tipo !== 'TORNEO' && (
           <TouchableOpacity 
             style={[styles.inscribirBtn, item.cupo >= item.max && { opacity: 0.5 }]}
             onPress={() => handleInscribirse(item)}
@@ -157,22 +157,25 @@ export default function InscripcionesScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {item.tipo === 'LIGA' && (
+        {(item.tipo === 'LIGA' || item.tipo === 'TORNEO') && (
           <TouchableOpacity 
             style={[styles.manageBtn, { backgroundColor: '#64748b' }]}
             onPress={() => handleManage(item)}
           >
             <MaterialCommunityIcons name="trophy" size={20} color="#fff" />
-            <Text style={styles.btnTextSmall}>Ver Liga</Text>
+            <Text style={styles.btnTextSmall}>Ver Competición</Text>
           </TouchableOpacity>
         )}
       </View>
     </View>
   );
 
-  const clases = actividades.filter(a => a.tipo === 'CLASE');
-  const entrenamientos = actividades.filter(a => a.tipo === 'ENTRENAMIENTO');
-  const ligas = actividades.filter(a => a.tipo === 'LIGA');
+  const sections = [
+    { key: "CLASE", titulo: "CLASES", icon: "school", data: actividades.filter(a => a.tipo === 'CLASE') },
+    { key: "ENTRENAMIENTO", titulo: "ENTRENAMIENTOS", icon: "whistle", data: actividades.filter(a => a.tipo === 'ENTRENAMIENTO') },
+    { key: "TORNEO", titulo: "TORNEOS", icon: "tournament", data: actividades.filter(a => a.tipo === 'TORNEO') },
+    { key: "LIGA", titulo: "LIGAS", icon: "format-list-numbered", data: actividades.filter(a => a.tipo === 'LIGA') }
+  ].filter(s => s.data.length > 0);
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -183,26 +186,20 @@ export default function InscripcionesScreen({ route, navigation }) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
-        {clases.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Clases</Text>
-            {clases.map(renderActividad)}
+        {sections.map(section => (
+          <View key={section.key} style={styles.section}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+              <View style={{ backgroundColor: '#fbbf24', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
+                <MaterialCommunityIcons name={section.icon} size={20} color="#000" />
+                <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8, textTransform: 'uppercase' }}>{section.titulo}</Text>
+              </View>
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.data.length}</Text>
+              </View>
+            </View>
+            {section.data.map(renderActividad)}
           </View>
-        )}
-
-        {entrenamientos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Entrenamientos</Text>
-            {entrenamientos.map(renderActividad)}
-          </View>
-        )}
-
-        {ligas.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ligas</Text>
-            {ligas.map(renderActividad)}
-          </View>
-        )}
+        ))}
 
         {actividades.length === 0 && (
           <Text style={styles.emptyText}>No hay actividades disponibles.</Text>
