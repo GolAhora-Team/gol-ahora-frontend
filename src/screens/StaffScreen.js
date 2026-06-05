@@ -38,31 +38,57 @@ export default function StaffScreen({ route, navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [clasesData, entrenamientosData] = await Promise.all([
+      const [clasesData, entrenamientosData, profesoresData] = await Promise.all([
         claseService.getAll().catch(() => []),
-        entrenamientoService.getAll().catch(() => [])
+        entrenamientoService.getAll().catch(() => []),
+        profesorService.getAll().catch(() => [])
       ]);
       
-      const mappedClases = (clasesData || []).map(c => ({
-        ...c,
-        id: c.id?.toString(),
-        profe: c.profesorNombre || c.profe || 'Sin asignar',
-        alumnos: c.cantidadAlumnos || c.alumnos || c.clientes?.length || c.asistencias?.length || 0,
-        precio: c.precioInscripcion || c.precio || 0,
-        capacidad: c.capacidadMax || c.capacidad || 20,
-        horario: c.descripcion || `${c.horaInicio} - ${c.horaFin}`
-      }));
+      const profesoresMap = {};
+      (profesoresData || []).forEach(p => {
+        if (p.id) {
+          profesoresMap[p.id.toString()] = `${p.nombre} ${p.apellido}`;
+        }
+      });
+      
+      const mappedClases = (clasesData || []).map(c => {
+        const profeNombre = c.profesor ? `${c.profesor.nombre} ${c.profesor.apellido}` : (c.profesorNombre || c.profe || 'Sin asignar');
+        const profId = c.profesor?.id?.toString() || c.profesorId?.toString();
+        const cantidadInscriptos = typeof c.cantidadAlumnos === 'number' 
+          ? c.cantidadAlumnos 
+          : (Array.isArray(c.alumnos) ? c.alumnos.length : (c.clientes?.length || c.asistencias?.length || 0));
+
+        return {
+          ...c,
+          id: c.id?.toString(),
+          profe: profeNombre,
+          profesorId: profId,
+          alumnos: cantidadInscriptos,
+          precio: c.precioInscripcion || c.precio || 0,
+          capacidad: c.capacidadMax || c.capacidad || 20,
+          horario: c.descripcion || `${c.horaInicio} - ${c.horaFin}`
+        };
+      });
       setTodasLasClases(mappedClases);
 
-      const mappedEntrenamientos = (entrenamientosData || []).map(e => ({
-        ...e,
-        id: e.id?.toString(),
-        profe: e.profesorNombre || e.profe || 'Sin asignar',
-        alumnos: e.cantidadAlumnos || e.alumnos || e.clientes?.length || 0,
-        precio: e.precio || 0,
-        capacidad: e.cupoMaximo || 20,
-        horario: e.fecha ? e.fecha.split('T')[0] : 'Sin fecha'
-      }));
+      const mappedEntrenamientos = (entrenamientosData || []).map(e => {
+        const profId = e.profesorId?.toString();
+        const profeNombre = profesoresMap[profId] || e.profesorNombre || e.profe || 'Sin asignar';
+        const cantidadInscriptos = typeof e.cantidadAlumnos === 'number' 
+          ? e.cantidadAlumnos 
+          : (Array.isArray(e.alumnos) ? e.alumnos.length : (e.clientes?.length || 0));
+
+        return {
+          ...e,
+          id: e.id?.toString(),
+          profe: profeNombre,
+          profesorId: profId,
+          alumnos: cantidadInscriptos,
+          precio: e.precio || 0,
+          capacidad: e.cupoMaximo || 20,
+          horario: e.fecha ? e.fecha.split('T')[0] : 'Sin fecha'
+        };
+      });
       setTodosLosEntrenamientos(mappedEntrenamientos);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los datos.');

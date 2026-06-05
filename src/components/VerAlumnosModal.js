@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
 
 const abrirPdfBlob = (blob, filename) => {
   if (Platform.OS === 'web') {
@@ -30,8 +31,13 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
   const loadAlumnos = async () => {
     setLoading(true);
     try {
-      const clase = await claseService.getById(claseId);
-      setAlumnos(clase?.clientes || clase?.alumnos || []);
+      let data;
+      if (esEntrenamiento) {
+        data = await entrenamientoService.getById(claseId);
+      } else {
+        data = await claseService.getById(claseId);
+      }
+      setAlumnos(data?.clientes || data?.alumnos || []);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los alumnos.');
     } finally {
@@ -44,7 +50,6 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
     try {
       let blob;
       if (esEntrenamiento) {
-        const { entrenamientoService } = await import('../services/entrenamientoService');
         blob = await entrenamientoService.descargarPulsera(claseId, alumno.id);
       } else {
         blob = await claseService.descargarPulsera(claseId, alumno.id);
