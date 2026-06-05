@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, Platform, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -8,6 +8,7 @@ import ReservaCard from '../components/ReservaCard';
 import ReservaFormModal from '../components/ReservaFormModal';
 import SuccessModal from '../components/SuccessModal';
 import ConfirmModal from '../components/ConfirmModal';
+import PoliticasModal from '../components/PoliticasModal';
 import { reservaService } from '../services/reservaService';
 import { canchaService } from '../services/canchaService';
 import { clienteService } from '../services/clienteService';
@@ -27,6 +28,7 @@ export default function ReservaScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReserva, setEditingReserva] = useState(null);
+  const [modalPoliticasVisible, setModalPoliticasVisible] = useState(false);
   
   // Success/Error modal
   const [successVisible, setSuccessVisible] = useState(false);
@@ -510,10 +512,17 @@ export default function ReservaScreen({ route, navigation }) {
 
       <View style={styles.headerRow} nativeID="top-reservas">
         <Text style={styles.mainTitle}>Cronograma</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-          <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Nueva reserva</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <MaterialCommunityIcons name="calendar-plus" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Nueva reserva</Text>
+          </TouchableOpacity>
+          {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
+            <TouchableOpacity style={[styles.addButton, { backgroundColor: '#0f172a', marginLeft: 10 }]} onPress={() => setModalPoliticasVisible(true)}>
+              <MaterialCommunityIcons name="shield-lock-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={styles.dashboardContainer}>
@@ -624,6 +633,11 @@ export default function ReservaScreen({ route, navigation }) {
         actionButtonText={successPdfData ? "DESCARGAR PDF" : null}
         onAction={successPdfData ? downloadPdf : null}
         isError={errorMode}
+      />
+
+      <PoliticasModal 
+        visible={modalPoliticasVisible}
+        onClose={() => setModalPoliticasVisible(false)}
       />
 
       {/* Modal Confirmar Cancelación con Info de Penalización */}
