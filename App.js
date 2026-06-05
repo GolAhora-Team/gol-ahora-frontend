@@ -154,7 +154,13 @@ export default function App() {
               </ErrorBoundary>
             )}
           </Stack.Screen>
-          <Stack.Screen name="StaffScreen" component={StaffScreen} options={{ title: "Gol Ahora - Staff" }} />
+          <Stack.Screen name="StaffScreen" options={{ title: "Gol Ahora - Staff" }}>
+            {(props) => (
+              <ErrorBoundary>
+                <StaffScreen {...props} />
+              </ErrorBoundary>
+            )}
+          </Stack.Screen>
           <Stack.Screen name="InscripcionesScreen" component={InscripcionesScreen} options={{ title: "Gol Ahora - Inscripciones" }} />
           <Stack.Screen name="FacturacionScreen" component={FacturacionScreen} options={{ title: "Gol Ahora - Facturación" }} />
           <Stack.Screen name="ReportesScreen" component={ReportesScreen} options={{ title: "Gol Ahora - Reportes" }} />

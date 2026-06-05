@@ -6,6 +6,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { asistenciaService } from '../services/asistenciaService';
 import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
 
 // ────────────────────────────────────────────────────────────
 //  Helper: abre/descarga un Blob PDF en web o mobile
@@ -99,7 +100,7 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
   const descargarPulsera = async (alumno) => {
     try {
       const blob = esEntrenamiento
-        ? await (await import('../services/entrenamientoService')).entrenamientoService.descargarPulsera(claseId, alumno.clienteId)
+        ? await entrenamientoService.descargarPulsera(claseId, alumno.clienteId)
         : await claseService.descargarPulsera(claseId, alumno.clienteId);
       abrirPdfBlob(blob, `Pulsera_${alumno.nombre.replace(' ', '_')}.pdf`);
     } catch (e) {
