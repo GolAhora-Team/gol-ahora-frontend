@@ -275,6 +275,12 @@ export default function CanchaScreen({ route, navigation }) {
     c.tipo.toLowerCase().includes(search.toLowerCase())
   ).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
+  const sections = [
+    { key: "F5", titulo: "FUTBOL 5", data: filteredCanchas.filter(c => c.tipo === "F5") },
+    { key: "F7", titulo: "FUTBOL 7", data: filteredCanchas.filter(c => c.tipo === "F7") },
+    { key: "F11", titulo: "FUTBOL 11", data: filteredCanchas.filter(c => c.tipo === "F11" || (c.tipo !== "F5" && c.tipo !== "F7")) }
+  ].filter(s => s.data.length > 0);
+
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
       
@@ -328,16 +334,29 @@ export default function CanchaScreen({ route, navigation }) {
         ) : filteredCanchas.length === 0 ? (
           <Text style={{ textAlign: 'center', marginTop: 50, color: '#94a3b8' }}>No hay canchas disponibles.</Text>
         ) : (
-          filteredCanchas.map(item => (
-            <CanchaCard 
-              key={item.id} 
-              item={item} 
-              onEdit={handleOpenModal} 
-              onDelete={(c) => confirmDelete(c)} 
-              onToggleMaintenance={() => handleToggleMaintenance(item.id)}
-              canModify={canModify} 
-              canToggleMaintenance={canToggleMaintenance}
-            />
+          sections.map(section => (
+            <View key={section.key} style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={{ backgroundColor: '#fbbf24', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
+                  <MaterialCommunityIcons name="soccer-field" size={20} color="#000" />
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8, textTransform: 'uppercase' }}>{section.titulo}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.data.length}</Text>
+                </View>
+              </View>
+              {section.data.map(item => (
+                <CanchaCard 
+                  key={item.id} 
+                  item={item} 
+                  onEdit={handleOpenModal} 
+                  onDelete={(c) => confirmDelete(c)} 
+                  onToggleMaintenance={() => handleToggleMaintenance(item.id)}
+                  canModify={canModify} 
+                  canToggleMaintenance={canToggleMaintenance}
+                />
+              ))}
+            </View>
           ))
         )}
       </ScrollView>

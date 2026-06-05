@@ -21,6 +21,7 @@ import { clienteService } from '../services/clienteService';
 import { profesorService } from '../services/profesorService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { userService } from '../services/userService';
+import { facturaService } from '../services/facturaService';
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
@@ -227,8 +228,21 @@ export default function Dashboard({ route, navigation }) {
         if (hasParam('pagoSocio')) {
           // El cliente pagó la membresía
           if (role === 'CLIENTE' && idPersona) {
-            clienteService.getById(idPersona).then(c => {
+            clienteService.getById(idPersona).then(async c => {
               if (c) {
+                try {
+                  const now = new Date();
+                  now.setHours(now.getHours() - 3);
+                  await facturaService.create({
+                    fechaEmision: now.toISOString(),
+                    total: 2000,
+                    estado: 2,
+                    tipo: 1,
+                    descripcion: `Suscripción Socio Activo - Online (MERCADOPAGO)`,
+                    clienteId: idPersona
+                  });
+                } catch (e) { console.error("Error creating factura", e); }
+
                 clienteService.update(idPersona, { ...c, esSocioActivo: true }).then(() => {
                   loadCliente();
                   setSuccessModalMessage("Felicidades ahora eres socio de Gol Ahora.");
