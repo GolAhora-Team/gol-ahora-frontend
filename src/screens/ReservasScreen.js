@@ -23,6 +23,7 @@ export default function ReservaScreen({ route, navigation }) {
   };
 
   const [reservas, setReservas] = useState([]);
+  const [allReservas, setAllReservas] = useState([]);
   const [canchas, setCanchas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -335,6 +336,8 @@ export default function ReservaScreen({ route, navigation }) {
         fecha: r.fecha,
       }));
 
+      setAllReservas(mappedReservas);
+
       if (currentUserRole === 'CLIENTE') {
         mappedReservas = mappedReservas.filter(r => r.clienteNombre === currentUserName);
       }
@@ -612,7 +615,7 @@ export default function ReservaScreen({ route, navigation }) {
         reservaToEdit={editingReserva}
         canchas={canchas}
         clientes={clientes}
-        reservasActuales={reservas}
+        reservasActuales={allReservas}
         currentUserRole={currentUserRole}
         nombreUsuario={currentUserName}
         onReservaCreated={handleReservaCreated}
