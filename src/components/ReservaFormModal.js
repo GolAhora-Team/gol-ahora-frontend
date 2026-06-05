@@ -220,10 +220,10 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
 function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, cancha, errors }) {
   const scrollRef = useRef(null);
 
-  const getNext7Days = () => {
+  const getNext30Days = () => {
     const days = [];
     const today = new Date();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       days.push(d);
@@ -232,7 +232,7 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
   };
 
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const days = getNext7Days();
+  const days = getNext30Days();
 
   const horarios = (() => {
     const todos = [];
@@ -683,6 +683,13 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
       if (reservaDateTime < now) {
         errs.hora = 'No podés reservar en un horario que ya pasó.';
+      }
+
+      const maxDate = new Date();
+      maxDate.setDate(maxDate.getDate() + 30);
+      maxDate.setHours(23, 59, 59, 999);
+      if (reservaDateTime > maxDate) {
+        errs.fecha = 'No podés reservar con más de 30 días de anticipación.';
       }
     }
 
