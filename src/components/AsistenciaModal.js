@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { asistenciaService } from '../services/asistenciaService';
 import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
+import ConfirmModal from './ConfirmModal';
 
 // ────────────────────────────────────────────────────────────
 //  Helper: abre/descarga un Blob PDF en web o mobile
@@ -32,6 +33,8 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'barcode'
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [alumnoToDesmarcar, setAlumnoToDesmarcar] = useState(null);
   
   // Estado para escaneo manual de código
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -88,41 +91,8 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
 
   const togglePresente = async (alumno) => {
     if (alumno.presente) {
-      if (Platform.OS === 'web') {
-         if (window.confirm(`¿Querés desmarcar la asistencia de ${alumno.nombre} de hoy?`)) {
-            setSaving(true);
-            try {
-              await asistenciaService.eliminarAsistencia(claseId, alumno.clienteId, !esEntrenamiento);
-              setAlumnos(prev => prev.map(a => a.id === alumno.id ? { ...a, presente: false } : a));
-            } catch (e) {
-              Alert.alert('Error', e.message || 'No se pudo desmarcar la asistencia.');
-            } finally {
-              setSaving(false);
-            }
-         }
-      } else {
-          Alert.alert(
-            'Desmarcar Asistencia',
-            `¿Querés desmarcar la asistencia de ${alumno.nombre} de hoy?`,
-            [
-              { text: 'Cancelar', style: 'cancel' },
-              {
-                text: 'Desmarcar', style: 'destructive',
-                onPress: async () => {
-                  setSaving(true);
-                  try {
-                    await asistenciaService.eliminarAsistencia(claseId, alumno.clienteId, !esEntrenamiento);
-                    setAlumnos(prev => prev.map(a => a.id === alumno.id ? { ...a, presente: false } : a));
-                  } catch (e) {
-                    Alert.alert('Error', e.message || 'No se pudo desmarcar la asistencia.');
-                  } finally {
-                    setSaving(false);
-                  }
-                }
-              }
-            ]
-          );
-      }
+      setAlumnoToDesmarcar(alumno);
+      setConfirmVisible(true);
       return;
     }
     setSaving(true);
@@ -133,6 +103,20 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
       Alert.alert('Error', e.message || 'No se pudo registrar la asistencia.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDesmarcarConfirm = async () => {
+    if (!alumnoToDesmarcar) return;
+    setSaving(true);
+    try {
+      await asistenciaService.eliminarAsistencia(claseId, alumnoToDesmarcar.clienteId, !esEntrenamiento);
+      setAlumnos(prev => prev.map(a => a.id === alumnoToDesmarcar.id ? { ...a, presente: false } : a));
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo desmarcar la asistencia.');
+    } finally {
+      setSaving(false);
+      setAlumnoToDesmarcar(null);
     }
   };
 
@@ -487,6 +471,21 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
 
         </View>
       </View>
+
+      <ConfirmModal
+        visible={confirmVisible}
+        onClose={() => {
+          setConfirmVisible(false);
+          setAlumnoToDesmarcar(null);
+        }}
+        onConfirm={handleDesmarcarConfirm}
+        title="Desmarcar Asistencia"
+        message={`¿Querés desmarcar la asistencia de ${alumnoToDesmarcar ? alumnoToDesmarcar.nombre : ''} de hoy?`}
+        confirmText="Desmarcar"
+        cancelText="Cancelar"
+        icon="account-remove"
+        color="#ef4444"
+      />
     </Modal>
   );
 }
