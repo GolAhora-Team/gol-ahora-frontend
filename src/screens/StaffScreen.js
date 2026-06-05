@@ -5,7 +5,6 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import AsistenciaModal from '../components/AsistenciaModal';
-import AssignClassModal from '../components/AssignClassModal';
 import VerAlumnosModal from '../components/VerAlumnosModal';
 import CreateActivityModal from '../components/CreateActivityModal';
 import { claseService } from '../services/claseService';
@@ -24,7 +23,6 @@ export default function StaffScreen({ route, navigation }) {
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
   const [claseSeleccionada, setClaseSeleccionada] = useState(null);
   
-  const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [alumnosModalVisible, setAlumnosModalVisible] = useState(false);
   const [claseParaAlumnos, setClaseParaAlumnos] = useState(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -238,10 +236,6 @@ export default function StaffScreen({ route, navigation }) {
             <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
             <Text style={styles.actionBtnText}>Crear Entrenamiento</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={() => setAssignModalVisible(true)}>
-            <MaterialCommunityIcons name="plus-box" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Asignar Profesor</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -357,11 +351,6 @@ export default function StaffScreen({ route, navigation }) {
         esEntrenamiento={activeTab === 'ENTRENAMIENTOS'}
       />
 
-      <AssignClassModal
-        visible={assignModalVisible}
-        onClose={() => setAssignModalVisible(false)}
-        onAssignSuccess={loadData}
-      />
 
       <VerAlumnosModal
         visible={alumnosModalVisible}
