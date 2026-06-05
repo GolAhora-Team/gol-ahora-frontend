@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -21,6 +21,8 @@ export default function FacturacionScreen({ route, navigation }) {
   const [viewingComprobante, setViewingComprobante] = useState(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingFactura, setEditingFactura] = useState(null);
+  const [isEditingForm, setIsEditingForm] = useState(false);
+  const [editTotal, setEditTotal] = useState('');
   const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
@@ -143,7 +145,57 @@ export default function FacturacionScreen({ route, navigation }) {
 
   const editComprobante = (comprobante) => {
     setEditingFactura(comprobante);
+    setEditTotal(String(comprobante.total || 0));
+    setIsEditingForm(false);
     setEditModalVisible(true);
+  };
+
+  const handleAnularFactura = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro que deseas anular esta factura de forma definitiva?')) {
+        ejecutarAnulacion();
+      }
+    } else {
+      Alert.alert('Confirmar Anulación', '¿Estás seguro que deseas anular esta factura de forma definitiva?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sí, Anular', style: 'destructive', onPress: ejecutarAnulacion }
+      ]);
+    }
+  };
+
+  const ejecutarAnulacion = async () => {
+    try {
+      await facturaService.delete(editingFactura.id);
+      setEditModalVisible(false);
+      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Factura anulada correctamente.');
+      loadData();
+    } catch (e) {
+      if (Platform.OS !== 'web') Alert.alert('Error', 'No se pudo anular la factura.');
+      else window.alert('Error: No se pudo anular la factura.');
+    }
+  };
+
+  const handleGuardarCambios = async () => {
+    if (!editTotal || isNaN(editTotal)) {
+      if (Platform.OS !== 'web') Alert.alert('Error', 'Debe ingresar un monto válido.');
+      else window.alert('Error: Debe ingresar un monto válido.');
+      return;
+    }
+    
+    try {
+      const payload = {
+        total: parseFloat(editTotal),
+        fechaEmision: editingFactura.fecha,
+        clienteId: editingFactura.clienteId
+      };
+      await facturaService.update(editingFactura.id, payload);
+      setEditModalVisible(false);
+      if (Platform.OS !== 'web') Alert.alert('Éxito', 'Datos de la factura rectificados correctamente.');
+      loadData();
+    } catch (e) {
+      if (Platform.OS !== 'web') Alert.alert('Error', 'No se pudieron guardar los cambios.');
+      else window.alert('Error: No se pudieron guardar los cambios.');
+    }
   };
 
   const generateFacturaAfipHtml = (factura, nombreCliente, fecha) => {
@@ -677,41 +729,67 @@ export default function FacturacionScreen({ route, navigation }) {
 
             <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 15, lineHeight: 20 }}>
-                Las facturas emitidas y autorizadas por AFIP no pueden ser modificadas directamente. 
+                Las facturas emitidas y autorizadas por ARCA no pueden ser modificadas directamente. 
                 Debe generar una Nota de Crédito para anularla y emitir una nueva.
               </Text>
 
               <View style={{ backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, marginBottom: 20 }}>
                 <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Cliente:</Text>
-                <Text style={{ color: '#475569', marginBottom: 10 }}>{editingFactura?.nombreCliente}</Text>
+                <Text style={{ color: '#475569', marginBottom: 15 }}>{editingFactura?.nombreCliente}</Text>
                 
                 <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Total Actual:</Text>
-                <Text style={{ color: '#009b3a', fontSize: 18, fontWeight: '900' }}>
-                  ${(editingFactura?.total || 0).toLocaleString('es-AR')}
-                </Text>
+                {isEditingForm ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, color: '#1e293b', fontWeight: 'bold', marginRight: 5 }}>$</Text>
+                    <TextInput 
+                      style={{ flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 8, fontSize: 16 }}
+                      keyboardType="numeric"
+                      value={editTotal}
+                      onChangeText={setEditTotal}
+                    />
+                  </View>
+                ) : (
+                  <Text style={{ color: '#009b3a', fontSize: 18, fontWeight: '900' }}>
+                    ${(editingFactura?.total || 0).toLocaleString('es-AR')}
+                  </Text>
+                )}
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
-                <TouchableOpacity 
-                  style={{ flex: 1, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, alignItems: 'center' }}
-                  onPress={() => {
-                    Alert.alert('Anular', 'Generando Nota de Crédito...', [{ text: 'OK', onPress: () => setEditModalVisible(false) }]);
-                  }}
-                >
-                  <MaterialCommunityIcons name="file-cancel" size={24} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Anular / Nota Crédito</Text>
-                </TouchableOpacity>
+              {!isEditingForm ? (
+                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                    onPress={handleAnularFactura}
+                  >
+                    <MaterialCommunityIcons name="file-cancel" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Anular Definitivo</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={{ flex: 1, backgroundColor: '#3b82f6', padding: 15, borderRadius: 12, alignItems: 'center' }}
-                  onPress={() => {
-                    Alert.alert('Editar', 'Abriendo formulario de rectificación...', [{ text: 'OK', onPress: () => setEditModalVisible(false) }]);
-                  }}
-                >
-                  <MaterialCommunityIcons name="file-document-edit" size={24} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Rectificar Datos</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#3b82f6', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                    onPress={() => setIsEditingForm(true)}
+                  >
+                    <MaterialCommunityIcons name="file-document-edit" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Rectificar Datos</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#94a3b8', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                    onPress={() => setIsEditingForm(false)}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar Edición</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: '#009b3a', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                    onPress={handleGuardarCambios}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Guardar Cambios</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </View>
