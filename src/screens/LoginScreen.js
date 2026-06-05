@@ -254,7 +254,16 @@ const LoginScreen = ({ navigation, route }) => {
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={(text) => setEmail(text)}
+                        onChangeText={(text) => {
+                          if (typeof text === 'string') {
+                            setEmail(text);
+                          } else if (text && typeof text === 'object') {
+                            const val = text.email || text.username || text.nombre || '';
+                            setEmail(String(val));
+                          } else {
+                            setEmail('');
+                          }
+                        }}
                         keyboardType="default"
                         value={email}
                         autoCapitalize="none"
@@ -279,7 +288,7 @@ const LoginScreen = ({ navigation, route }) => {
                         secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={setPassword}
+                        onChangeText={(text) => setPassword(typeof text === 'string' ? text : '')}
                         value={password}
                         underlineColorAndroid="transparent"
                         returnKeyType="done"
