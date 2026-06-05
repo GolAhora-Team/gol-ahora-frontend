@@ -133,7 +133,11 @@ export default function RegisterScreen({ navigation }) {
   const handleRegister = async () => {
     let newErrors = {};
 
-    if (!dni) newErrors.dni = 'El DNI es obligatorio';
+    if (!dni) {
+      newErrors.dni = 'El DNI es obligatorio';
+    } else if (!/^\d{6,9}$/.test(dni.trim())) {
+      newErrors.dni = 'Debe tener entre 6 y 9 dígitos y solo números';
+    }
     if (!password) newErrors.password = 'La contraseña es obligatoria';
     else if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
       newErrors.password = 'Al menos 1 mayúscula, 1 número, 1 símbolo y mínimo 8 caracteres';
@@ -204,7 +208,12 @@ export default function RegisterScreen({ navigation }) {
       await userService.createUsuarioCliente(payload);
       setSuccessVisible(true);
     } catch (error) {
-      setGlobalError(error.message || "Ocurrió un error al registrar el usuario.");
+      let friendlyError = error.message || "Ocurrió un error al registrar el usuario.";
+      const lowerErr = friendlyError.toLowerCase();
+      if (lowerErr.includes('system.int32') && lowerErr.includes('dni')) {
+        friendlyError = 'El DNI ingresado no es válido. Asegúrese de ingresar entre 6 y 9 dígitos y solo números.';
+      }
+      setGlobalError(friendlyError);
     } finally {
       setIsLoading(false);
     }

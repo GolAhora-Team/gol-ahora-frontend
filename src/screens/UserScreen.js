@@ -215,7 +215,14 @@ export default function UserScreen({ route, navigation }) {
       setFormError("Debe ser un email válido.");
       return;
     }
-    setFormError('');
+    
+    // Validar formato y longitud del DNI (entre 6 y 9 dígitos)
+    const dniStr = String(formData.dni).trim();
+    if (!/^\d{6,9}$/.test(dniStr)) {
+      setFormError("El DNI debe tener entre 6 y 9 dígitos y contener únicamente números (sin puntos, guiones ni letras).");
+      return;
+    }
+
     setFormError('');
     try {
       const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
@@ -333,7 +340,12 @@ export default function UserScreen({ route, navigation }) {
         setModalVisible(false);
       }
     } catch (error) {
-      setFormError(error.message || 'No se pudo guardar el usuario.');
+      let friendlyError = error.message || 'No se pudo guardar el usuario.';
+      const lowerErr = friendlyError.toLowerCase();
+      if (lowerErr.includes('system.int32') && lowerErr.includes('dni')) {
+        friendlyError = 'El DNI ingresado no es válido. Asegúrese de ingresar entre 6 y 9 dígitos y solo números.';
+      }
+      setFormError(friendlyError);
     }
   };
 
