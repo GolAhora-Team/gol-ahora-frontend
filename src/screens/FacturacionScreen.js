@@ -760,7 +760,12 @@ export default function FacturacionScreen({ route, navigation }) {
 
             <ScrollView showsVerticalScrollIndicator={true}>
               {Platform.OS === 'web' ? (
-                <iframe srcDoc={viewingComprobante?.html} style={{ width: '100%', height: 600, border: 'none', backgroundColor: '#fff' }} />
+                <ScrollView horizontal={true} showsHorizontalScrollIndicator={true}>
+                  <iframe 
+                    srcDoc={viewingComprobante?.html} 
+                    style={{ width: '100%', minWidth: 800, height: 600, border: 'none', backgroundColor: '#fff' }} 
+                  />
+                </ScrollView>
               ) : (
                 <>
                   <View style={styles.viewBrand}>
