@@ -424,14 +424,14 @@ export default function FacturacionScreen({ route, navigation }) {
           onPress={() => setActiveTab('COMPROBANTES')}
         >
           <MaterialCommunityIcons name="text-box-check-outline" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>C. Reservas</Text>
+          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes de Reservas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive]}
           onPress={() => setActiveTab('MEMBRESIAS')}
         >
           <MaterialCommunityIcons name="card-account-details-star" size={18} color={activeTab === 'MEMBRESIAS' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes Membresías</Text>
+          <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes de Membresias</Text>
         </TouchableOpacity>
       </View>
       
