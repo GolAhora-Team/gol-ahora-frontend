@@ -129,16 +129,17 @@ export default function InscripcionesScreen({ route, navigation }) {
           <Text style={styles.actividadDetail}>
             <Text style={{ fontWeight: '900' }}>Cupos: </Text>{item.cupo} / {item.max}
           </Text>
-          {item.precio > 0 && (
-            <Text style={styles.precioText}>${item.precio?.toLocaleString('es-AR')}</Text>
-          )}
         </View>
       </View>
       
-      <View style={styles.btnColumn}>
+      <View style={[styles.btnColumn, { alignItems: 'flex-end' }]}>
+        {item.precio > 0 && (
+          <Text style={[styles.precioText, { marginBottom: 2 }]}>${item.precio?.toLocaleString('es-AR')}</Text>
+        )}
+        
         {canCreate && item.tipo !== 'LIGA' && item.tipo !== 'TORNEO' && (
           <TouchableOpacity 
-            style={styles.manageBtn}
+            style={[styles.manageBtn, { backgroundColor: '#3b82f6' }]}
             onPress={() => handleManage(item)}
           >
             <MaterialCommunityIcons name="account-group" size={20} color="#fff" />
