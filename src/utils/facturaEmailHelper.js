@@ -25,10 +25,6 @@ export const generarYEnviarFactura = async ({ html, fileName, toEmail, nombrePer
     // Create a temporary hidden container
     const element = document.createElement('div');
     element.innerHTML = html;
-    element.style.position = 'absolute';
-    element.style.top = '-9999px';
-    element.style.left = '-9999px';
-    document.body.appendChild(element);
 
     // Generate the PDF as a base64 string
     const pdfBase64 = await html2pdf().from(element).set({
@@ -38,8 +34,6 @@ export const generarYEnviarFactura = async ({ html, fileName, toEmail, nombrePer
       html2canvas: { scale: 2 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }).outputPdf('datauristring');
-
-    document.body.removeChild(element);
 
     const bodyHtml = `
 <!DOCTYPE html>
