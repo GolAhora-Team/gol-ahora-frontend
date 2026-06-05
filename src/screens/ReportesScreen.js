@@ -35,7 +35,7 @@ export default function ReportesScreen({ route, navigation }) {
   const [timeFilter, setTimeFilter] = useState("Semana"); // 'Semana', 'Mes', 'Año'
   const [tooltip, setTooltip] = useState(null);
 
-  const chartWidth = isMobile ? width - 80 : Math.min(width - 340, 800);
+  const chartWidth = isMobile ? width - 80 : Math.min(width - 240, 1050);
 
   const estadisticas = getEstadisticas();
   
@@ -140,7 +140,7 @@ export default function ReportesScreen({ route, navigation }) {
         labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
         data = Array.from({length: 7}, () => [0,0,0]);
         list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
             let day = date.getDay();
@@ -153,7 +153,7 @@ export default function ReportesScreen({ route, navigation }) {
         labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
         data = Array.from({length: 4}, () => [0,0,0]);
         list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
             let week = Math.min(Math.floor(date.getDate() / 7), 3);
@@ -165,7 +165,7 @@ export default function ReportesScreen({ route, navigation }) {
         labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
         data = Array.from({length: 6}, () => [0,0,0]);
         list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
             if(date.getMonth() < 6) {
@@ -344,14 +344,33 @@ export default function ReportesScreen({ route, navigation }) {
   });
 
   const chartConfig = {
-    backgroundGradientFrom: "#fff",
-    backgroundGradientTo: "#fff",
-    color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-    strokeWidth: 2,
-    barPercentage: 0.6,
-    useShadowColorFromDataset: false,
-    propsForDots: { r: "5", strokeWidth: "2", stroke: "#ffb300" }
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    fillShadowGradientFrom: "#10b981",
+    fillShadowGradientTo: "#ffffff",
+    fillShadowGradientFromOpacity: 0.4,
+    fillShadowGradientToOpacity: 0.05,
+    useShadowColorFromDataset: true,
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
+    strokeWidth: 4,
+    barPercentage: 0.85,
+    propsForDots: {
+      r: "7",
+      strokeWidth: "3",
+      stroke: "#ffffff"
+    },
+    propsForLabels: {
+      fontSize: 14,
+      fontWeight: "800",
+      fill: "#334155"
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: "4",
+      stroke: "#e2e8f0",
+      strokeWidth: 1
+    }
   };
 
   const renderChart = () => {
@@ -359,15 +378,29 @@ export default function ReportesScreen({ route, navigation }) {
       return (
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Flujo de Ingresos ({timeFilter})</Text>
-          <BarChart
-            data={{ labels: realIngresos.labels, datasets: [{ data: realIngresos.datosSemanales }] }}
+          <LineChart
+            data={{
+              labels: realIngresos.labels,
+              datasets: [{
+                data: realIngresos.datosSemanales,
+                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                strokeWidth: 4
+              }]
+            }}
             width={chartWidth}
-            height={250}
+            height={360}
             yAxisLabel="$"
-            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`}}
+            chartConfig={chartConfig}
             style={styles.chartStyle}
-            showValuesOnTopOfBars={true}
+            bezier
+            fromZero
+            onDataPointClick={({ value, x, y }) => setTooltip({ x, y, value: `$${value.toLocaleString('es-AR')}` })}
           />
+          {tooltip && (
+            <View style={[styles.tooltip, { left: tooltip.x - 40, top: tooltip.y - 45 }]}>
+              <Text style={styles.tooltipText}>{tooltip.value}</Text>
+            </View>
+          )}
         </View>
       );
     }
@@ -375,18 +408,61 @@ export default function ReportesScreen({ route, navigation }) {
       return (
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Distribución de Reservas ({timeFilter})</Text>
-          <StackedBarChart
+          <LineChart
             data={{
               labels: realReservas.labels,
-              legend: realReservas.legend,
-              data: realReservas.data,
-              barColors: ["#10b981", "#ffb300", "#ec4899"]
+              datasets: [
+                {
+                  data: realReservas.data.map(item => item[0]), // F5
+                  color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                  strokeWidth: 4
+                },
+                {
+                  data: realReservas.data.map(item => item[1]), // F7
+                  color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
+                  strokeWidth: 4
+                },
+                {
+                  data: realReservas.data.map(item => item[2]), // F11
+                  color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+                  strokeWidth: 4
+                }
+              ]
             }}
             width={chartWidth}
-            height={250}
+            height={360}
             chartConfig={chartConfig}
+            bezier
+            fromZero
             style={styles.chartStyle}
+            onDataPointClick={({ value, dataset, x, y }) => {
+              const colorStr = dataset.color(1);
+              let label = "Reservas";
+              if (colorStr.includes("16, 185, 129")) label = "Fútbol 5";
+              if (colorStr.includes("245, 158, 11")) label = "Fútbol 7";
+              if (colorStr.includes("99, 102, 241")) label = "Fútbol 11";
+              setTooltip({ x, y, value: `${value} ${label}` });
+            }}
           />
+          {tooltip && (
+            <View style={[styles.tooltip, { left: tooltip.x - 50, top: tooltip.y - 50 }]}>
+              <Text style={styles.tooltipText}>{tooltip.value}</Text>
+            </View>
+          )}
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#10b981' }]} />
+              <Text style={styles.legendLabel}>Fútbol 5</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#f59e0b' }]} />
+              <Text style={styles.legendLabel}>Fútbol 7</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#6366f1' }]} />
+              <Text style={styles.legendLabel}>Fútbol 11</Text>
+            </View>
+          </View>
         </View>
       );
     }
@@ -398,14 +474,15 @@ export default function ReportesScreen({ route, navigation }) {
           <LineChart
             data={{ labels: asistenciaData.map(c => c.nombre.substring(0,5)), datasets: [{ data: asistData.length ? asistData : [0] }] }}
             width={chartWidth}
-            height={250}
-            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(255, 179, 0, ${opacity})`}}
+            height={360}
+            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`}}
             bezier
+            fromZero
             style={styles.chartStyle}
             onDataPointClick={({ value, x, y }) => setTooltip({ x, y, value: `${Math.round(value)}%` })}
           />
           {tooltip && (
-            <View style={[styles.tooltip, { left: tooltip.x - 20, top: tooltip.y - 30 }]}>
+            <View style={[styles.tooltip, { left: tooltip.x - 20, top: tooltip.y - 45 }]}>
               <Text style={styles.tooltipText}>{tooltip.value}</Text>
             </View>
           )}
@@ -688,12 +765,68 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
   filterText: { color: '#64748b', fontSize: 12, fontWeight: '800' },
   filterTextActive: { color: '#fff' },
-  chartCard: { backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
-  chartTitle: { color: '#1e293b', fontWeight: '900', marginBottom: 15, fontSize: 15 },
-  chartStyle: { borderRadius: 16, marginTop: 10 },
-  tooltip: { position: 'absolute', backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, elevation: 5 },
-  tooltipText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  chartCard: { 
+    backgroundColor: '#ffffff', 
+    padding: 24, 
+    borderRadius: 24, 
+    marginBottom: 20, 
+    elevation: 8, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 6 }, 
+    shadowOpacity: 0.12, 
+    shadowRadius: 8, 
+    position: 'relative' 
+  },
+  chartTitle: { 
+    color: '#0f172a', 
+    fontWeight: '900', 
+    marginBottom: 10, 
+    fontSize: 16,
+    letterSpacing: 0.5
+  },
+  chartStyle: { 
+    borderRadius: 16, 
+    marginTop: 10 
+  },
+  tooltip: { 
+    position: 'absolute', 
+    backgroundColor: '#0f172a', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 12, 
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5
+  },
+  tooltipText: { 
+    color: '#ffffff', 
+    fontWeight: '900', 
+    fontSize: 13 
+  },
   description: { color: '#cbd5e1', fontSize: 12, marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 20
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  legendColor: {
+    width: 14,
+    height: 14,
+    borderRadius: 7
+  },
+  legendLabel: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 13
+  },
 
   recuadroRojoAcciones: {
     position: 'absolute',
