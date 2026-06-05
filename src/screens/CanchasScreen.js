@@ -369,6 +369,7 @@ export default function CanchaScreen({ route, navigation }) {
         setFormData={setFormData} 
         onSave={handleSave} 
         errorMessage={formError}
+        canchas={canchas}
       />
 
       <DeleteModal
