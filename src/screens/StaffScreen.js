@@ -356,9 +356,19 @@ const styles = StyleSheet.create({
   },
   cardHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 12, marginBottom: 12 },
   claseTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 },
-  adminCardActions: { flexDirection: 'row', gap: 8 },
-  iconBtnEdit: { backgroundColor: '#eff6ff', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#bfdbfe' },
-  iconBtnDelete: { backgroundColor: '#fef2f2', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fecaca' },
+  adminCardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  iconBtnEdit: {
+    backgroundColor: '#eff6ff', padding: 8, borderRadius: 10,
+    borderWidth: 1, borderColor: '#bfdbfe',
+    justifyContent: 'center', alignItems: 'center',
+    width: 36, height: 36
+  },
+  iconBtnDelete: {
+    backgroundColor: '#fef2f2', padding: 8, borderRadius: 10,
+    borderWidth: 1, borderColor: '#fecaca',
+    justifyContent: 'center', alignItems: 'center',
+    width: 36, height: 36
+  },
   alumnosBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText: { fontSize: 11, fontWeight: '800', color: '#009b3a' },
   

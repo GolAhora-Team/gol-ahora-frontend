@@ -20,7 +20,7 @@ export default function ReportesScreen({ route, navigation }) {
   const isMobile = width < 600;
 
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
-  const [reporteActivo, setReporteActivo] = useState("Ingresos"); 
+  const [reporteActivo, setReporteActivo] = useState("Ingresos");
   const [historialCanchas, setHistorialCanchas] = useState([]);
   const [historialUsuarios, setHistorialUsuarios] = useState([]);
   const [ordenFecha, setOrdenFecha] = useState('desc');
@@ -29,16 +29,16 @@ export default function ReportesScreen({ route, navigation }) {
   const [asistenciaData, setAsistenciaData] = useState([]);
   const [asistenciaLoading, setAsistenciaLoading] = useState(false);
   const [expandedClase, setExpandedClase] = useState(null);
-  
+
   const [realIngresos, setRealIngresos] = useState(null);
   const [realReservas, setRealReservas] = useState(null);
   const [timeFilter, setTimeFilter] = useState("Semana"); // 'Semana', 'Mes', 'Año'
   const [tooltip, setTooltip] = useState(null);
 
-  const chartWidth = isMobile ? width - 80 : Math.min(width - 340, 800);
+  const chartWidth = isMobile ? width - 80 : Math.min(width - 240, 1050);
 
   const estadisticas = getEstadisticas();
-  
+
   if (realIngresos) {
     estadisticas.Ingresos = {
       ...estadisticas.Ingresos,
@@ -87,13 +87,13 @@ export default function ReportesScreen({ route, navigation }) {
       const pagos = await pagoService.getAll();
       const list = (pagos || []).filter(p => p.estado === 2 || p.estado === 'Pagado' || p.estado === 'Aprobado' || p.estado === 'Completado');
       const total = list.reduce((sum, p) => sum + (p.monto || 0), 0);
-      
+
       let labels = [];
       let datos = [];
 
       if (timeFilter === 'Semana') {
         labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
-        datos = [0,0,0,0,0,0,0];
+        datos = [0, 0, 0, 0, 0, 0, 0];
         list.forEach(p => {
           if (p.fechaPago) {
             const date = new Date(p.fechaPago);
@@ -104,7 +104,7 @@ export default function ReportesScreen({ route, navigation }) {
         });
       } else if (timeFilter === 'Mes') {
         labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        datos = [0,0,0,0];
+        datos = [0, 0, 0, 0];
         list.forEach(p => {
           if (p.fechaPago) {
             const date = new Date(p.fechaPago);
@@ -130,52 +130,90 @@ export default function ReportesScreen({ route, navigation }) {
     try {
       const reservas = await reservaService.getAll();
       const list = reservas || [];
-      const total = list.length;
-      
+      const now = new Date();
+
+      // ─── Función auxiliar: obtener tipo de cancha (F5=0, F7=1, F11=2) ───────
+      const getTipoIdx = (r) => {
+        // Intentar por campo tipo primero, luego por nombre como fallback
+        const tipo = (r.cancha?.tipo ?? '').toString().toLowerCase();
+        if (tipo === '2' || tipo.includes('11')) return 2;
+        if (tipo === '1' || tipo.includes('7')) return 1;
+        // Fallback por nombre
+        const nombre = r.cancha?.nombre ?? '';
+        if (nombre.includes('11')) return 2;
+        if (nombre.includes('7')) return 1;
+        return 0; // Fútbol 5
+      };
+
       let labels = [];
       const legend = ['F5', 'F7', 'F11'];
       let data = [];
+      let filteredList = [];
 
       if (timeFilter === 'Semana') {
+        // Filtrar solo la semana actual (lunes a hoy)
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Lunes
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          return new Date(dateStr) >= startOfWeek;
+        });
+
         labels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
-        data = Array.from({length: 7}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        data = Array.from({ length: 7 }, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            let day = date.getDay();
-            let index = day === 0 ? 6 : day - 1;
-            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-            data[index][tipoIdx] += 1;
+            const index = (date.getDay() + 6) % 7; // 0=Lun ... 6=Dom
+            data[index][getTipoIdx(r)] += 1;
           }
         });
+
       } else if (timeFilter === 'Mes') {
+        // Filtrar solo el mes actual
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        });
+
         labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        data = Array.from({length: 4}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        data = Array.from({ length: 4 }, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            let week = Math.min(Math.floor(date.getDate() / 7), 3);
-            let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-            data[week][tipoIdx] += 1;
+            const week = Math.min(Math.floor((date.getDate() - 1) / 7), 3);
+            data[week][getTipoIdx(r)] += 1;
           }
         });
+
       } else {
-        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
-        data = Array.from({length: 6}, () => [0,0,0]);
-        list.forEach(r => {
-          const dateStr = r.fechaTurno || r.fechaReserva;
+        // Filtrar solo el año actual
+        filteredList = list.filter(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
+          if (!dateStr) return false;
+          return new Date(dateStr).getFullYear() === now.getFullYear();
+        });
+
+        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        data = Array.from({ length: 12 }, () => [0, 0, 0]);
+        filteredList.forEach(r => {
+          const dateStr = r.fecha || r.fechaTurno || r.fechaReserva;
           if (dateStr) {
             const date = new Date(dateStr);
-            if(date.getMonth() < 6) {
-              let tipoIdx = r.cancha?.nombre?.includes('11') ? 2 : (r.cancha?.nombre?.includes('7') ? 1 : 0);
-              data[date.getMonth()][tipoIdx] += 1;
-            }
+            data[date.getMonth()][getTipoIdx(r)] += 1;
           }
         });
       }
-      setRealReservas({ total, data, labels, legend });
+
+      // Total KPI = reservas del período seleccionado (no total histórico)
+      setRealReservas({ total: filteredList.length, data, labels, legend });
     } catch (e) { console.error(e); }
   };
 
@@ -344,14 +382,33 @@ export default function ReportesScreen({ route, navigation }) {
   });
 
   const chartConfig = {
-    backgroundGradientFrom: "#fff",
-    backgroundGradientTo: "#fff",
-    color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-    strokeWidth: 2,
-    barPercentage: 0.6,
-    useShadowColorFromDataset: false,
-    propsForDots: { r: "5", strokeWidth: "2", stroke: "#ffb300" }
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    fillShadowGradientFrom: "#10b981",
+    fillShadowGradientTo: "#ffffff",
+    fillShadowGradientFromOpacity: 0.4,
+    fillShadowGradientToOpacity: 0.05,
+    useShadowColorFromDataset: true,
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
+    strokeWidth: 4,
+    barPercentage: 0.85,
+    propsForDots: {
+      r: "7",
+      strokeWidth: "3",
+      stroke: "#ffffff"
+    },
+    propsForLabels: {
+      fontSize: 14,
+      fontWeight: "800",
+      fill: "#334155"
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: "4",
+      stroke: "#e2e8f0",
+      strokeWidth: 1
+    }
   };
 
   const renderChart = () => {
@@ -359,15 +416,29 @@ export default function ReportesScreen({ route, navigation }) {
       return (
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Flujo de Ingresos ({timeFilter})</Text>
-          <BarChart
-            data={{ labels: realIngresos.labels, datasets: [{ data: realIngresos.datosSemanales }] }}
+          <LineChart
+            data={{
+              labels: realIngresos.labels,
+              datasets: [{
+                data: realIngresos.datosSemanales,
+                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                strokeWidth: 4
+              }]
+            }}
             width={chartWidth}
-            height={250}
+            height={360}
             yAxisLabel="$"
-            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(0, 155, 58, ${opacity})`}}
+            chartConfig={chartConfig}
             style={styles.chartStyle}
-            showValuesOnTopOfBars={true}
+            bezier
+            fromZero
+            onDataPointClick={({ value, x, y }) => setTooltip({ x, y, value: `$${value.toLocaleString('es-AR')}` })}
           />
+          {tooltip && (
+            <View style={[styles.tooltip, { left: tooltip.x - 40, top: tooltip.y - 45 }]}>
+              <Text style={styles.tooltipText}>{tooltip.value}</Text>
+            </View>
+          )}
         </View>
       );
     }
@@ -375,18 +446,61 @@ export default function ReportesScreen({ route, navigation }) {
       return (
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Distribución de Reservas ({timeFilter})</Text>
-          <StackedBarChart
+          <LineChart
             data={{
               labels: realReservas.labels,
-              legend: realReservas.legend,
-              data: realReservas.data,
-              barColors: ["#10b981", "#ffb300", "#ec4899"]
+              datasets: [
+                {
+                  data: realReservas.data.map(item => item[0]), // F5
+                  color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                  strokeWidth: 4
+                },
+                {
+                  data: realReservas.data.map(item => item[1]), // F7
+                  color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
+                  strokeWidth: 4
+                },
+                {
+                  data: realReservas.data.map(item => item[2]), // F11
+                  color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+                  strokeWidth: 4
+                }
+              ]
             }}
             width={chartWidth}
-            height={250}
+            height={360}
             chartConfig={chartConfig}
+            bezier
+            fromZero
             style={styles.chartStyle}
+            onDataPointClick={({ value, dataset, x, y }) => {
+              const colorStr = dataset.color(1);
+              let label = "Reservas";
+              if (colorStr.includes("16, 185, 129")) label = "Fútbol 5";
+              if (colorStr.includes("245, 158, 11")) label = "Fútbol 7";
+              if (colorStr.includes("99, 102, 241")) label = "Fútbol 11";
+              setTooltip({ x, y, value: `${value} ${label}` });
+            }}
           />
+          {tooltip && (
+            <View style={[styles.tooltip, { left: tooltip.x - 50, top: tooltip.y - 50 }]}>
+              <Text style={styles.tooltipText}>{tooltip.value}</Text>
+            </View>
+          )}
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#10b981' }]} />
+              <Text style={styles.legendLabel}>Fútbol 5</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#f59e0b' }]} />
+              <Text style={styles.legendLabel}>Fútbol 7</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#6366f1' }]} />
+              <Text style={styles.legendLabel}>Fútbol 11</Text>
+            </View>
+          </View>
         </View>
       );
     }
@@ -396,16 +510,17 @@ export default function ReportesScreen({ route, navigation }) {
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Tendencia de Asistencia (%)</Text>
           <LineChart
-            data={{ labels: asistenciaData.map(c => c.nombre.substring(0,5)), datasets: [{ data: asistData.length ? asistData : [0] }] }}
+            data={{ labels: asistenciaData.map(c => c.nombre.substring(0, 5)), datasets: [{ data: asistData.length ? asistData : [0] }] }}
             width={chartWidth}
             height={250}
-            chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(255, 179, 0, ${opacity})`}}
+            chartConfig={{ ...chartConfig, color: (opacity = 1) => `rgba(255, 179, 0, ${opacity})` }}
             bezier
+            fromZero
             style={styles.chartStyle}
             onDataPointClick={({ value, x, y }) => setTooltip({ x, y, value: `${Math.round(value)}%` })}
           />
           {tooltip && (
-            <View style={[styles.tooltip, { left: tooltip.x - 20, top: tooltip.y - 30 }]}>
+            <View style={[styles.tooltip, { left: tooltip.x - 20, top: tooltip.y - 45 }]}>
               <Text style={styles.tooltipText}>{tooltip.value}</Text>
             </View>
           )}
@@ -421,15 +536,15 @@ export default function ReportesScreen({ route, navigation }) {
 
       <View style={[styles.selectorGrid, isMobile && styles.selectorGridMobile]}>
         {Object.keys(estadisticas).map((key) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={key}
-            style={[styles.selBtn, isMobile && styles.selBtnMobile, reporteActivo === key && { backgroundColor: estadisticas[key].color }]} 
+            style={[styles.selBtn, isMobile && styles.selBtnMobile, reporteActivo === key && { backgroundColor: estadisticas[key].color }]}
             onPress={() => setReporteActivo(key)}
           >
-            <MaterialCommunityIcons 
-              name={estadisticas[key].icon} 
-              size={24} 
-              color={reporteActivo === key ? "#fff" : estadisticas[key].color} 
+            <MaterialCommunityIcons
+              name={estadisticas[key].icon}
+              size={24}
+              color={reporteActivo === key ? "#fff" : estadisticas[key].color}
             />
             <Text style={[styles.selText, reporteActivo === key && { color: "#fff" }]}>{key}</Text>
           </TouchableOpacity>
@@ -469,21 +584,21 @@ export default function ReportesScreen({ route, navigation }) {
                     </View>
                   </View>
                   <View style={[styles.historyActionRow, isMobile && { width: '100%', justifyContent: 'flex-end' }]}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#3b82f6' }, isMobile && { flex: 1 }]}
                       onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
                     >
                       <MaterialCommunityIcons name="eye" size={18} color="#fff" />
                       {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#009b3a' }, isMobile && { flex: 1 }]}
                       onPress={() => downloadPdf(rep)}
                     >
                       <MaterialCommunityIcons name="download" size={18} color="#fff" />
                       {!isMobile && <Text style={styles.actionButtonText}>Descargar</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#ffb300' }, isMobile && { flex: 1 }]}
                       onPress={() => printHtml(rep.html)}
                     >
@@ -504,21 +619,21 @@ export default function ReportesScreen({ route, navigation }) {
                     </View>
                   </View>
                   <View style={[styles.historyActionRow, isMobile && { width: '100%', justifyContent: 'flex-end' }]}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#3b82f6' }, isMobile && { flex: 1 }]}
                       onPress={() => { setReporteSeleccionado(rep); setModalVerVisible(true); }}
                     >
                       <MaterialCommunityIcons name="eye" size={18} color="#fff" />
                       {!isMobile && <Text style={styles.actionButtonText}>Ver</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#009b3a' }, isMobile && { flex: 1 }]}
                       onPress={() => downloadPdf(rep)}
                     >
                       <MaterialCommunityIcons name="download" size={18} color="#fff" />
                       {!isMobile && <Text style={styles.actionButtonText}>Descargar</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: '#ffb300' }, isMobile && { flex: 1 }]}
                       onPress={() => printHtml(rep.html)}
                     >
@@ -595,7 +710,7 @@ export default function ReportesScreen({ route, navigation }) {
 
         ) : (
           <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
-            
+
             <View style={styles.filterRow}>
               {['Semana', 'Mes', 'Año'].map(f => (
                 <TouchableOpacity key={f} style={[styles.filterBtn, timeFilter === f && styles.filterBtnActive]} onPress={() => setTimeFilter(f)}>
@@ -614,23 +729,23 @@ export default function ReportesScreen({ route, navigation }) {
             </View>
 
             {renderChart()}
-            
+
             <Text style={styles.description}>{dataActual.descripcion}</Text>
-            <View style={{ height: 100 }} /> 
+            <View style={{ height: 100 }} />
           </ScrollView>
         )}
 
         {reporteActivo !== 'Canchas' && reporteActivo !== 'Usuarios' && (
           <View style={styles.recuadroRojoAcciones}>
-            <TouchableOpacity 
-              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+            <TouchableOpacity
+              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]}
               onPress={handlePrint}
             >
               <MaterialCommunityIcons name="printer" size={24} color="#000" />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]} 
+
+            <TouchableOpacity
+              style={[styles.btnFlotante, { backgroundColor: '#ffb300' }]}
               onPress={handleExportExcel}
             >
               <MaterialCommunityIcons name="microsoft-excel" size={24} color="#000" />
@@ -651,9 +766,9 @@ export default function ReportesScreen({ route, navigation }) {
 
             <View style={{ flex: 1, marginTop: 10, backgroundColor: '#f8fafc', borderRadius: 8, overflow: 'hidden' }}>
               {Platform.OS === 'web' && reporteSeleccionado?.html ? (
-                <iframe 
-                  srcDoc={reporteSeleccionado.html} 
-                  style={{ width: '100%', height: '100%', border: 'none' }} 
+                <iframe
+                  srcDoc={reporteSeleccionado.html}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
                   title="Reporte PDF"
                 />
               ) : (
@@ -679,7 +794,7 @@ const styles = StyleSheet.create({
   selBtnMobile: { flexBasis: '47%', marginBottom: 8, flex: 0 },
   selText: { fontSize: 10, fontWeight: '800', color: '#1e293b', marginTop: 5 },
   mainVisualArea: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 25, padding: 20, position: 'relative', overflow: 'hidden' },
-  kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 20, borderRadius: 20, alignItems: 'center', marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 5 },
+  kpiCard: { backgroundColor: '#fff', flexDirection: 'row', padding: 20, borderRadius: 20, alignItems: 'center', marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 5 },
   kpiLabel: { fontSize: 10, fontWeight: '900', color: '#64748b' },
   kpiValue: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
   kpiSub: { fontSize: 11, color: '#009b3a', fontWeight: '700' },
@@ -688,12 +803,34 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: '#009b3a', borderColor: '#009b3a' },
   filterText: { color: '#64748b', fontSize: 12, fontWeight: '800' },
   filterTextActive: { color: '#fff' },
-  chartCard: { backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
+  chartCard: { backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 5, position: 'relative' },
   chartTitle: { color: '#1e293b', fontWeight: '900', marginBottom: 15, fontSize: 15 },
   chartStyle: { borderRadius: 16, marginTop: 10 },
   tooltip: { position: 'absolute', backgroundColor: '#1e293b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, elevation: 5 },
   tooltipText: { color: '#fff', fontWeight: '900', fontSize: 13 },
   description: { color: '#cbd5e1', fontSize: 12, marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 20
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  legendColor: {
+    width: 14,
+    height: 14,
+    borderRadius: 7
+  },
+  legendLabel: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 13
+  },
 
   recuadroRojoAcciones: {
     position: 'absolute',

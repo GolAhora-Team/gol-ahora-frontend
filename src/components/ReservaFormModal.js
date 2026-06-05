@@ -807,8 +807,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       reservaId = newReservaResponse?.id || newReservaResponse?.Id;
     }
     
-    await reportHistoryService.saveReporte(data.html, data.fileName);
+    // Guardar comprobante en historial (no crítico — no detiene el flujo)
+    try {
+      await reportHistoryService.saveReporte(data.html, data.fileName);
+    } catch (e) {
+      console.warn("No se pudo guardar el historial del reporte:", e);
+    }
 
+    // Crear Factura y Pago asociados (no crítico — la reserva ya existe)
     try {
       const facturaPayload = {
         fechaEmision: data.fecha,
@@ -823,10 +829,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         // Actualizar Reserva con FacturaId
         await reservaService.update(reservaId, { ...data.reservaPayload, facturaId: facturaId });
 
+        // Efectivo=1, Transferencia=2, MercadoPago=3
+        const metodoNum = data.metodoPago === 'EFECTIVO' ? 1
+          : data.metodoPago === 'TRANSFERENCIA' ? 2
+          : 3;
         const pagoPayload = {
           fechaPago: data.fecha,
           monto: data.montoFinal,
-          metodo: data.metodoPago === 'EFECTIVO' ? 1 : 3, // Efectivo=1, MercadoPago(Transferencia)=3
+          metodo: metodoNum,
           estado: estadoPago, // 1=Pendiente, 2=Pagado
           facturaId: facturaId
         };
@@ -834,7 +844,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         createdPagoId = pagoResp?.id || pagoResp?.Id;
       }
     } catch (e) {
-      console.error("Error al registrar factura/pago:", e);
+      // La reserva ya está creada; sólo loguear advertencia sin lanzar error al usuario
+      console.warn("Advertencia: no se pudo crear la factura/pago asociados a la reserva:", e);
     }
     
     return { reservaId, pagoId: createdPagoId, facturaId: createdFacturaId };
@@ -1030,15 +1041,24 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         );
         
         setQrUrl(mpResponse.initPoint);
-        if (mpResponse.externalReference) {
-          setExternalReference(mpResponse.externalReference);
+        // Usar externalReference de la respuesta o el reservaId como fallback garantizado
+        const refForPolling = mpResponse.externalReference
+          || (reservaId ? reservaId.toString() : null);
+        if (refForPolling) {
+          setExternalReference(refForPolling);
         }
-        // Save the IDs so we can update the payment later if needed
+        // Guardar IDs para actualizar el pago tras confirmar
         setPendingAdminReservaPayload({ ...payloadBase, reservaId, pagoId });
         setQrModalVisible(true);
         setIsLoading(false);
         return;
       }
+      // ─── FLUJO EFECTIVO / TRANSFERENCIA ───────────────────────────────────────
+      if (metodoPago === 'EFECTIVO' || metodoPago === 'TRANSFERENCIA') {
+        await processAdminReservation({ ...payloadBase });
+        return;
+      }
+
     } catch (error) {
       const msg = error.message || 'No se pudo registrar la reserva.';
       setErrorModalMessage(msg);
