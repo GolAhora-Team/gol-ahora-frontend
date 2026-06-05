@@ -29,7 +29,7 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
         precioF7: parseFloat(precioF7) || 0,
         precioF11: parseFloat(precioF11) || 0
       };
-      
+
       if (payload.precioF5 === 0 && payload.precioF7 === 0 && payload.precioF11 === 0) {
         Alert.alert("Aviso", "No has ingresado ningún precio para actualizar.");
         setSaving(false);
@@ -61,17 +61,18 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
               <MaterialCommunityIcons name="close" size={24} color="#64748b" />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.body}>
             <View style={styles.infoBox}>
               <MaterialCommunityIcons name="information-outline" size={20} color="#3b82f6" />
               <Text style={styles.infoText}>
-                Ingresá el nuevo valor base. Se actualizarán todas las canchas automáticamente.
+                Ingresá el nuevo valor base por hora.
+
               </Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Fútbol 5</Text>
+              <Text style={styles.label}>Precio ($) de Fútbol 5</Text>
               <TextInput
                 style={styles.input}
                 placeholder="35000"
@@ -82,7 +83,7 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Fútbol 7</Text>
+              <Text style={styles.label}>Precio ($) de Fútbol 7</Text>
               <TextInput
                 style={styles.input}
                 placeholder="65000"
@@ -93,7 +94,7 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated, canch
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Fútbol 11</Text>
+              <Text style={styles.label}>Precio ($) de Fútbol 11</Text>
               <TextInput
                 style={styles.input}
                 placeholder="120000"
