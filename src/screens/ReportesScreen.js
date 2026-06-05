@@ -239,13 +239,15 @@ export default function ReportesScreen({ route, navigation }) {
         const alumnosStats = alumnos.map(alumno => {
           let presentes = 0;
           let inasistencias = 0;
-          let totalClases = dates.length;
           dates.forEach(fecha => {
             const reg = allRecords[fecha];
             const found = reg?.find(r => r.id === alumno.id);
-            if (found && found.estado === true) presentes++;
+            if (found) {
+              if (found.estado === true) presentes++;
+              else if (found.estado === false) inasistencias++;
+            }
           });
-          inasistencias = totalClases - presentes;
+          let totalClases = presentes + inasistencias;
           const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : 0;
           return {
             id: alumno.id,
