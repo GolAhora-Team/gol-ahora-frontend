@@ -511,6 +511,19 @@ export default function FacturacionScreen({ route, navigation }) {
     return rows;
   };
 
+  const filteredFacturas = facturasOficiales.filter(f => 
+    (f.fileName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (f.nombreCliente || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredReservas = comprobantesReservas.filter(c => 
+    (c.fileName || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredMembresias = comprobantesMembresias.filter(c => 
+    (c.fileName || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
       <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -550,13 +563,24 @@ export default function FacturacionScreen({ route, navigation }) {
           <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes de Membresias</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.searchContainer}>
+        <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar comprobante o cliente..."
+          placeholderTextColor="#94a3b8"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
       
       <ScrollView showsVerticalScrollIndicator={true}>
         {activeTab === 'FACTURAS' ? (
           <>
-            {facturasOficiales.length > 0 && (
+            {filteredFacturas.length > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{facturasOficiales.length} facturas</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filteredFacturas.length} facturas</Text>
                 <TouchableOpacity onPress={() => setSortDesc(!sortDesc)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}>
                   <MaterialCommunityIcons name={sortDesc ? "sort-calendar-descending" : "sort-calendar-ascending"} size={16} color="#fff" />
                   <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 }}>
@@ -565,13 +589,13 @@ export default function FacturacionScreen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             )}
-            {facturasOficiales.length === 0 ? (
+            {filteredFacturas.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="receipt" size={50} color="#94a3b8" />
-                <Text style={styles.emptyText}>No hay facturas emitidas.</Text>
+                <Text style={styles.emptyText}>No se encontraron facturas.</Text>
               </View>
             ) : (
-              [...facturasOficiales].sort((a, b) => {
+              [...filteredFacturas].sort((a, b) => {
                 return sortDesc ? b.id - a.id : a.id - b.id;
               }).map(comp => (
                 <View key={comp.id} style={styles.comprobanteCard}>
@@ -624,9 +648,9 @@ export default function FacturacionScreen({ route, navigation }) {
           </>
         ) : activeTab === 'COMPROBANTES' ? (
           <>
-            {comprobantesReservas.length > 0 && (
+            {filteredReservas.length > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{comprobantesReservas.length} comprobantes</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filteredReservas.length} comprobantes</Text>
                 <TouchableOpacity onPress={() => setSortDesc(!sortDesc)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}>
                   <MaterialCommunityIcons name={sortDesc ? "sort-calendar-descending" : "sort-calendar-ascending"} size={16} color="#fff" />
                   <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 }}>
@@ -635,13 +659,13 @@ export default function FacturacionScreen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             )}
-            {comprobantesReservas.length === 0 ? (
+            {filteredReservas.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="file-document-outline" size={50} color="#94a3b8" />
-                <Text style={styles.emptyText}>No hay comprobantes de reservas.</Text>
+                <Text style={styles.emptyText}>No se encontraron comprobantes de reservas.</Text>
               </View>
             ) : (
-              [...comprobantesReservas].sort((a, b) => {
+              [...filteredReservas].sort((a, b) => {
                 const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
                 const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
                 return sortDesc ? d2 - d1 : d1 - d2;
@@ -685,9 +709,9 @@ export default function FacturacionScreen({ route, navigation }) {
           </>
         ) : activeTab === 'MEMBRESIAS' ? (
           <>
-            {comprobantesMembresias.length > 0 && (
+            {filteredMembresias.length > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{comprobantesMembresias.length} comprobantes</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filteredMembresias.length} comprobantes</Text>
                 <TouchableOpacity onPress={() => setSortDesc(!sortDesc)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}>
                   <MaterialCommunityIcons name={sortDesc ? "sort-calendar-descending" : "sort-calendar-ascending"} size={16} color="#fff" />
                   <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 }}>
@@ -696,13 +720,13 @@ export default function FacturacionScreen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             )}
-            {comprobantesMembresias.length === 0 ? (
+            {filteredMembresias.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="file-document-outline" size={50} color="#94a3b8" />
-                <Text style={styles.emptyText}>No hay comprobantes de membresías.</Text>
+                <Text style={styles.emptyText}>No se encontraron comprobantes de membresías.</Text>
               </View>
             ) : (
-              [...comprobantesMembresias].sort((a, b) => {
+              [...filteredMembresias].sort((a, b) => {
                 const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
                 const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
                 return sortDesc ? d2 - d1 : d1 - d2;
@@ -912,6 +936,10 @@ export default function FacturacionScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 15 },
+
+  // Search
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10, marginBottom: 15 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
 
   // Tabs
   tabRow: { flexDirection: 'row', marginBottom: 18, gap: 8 },
