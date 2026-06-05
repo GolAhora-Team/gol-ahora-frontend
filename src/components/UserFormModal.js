@@ -66,20 +66,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   };
 
   const topObrasSociales = [
-    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
-    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
-    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud", 
+    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé",
+    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint",
+    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud",
     "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
   ];
 
   const topLocalidades = [
-    "Florencio Varela", "Hudson", "Ranelagh", "Cruce Varela", "Quilmes", 
-    "Ezpeleta", "Berazategui", "Bosques", "Sourigues", "Plátanos", 
-    "Gutiérrez", "Villa España", "Bernal", "Don Bosco", "Wilde", 
+    "Florencio Varela", "Hudson", "Ranelagh", "Cruce Varela", "Quilmes",
+    "Ezpeleta", "Berazategui", "Bosques", "Sourigues", "Plátanos",
+    "Gutiérrez", "Villa España", "Bernal", "Don Bosco", "Wilde",
     "Adrogué", "Temperley", "Lomas de Zamora", "Lanús", "Avellaneda"
   ];
 
-  const filteredObrasSociales = formData.obraSocial 
+  const filteredObrasSociales = formData.obraSocial
     ? topObrasSociales.filter(os => os.toLowerCase().includes(formData.obraSocial.toLowerCase()))
     : topObrasSociales;
 
@@ -101,7 +101,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           return;
         }
         const fileName = file.name || (file.uri ? file.uri.split('/').pop() : 'documento.pdf');
-        
+
         if (Platform.OS === 'web') {
           const reader = new FileReader();
           reader.onload = () => {
@@ -188,7 +188,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         clienteId: formData.id
       };
       await facturaService.create(payload);
-      
+
       const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
       const updatedPayload = { ...formData, fechaNacimiento: dateStr, esSocioActivo: true };
       await clienteService.update(formData.id, updatedPayload);
@@ -224,20 +224,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {/* 1. IDENTIDAD */}
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>1. IDENTIDAD</Text>
-              <CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({...formData, dni: v.replace(/[^0-9]/g, '')})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+              <CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({ ...formData, dni: v.replace(/[^0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
               <View style={styles.row}>
-                <View style={{flex: 1}}><CustomInput label="NOMBRE" value={formData.nombre} onChangeText={v => setFormData({...formData, nombre: v.replace(/[0-9]/g, '')})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
-                <View style={{flex: 1, marginLeft: 10}}><CustomInput label="APELLIDO" value={formData.apellido} onChangeText={v => setFormData({...formData, apellido: v.replace(/[0-9]/g, '')})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
+                <View style={{ flex: 1 }}><CustomInput label="NOMBRE" value={formData.nombre} onChangeText={v => setFormData({ ...formData, nombre: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
+                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="APELLIDO" value={formData.apellido} onChangeText={v => setFormData({ ...formData, apellido: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
               </View>
 
               <View style={styles.dateFullRow}>
                 <Text style={styles.greenLabelBold}>FECHA DE NACIMIENTO</Text>
-                <TouchableOpacity 
-                  style={{flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 14, paddingHorizontal: 15, backgroundColor: '#f8fafc', height: 50}}
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 14, paddingHorizontal: 15, backgroundColor: '#f8fafc', height: 50 }}
                   onPress={() => setCalendarVisible(true)}
                   activeOpacity={0.7}
                 >
-                  <MaterialCommunityIcons name="calendar" size={20} color="#009b3a" style={{marginRight: 10}} />
+                  <MaterialCommunityIcons name="calendar" size={20} color="#009b3a" style={{ marginRight: 10 }} />
                   <Text style={{ color: formData.fechaNacimiento ? '#009b3a' : '#94a3b8', fontSize: 16, fontWeight: '900', flex: 1 }}>
                     {formData.fechaNacimiento ? formatDateDisplay(formData.fechaNacimiento) : "DD-MM-YYYY"}
                   </Text>
@@ -247,7 +247,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <Text style={styles.greenLabelBold}>GÉNERO</Text>
               <View style={styles.genderRow}>
                 {['Masculino', 'Femenino'].map(g => (
-                  <TouchableOpacity key={g} onPress={() => setFormData({...formData, genero: g})} style={[styles.genderBtn, formData.genero === g && styles.activeGreenBtn]}>
+                  <TouchableOpacity key={g} onPress={() => setFormData({ ...formData, genero: g })} style={[styles.genderBtn, formData.genero === g && styles.activeGreenBtn]}>
                     <Text style={[styles.btnText, formData.genero === g ? styles.whiteText : styles.greenText]}>{g}</Text>
                   </TouchableOpacity>
                 ))}
@@ -264,20 +264,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                   const editable = isRoleEditable(r);
 
                   return (
-                    <TouchableOpacity 
-                      key={r} 
+                    <TouchableOpacity
+                      key={r}
                       style={[
-                        styles.roleBtn, 
+                        styles.roleBtn,
                         formData.role === r && styles.activeGreenBtn,
                         !editable && formData.role !== r && { opacity: 0.4 }
-                      ]} 
+                      ]}
                       onPress={() => {
-                        if (editable) setFormData({...formData, role: r});
+                        if (editable) setFormData({ ...formData, role: r });
                       }}
                       disabled={!editable}
                     >
                       <MaterialCommunityIcons name={rolesIcons[r]} size={20} color={formData.role === r ? '#fff' : (!editable ? '#94a3b8' : '#009b3a')} />
-                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : (!editable ? {color: '#94a3b8'} : styles.greenText)]}>{r}</Text>
+                      <Text style={[styles.btnText, formData.role === r ? styles.whiteText : (!editable ? { color: '#94a3b8' } : styles.greenText)]}>{r}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -288,73 +288,73 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {formData.role === 'CLIENTE' && (
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS CLIENTE</Text>
-                
-                <TouchableOpacity 
-                  style={styles.checkboxContainer} 
-                  onPress={() => setFormData({...formData, tieneObraSocial: !formData.tieneObraSocial, obraSocial: !formData.tieneObraSocial ? formData.obraSocial : ''})}
+
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setFormData({ ...formData, tieneObraSocial: !formData.tieneObraSocial, obraSocial: !formData.tieneObraSocial ? formData.obraSocial : '' })}
                 >
-                  <MaterialCommunityIcons 
-                    name={formData.tieneObraSocial ? "checkbox-marked" : "checkbox-blank-outline"} 
-                    size={24} 
-                    color="#009b3a" 
+                  <MaterialCommunityIcons
+                    name={formData.tieneObraSocial ? "checkbox-marked" : "checkbox-blank-outline"}
+                    size={24}
+                    color="#009b3a"
                   />
                   <Text style={styles.checkboxLabel}>¿Tiene Obra Social / Prepaga?</Text>
                 </TouchableOpacity>
 
                 {formData.tieneObraSocial && (
-                
-                <View style={{ zIndex: 10 }}>
-                  <Text style={styles.greenLabelBold}>OBRA SOCIAL</Text>
-                  <TextInput
-                    style={styles.cleanInput}
-                    value={formData.obraSocial}
-                    onChangeText={v => {
-                      setFormData({...formData, obraSocial: v});
-                      setShowObraSocialSuggestions(true);
-                    }}
-                    onFocus={() => setShowObraSocialSuggestions(true)}
-                    placeholder="Ej: OSDE, Swiss Medical..."
-                    placeholderTextColor="#94a3b8"
-                  />
-                  
-                  {showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
-                    <View style={styles.suggestionsContainer}>
-                      <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
-                        {filteredObrasSociales.map((os, index) => (
-                          <TouchableOpacity 
-                            key={index} 
-                            style={styles.suggestionItem}
-                            onPress={() => {
-                              setFormData({...formData, obraSocial: os});
-                              setShowObraSocialSuggestions(false);
-                            }}
-                          >
-                            <Text style={styles.suggestionText}>{os}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-                </View>
+
+                  <View style={{ zIndex: 10 }}>
+                    <Text style={styles.greenLabelBold}>OBRA SOCIAL</Text>
+                    <TextInput
+                      style={styles.cleanInput}
+                      value={formData.obraSocial}
+                      onChangeText={v => {
+                        setFormData({ ...formData, obraSocial: v });
+                        setShowObraSocialSuggestions(true);
+                      }}
+                      onFocus={() => setShowObraSocialSuggestions(true)}
+                      placeholder="Ej: OSDE, Swiss Medical..."
+                      placeholderTextColor="#94a3b8"
+                    />
+
+                    {showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                          {filteredObrasSociales.map((os, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={styles.suggestionItem}
+                              onPress={() => {
+                                setFormData({ ...formData, obraSocial: os });
+                                setShowObraSocialSuggestions(false);
+                              }}
+                            >
+                              <Text style={styles.suggestionText}>{os}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
                 )}
 
                 <View style={styles.statusContainer}>
-                  <TouchableOpacity style={[styles.bigStatusBtn, formData.esSocioActivo ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({...formData, esSocioActivo: !formData.esSocioActivo})}>
+                  <TouchableOpacity style={[styles.bigStatusBtn, formData.esSocioActivo ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({ ...formData, esSocioActivo: !formData.esSocioActivo })}>
                     <View style={[styles.iconCircle, { backgroundColor: formData.esSocioActivo ? '#fff' : '#e2e8f0' }]}><MaterialCommunityIcons name={formData.esSocioActivo ? "check-bold" : "close"} size={18} color={formData.esSocioActivo ? "#009b3a" : "#94a3b8"} /></View>
                     <Text style={[styles.statusText, formData.esSocioActivo ? styles.textWhite : styles.textGreen]}>SOCIO ACTIVO</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.bigStatusBtn, formData.aptoFisico ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({...formData, aptoFisico: !formData.aptoFisico})}>
+                  <TouchableOpacity style={[styles.bigStatusBtn, formData.aptoFisico ? styles.statusBtnOn : styles.statusBtnOff]} onPress={() => setFormData({ ...formData, aptoFisico: !formData.aptoFisico })}>
                     <View style={[styles.iconCircle, { backgroundColor: formData.aptoFisico ? '#fff' : '#e2e8f0' }]}><MaterialCommunityIcons name={formData.aptoFisico ? "heart-flash" : "heart-outline"} size={18} color={formData.aptoFisico ? "#009b3a" : "#94a3b8"} /></View>
                     <Text style={[styles.statusText, formData.aptoFisico ? styles.textWhite : styles.textGreen]}>APTO FÍSICO</Text>
                   </TouchableOpacity>
                 </View>
 
-                  {(!formData.esSocioActivo && isEditing) && (
-                    <TouchableOpacity style={styles.payBtn} onPress={handleCobroBoton}>
-                      <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
-                      <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
-                    </TouchableOpacity>
-                  )}
+                {(!formData.esSocioActivo && isEditing) && (
+                  <TouchableOpacity style={styles.payBtn} onPress={handleCobroBoton}>
+                    <MaterialCommunityIcons name="cash-register" size={20} color="#000" />
+                    <Text style={styles.payBtnText}>COBRAR MEMBRESÍA PRESENCIAL ($2000)</Text>
+                  </TouchableOpacity>
+                )}
 
                 {formData.aptoFisico && (
                   <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0' }}>
@@ -367,8 +367,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                         </Text>
                       </TouchableOpacity>
                       {(formData.tieneAptoMedicoArchivo || formData.id) && formData.aptoMedicoFileName === 'Apto Médico Guardado' && (
-                        <TouchableOpacity 
-                          style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]} 
+                        <TouchableOpacity
+                          style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15 }]}
                           onPress={() => window.open(`${API_BASE_URL}/Clientes/${formData.id}/apto-medico/descargar`, '_blank')}
                         >
                           <MaterialCommunityIcons name="eye" size={24} color="#009b3a" />
@@ -400,9 +400,9 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {formData.role === 'PROFE' && (
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>DATOS ESPECÍFICOS PROFESOR</Text>
-                <CustomInput label="CERTIFICACIÓN / TÍTULO" placeholder="Ej: Profesorado Educación Física" value={formData.certificacion} onChangeText={v => setFormData({...formData, certificacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
-                <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({...formData, especializacion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
-                
+                <CustomInput label="CERTIFICACIÓN / TÍTULO" placeholder="Ej: Profesorado Educación Física" value={formData.certificacion} onChangeText={v => setFormData({ ...formData, certificacion: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
+                <CustomInput label="ESPECIALIZACIÓN" placeholder="Ej: Futbol Infantil" value={formData.especializacion} onChangeText={v => setFormData({ ...formData, especializacion: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
+
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                   <Text style={[styles.greenLabelBold, { marginBottom: 0 }]}>CERTIFICADOS PROFESIONALES (PDF, MÁX 4MB)</Text>
                   <TouchableOpacity style={styles.addCertBtn} onPress={handleAddCertificado}>
@@ -410,7 +410,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                     <Text style={styles.addCertBtnText}>AGREGAR</Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 {formData.certificados && formData.certificados.filter(c => !c.eliminarCertificado).map((cert, index) => {
                   const realIndex = formData.certificados.findIndex(c => c === cert);
                   return (
@@ -423,8 +423,8 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                           </Text>
                         </TouchableOpacity>
                         {cert.tieneCertificado && !cert.fileUri && cert.id && (
-                          <TouchableOpacity 
-                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]} 
+                          <TouchableOpacity
+                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]}
                             onPress={() => {
                               if (Platform.OS === 'web') {
                                 window.open(`${API_BASE_URL}/Profesor/${formData.id}/certificado/${cert.id}/descargar`, '_blank');
@@ -432,20 +432,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                             }}
                           >
                             <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
-                            <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
+                            <Text style={[styles.fileBtnText, { color: '#ef4444' }]}></Text>
                           </TouchableOpacity>
                         )}
                         {cert.fileUri && Platform.OS === 'web' && (
-                          <TouchableOpacity 
-                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]} 
+                          <TouchableOpacity
+                            style={[styles.fileBtn, { backgroundColor: '#f1f5f9', flex: 0, paddingHorizontal: 15, marginBottom: 0 }]}
                             onPress={() => window.open(cert.fileUri, '_blank')}
                           >
                             <MaterialCommunityIcons name="eye" size={24} color="#ef4444" />
                             <Text style={[styles.fileBtnText, { color: '#ef4444' }]}>VER</Text>
                           </TouchableOpacity>
                         )}
-                        <TouchableOpacity 
-                          style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginBottom: 0, alignSelf: 'center' }]} 
+                        <TouchableOpacity
+                          style={[styles.fileBtn, { backgroundColor: '#fee2e2', flex: 0, paddingHorizontal: 15, borderColor: '#ef4444', marginBottom: 0, alignSelf: 'center' }]}
                           onPress={() => handleRemoveCertificado(realIndex)}
                         >
                           <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
@@ -462,11 +462,11 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                             <Text style={{ color: cert.certFechaInicio ? '#1e293b' : '#94a3b8', fontWeight: '800' }}>{cert.certFechaInicio ? formatDateDisplay(cert.certFechaInicio) : "DD-MM-YYYY"}</Text>
                           </TouchableOpacity>
                         </View>
-                        
+
                         <View style={{ flex: 1, minWidth: 140 }}>
                           <Text style={[styles.greenLabelBold, cert.sinCaducidad && { color: '#cbd5e1' }]}>FECHA FIN</Text>
-                          <TouchableOpacity 
-                            style={[styles.cleanInput, cert.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]} 
+                          <TouchableOpacity
+                            style={[styles.cleanInput, cert.sinCaducidad && { backgroundColor: '#f1f5f9' }, { height: 48, justifyContent: 'center' }]}
                             onPress={() => {
                               if (!cert.sinCaducidad) {
                                 setCalendarCertData({ index: realIndex, field: 'certFechaFin' });
@@ -500,20 +500,20 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {/* 4. CONTACTO */}
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>3. CONTACTO Y LOCALIZACIÓN</Text>
-              <CustomInput label="EMAIL" value={formData.email} onChangeText={v => setFormData({...formData, email: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+              <CustomInput label="EMAIL" value={formData.email} onChangeText={v => setFormData({ ...formData, email: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
               <View style={styles.row}>
-                <View style={{flex: 1.2}}><CustomInput label="TELÉFONO" value={formData.telefono} onChangeText={v => setFormData({...formData, telefono: v.replace(/[^0-9]/g, '')})} keyboardType="phone-pad" containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
-                <View style={{flex: 1, marginLeft: 10}}><CustomInput label="C.P." value={formData.codigoPostal} onChangeText={v => setFormData({...formData, codigoPostal: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
+                <View style={{ flex: 1.2 }}><CustomInput label="TELÉFONO" value={formData.telefono} onChangeText={v => setFormData({ ...formData, telefono: v.replace(/[^0-9]/g, '') })} keyboardType="phone-pad" containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
+                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="C.P." value={formData.codigoPostal} onChangeText={v => setFormData({ ...formData, codigoPostal: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
               </View>
-              <CustomInput label="DIRECCIÓN" value={formData.direccion} onChangeText={v => setFormData({...formData, direccion: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
+              <CustomInput label="DIRECCIÓN" value={formData.direccion} onChangeText={v => setFormData({ ...formData, direccion: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
               <View style={styles.row}>
-                <View style={{flex: 1, zIndex: 20}}>
+                <View style={{ flex: 1, zIndex: 20 }}>
                   <Text style={styles.greenLabelBold}>LOCALIDAD</Text>
                   <TextInput
                     style={styles.cleanInput}
                     value={formData.localidad}
                     onChangeText={v => {
-                      setFormData({...formData, localidad: v});
+                      setFormData({ ...formData, localidad: v });
                       setShowLocalidadSuggestions(true);
                     }}
                     onFocus={() => setShowLocalidadSuggestions(true)}
@@ -524,11 +524,11 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                     <View style={styles.suggestionsContainer}>
                       <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
                         {filteredLocalidades.map((loc, index) => (
-                          <TouchableOpacity 
-                            key={index} 
+                          <TouchableOpacity
+                            key={index}
                             style={styles.suggestionItem}
                             onPress={() => {
-                              setFormData({...formData, localidad: loc});
+                              setFormData({ ...formData, localidad: loc });
                               setShowLocalidadSuggestions(false);
                             }}
                           >
@@ -539,23 +539,23 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                     </View>
                   )}
                 </View>
-                <View style={{flex: 1, marginLeft: 10}}><CustomInput label="PROVINCIA" value={formData.provincia} onChangeText={v => setFormData({...formData, provincia: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/></View>
+                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="PROVINCIA" value={formData.provincia} onChangeText={v => setFormData({ ...formData, provincia: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
               </View>
-              <CustomInput label="PAÍS" value={formData.pais} onChangeText={v => setFormData({...formData, pais: v})} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText}/>
-              <CustomInput 
-                label="CONTACTO EMERG." 
-                value={formData.contactoEmergencia} 
+              <CustomInput label="PAÍS" value={formData.pais} onChangeText={v => setFormData({ ...formData, pais: v })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
+              <CustomInput
+                label="CONTACTO EMERG."
+                value={formData.contactoEmergencia}
                 onChangeText={v => {
                   const newVal = v.replace(/[^0-9]/g, '');
                   if (newVal !== '' && newVal === formData.telefono) {
                     alert("El contacto de emergencia no puede ser igual al teléfono principal.");
                   } else {
-                    setFormData({...formData, contactoEmergencia: newVal});
+                    setFormData({ ...formData, contactoEmergencia: newVal });
                   }
-                }} 
+                }}
                 keyboardType="phone-pad"
-                containerStyle={styles.cleanInput} 
-                labelStyle={styles.greenLabelBold} 
+                containerStyle={styles.cleanInput}
+                labelStyle={styles.greenLabelBold}
                 inputStyle={styles.greenInputText}
               />
             </View>
@@ -567,27 +567,27 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         </View>
       </View>
 
-      <DatePickerModal 
+      <DatePickerModal
         visible={calendarVisible}
         onClose={() => setCalendarVisible(false)}
-        onSelect={(date) => setFormData({...formData, fechaNacimiento: date})}
+        onSelect={(date) => setFormData({ ...formData, fechaNacimiento: date })}
         initialDate={formData.fechaNacimiento}
         maxDate={new Date().toISOString().split('T')[0]}
       />
-      
-      <DatePickerModal 
+
+      <DatePickerModal
         visible={calendarAptoInicioVisible}
         onClose={() => setCalendarAptoInicioVisible(false)}
-        onSelect={(date) => setFormData({...formData, aptoFechaInicio: date})}
+        onSelect={(date) => setFormData({ ...formData, aptoFechaInicio: date })}
         initialDate={formData.aptoFechaInicio}
       />
-      <DatePickerModal 
+      <DatePickerModal
         visible={calendarAptoFinVisible}
         onClose={() => setCalendarAptoFinVisible(false)}
-        onSelect={(date) => setFormData({...formData, aptoFechaFin: date})}
+        onSelect={(date) => setFormData({ ...formData, aptoFechaFin: date })}
         initialDate={formData.aptoFechaFin}
       />
-      <DatePickerModal 
+      <DatePickerModal
         visible={calendarCertVisible}
         onClose={() => setCalendarCertVisible(false)}
         onSelect={(date) => {
@@ -598,13 +598,13 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         }}
         initialDate={calendarCertData.index !== null && calendarCertData.field ? formData.certificados[calendarCertData.index][calendarCertData.field] : ''}
       />
-      <CobroMembresiaModal 
-        visible={cobroModalVisible} 
-        onClose={() => setCobroModalVisible(false)} 
-        onSuccess={handleCobrarMembresia} 
-        precioBase={2000} 
+      <CobroMembresiaModal
+        visible={cobroModalVisible}
+        onClose={() => setCobroModalVisible(false)}
+        onSuccess={handleCobrarMembresia}
+        precioBase={2000}
       />
-      <SuccessModal 
+      <SuccessModal
         visible={!!successMessage}
         onClose={() => setSuccessMessage('')}
         message={successMessage}
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   checkboxLabel: { marginLeft: 8, fontSize: 14, color: '#334155', fontWeight: '800' },
-  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 5, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12, marginTop: 5, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
   suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   suggestionText: { color: '#334155', fontSize: 14, fontWeight: '700' },
   addCertBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
