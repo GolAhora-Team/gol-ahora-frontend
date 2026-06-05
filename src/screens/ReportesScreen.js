@@ -278,7 +278,7 @@ export default function ReportesScreen({ route, navigation }) {
       const result = combined.map(actividad => {
         const key = `${actividad.tipo}-${actividad.id}`;
         const datos = asistenciasPorActividad[key] || { registros: [], fechasConRegistro: new Set() };
-        const alumnos = actividad.clientes || [];
+        const alumnos = actividad.alumnos || actividad.clientes || [];
 
         const alumnosStats = alumnos.map(alumno => {
           const registrosAlumno = datos.registros.filter(r => r.clienteId === alumno.id);

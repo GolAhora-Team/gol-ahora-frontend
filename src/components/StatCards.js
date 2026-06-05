@@ -4,6 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getEstadisticas } from './DataReportes';
 import { pagoService } from '../services/pagoService';
 import { reservaService } from '../services/reservaService';
+import { claseService } from '../services/claseService';
+import { asistenciaService } from '../services/asistenciaService';
 
 const { width: windowWidth } = Dimensions.get('window');
 const isWeb = windowWidth > 768;
@@ -13,6 +15,8 @@ export default function StatCards() {
   const [loading, setLoading] = useState(true);
   const [ingresosTotal, setIngresosTotal] = useState("$0");
   const [reservasTotal, setReservasTotal] = useState("0");
+  const [asistenciaValue, setAsistenciaValue] = useState("—");
+  const [asistenciaSub, setAsistenciaSub] = useState("Cargando...");
 
   useEffect(() => {
     const fetchRealData = async () => {
@@ -30,6 +34,41 @@ export default function StatCards() {
         if (reservas) {
           setReservasTotal(reservas.length.toString());
         }
+
+        // Cargar asistencia real de hoy
+        try {
+          const clases = await claseService.getAll();
+          const hoy = new Date().toISOString().split('T')[0];
+          let totalPresentes = 0;
+          let totalAlumnos = 0;
+
+          if (clases && clases.length > 0) {
+            const promesas = clases.map(clase =>
+              asistenciaService.getAsistenciasPorClaseYFecha(clase.id, hoy)
+                .then(registros => ({ claseId: clase.id, registros: registros || [], alumnos: (clase.alumnos || clase.clientes || []).length }))
+                .catch(() => ({ claseId: clase.id, registros: [], alumnos: (clase.alumnos || clase.clientes || []).length }))
+            );
+            const resultados = await Promise.all(promesas);
+            resultados.forEach(r => {
+              totalAlumnos += r.alumnos;
+              totalPresentes += r.registros.filter(reg => reg.presente === true).length;
+            });
+          }
+
+          if (totalAlumnos > 0) {
+            const pct = Math.round((totalPresentes / totalAlumnos) * 100);
+            setAsistenciaValue(`${totalPresentes} de ${totalAlumnos}`);
+            setAsistenciaSub(`${pct}% presentes hoy`);
+          } else {
+            setAsistenciaValue("0");
+            setAsistenciaSub("Sin clases hoy");
+          }
+        } catch (e) {
+          console.warn('Error cargando asistencia en dashboard:', e);
+          setAsistenciaValue("—");
+          setAsistenciaSub("No disponible");
+        }
+
       } catch (error) {
         console.error("Error al cargar estadísticas en Dashboard:", error);
       } finally {
@@ -42,7 +81,7 @@ export default function StatCards() {
   // Definimos qué métricas queremos resaltar en el inicio
   const dashboardStats = [
     { label: 'INGRESOS', key: 'Ingresos', customValue: ingresosTotal, customSub: 'Recaudación Real Activa' },
-    { label: 'ASISTENCIA', key: 'Asistencia' },
+    { label: 'ASISTENCIA', key: 'Asistencia', customValue: asistenciaValue, customSub: asistenciaSub },
     { label: 'RESERVAS', key: 'Reservas', customValue: reservasTotal, customSub: 'Total Reservas' },
   ];
 
