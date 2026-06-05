@@ -673,6 +673,11 @@ export default function ReservaScreen({ route, navigation }) {
                       Cliente: {reservaToCancel.clienteNombre}
                     </Text>
                   )}
+                  {cancelInfo && cancelInfo.metodoPago && cancelInfo.metodoPago !== "No registrado" && (
+                    <Text style={{ color: '#64748b', fontWeight: '600', marginTop: 4 }}>
+                      Método de Pago: {cancelInfo.metodoPago}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Info de penalización */}
