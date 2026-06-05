@@ -115,9 +115,9 @@ export default function UserScreen({ route, navigation }) {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const clientes = await clienteService.getAll();
-      const clientesMapped = (clientes || []).map(c => ({
-        ...c, id: c.id?.toString(), role: 'CLIENTE'
+      const clientesData = await clienteService.getAll();
+      const clientesMapped = (clientesData || []).map(c => ({
+        ...c, id: (c.id || c.Id)?.toString(), role: 'CLIENTE'
       }));
 
       let profesores = [];
@@ -134,7 +134,7 @@ export default function UserScreen({ route, navigation }) {
           }
           return {
             ...p, 
-            id: p.id?.toString(), 
+            id: (p.id || p.Id)?.toString(), 
             role: 'PROFE',
             tieneCertificado: tieneCert,
             certificadoEstado: certEstado
@@ -147,7 +147,7 @@ export default function UserScreen({ route, navigation }) {
         const adminData = await administradorService.getAll();
         administradores = (adminData || []).map(a => ({
           ...a, 
-          id: a.id?.toString(), 
+          id: (a.id || a.Id)?.toString(), 
           role: a.identificador === 101 ? 'PERSONAL' : 'ADMIN'
         }));
       } catch (e) { /* admin endpoint puede fallar si está vacío */ }
@@ -245,7 +245,15 @@ export default function UserScreen({ route, navigation }) {
       setSuccessMessage("El usuario se eliminó correctamente.");
       setSuccessVisible(true);
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo eliminar el usuario.');
+      console.error('Error al eliminar usuario:', error);
+      let errorMsg = error.message || 'No se pudo eliminar el usuario.';
+      if (errorMsg.toLowerCase().includes('foreign key') || errorMsg.toLowerCase().includes('reference constraint') || errorMsg.toLowerCase().includes('conflicted')) {
+        errorMsg = 'No se puede eliminar el usuario porque tiene registros asociados (ej: reservas, inscripciones, asistencias).';
+      }
+      // Force the alert to show up and ensure the modal state is consistent
+      setTimeout(() => {
+        Alert.alert('Error', errorMsg);
+      }, 500);
     }
     setDeleteModalVisible(false);
     setUserToDelete(null);
