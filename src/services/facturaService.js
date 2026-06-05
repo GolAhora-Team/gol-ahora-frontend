@@ -74,4 +74,16 @@ export const facturaService = {
       throw error;
     }
   },
+
+  /**
+   * POST /api/Factura/enviar-email
+   */
+  enviarFacturaEmail: async (payload) => {
+    try {
+      return await http.post(`${URL}/enviar-email`, payload);
+    } catch (error) {
+      console.error('Error enviando factura por email:', error);
+      throw error;
+    }
+  },
 };

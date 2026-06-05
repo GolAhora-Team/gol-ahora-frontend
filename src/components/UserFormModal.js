@@ -3,6 +3,8 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, Sty
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { generarYEnviarFactura } from '../utils/facturaEmailHelper';
+import { generateFacturaAfipHtml } from '../utils/facturaTemplates';
 import { facturaService } from '../services/facturaService';
 import { clienteService } from '../services/clienteService';
 import { API_BASE_URL } from '../services/apiConfig';
@@ -197,7 +199,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         descripcion: `Suscripción Socio Activo - Presencial (${metodoPago})`,
         clienteId: formData.id
       };
-      await facturaService.create(payload);
+      const factura = await facturaService.create(payload);
 
       const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
       const updatedPayload = { ...formData, fechaNacimiento: dateStr, esSocioActivo: true };
@@ -206,6 +208,19 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
       setFormData(updatedPayload);
       if (onRefresh) onRefresh();
       setSuccessMessage("Factura generada correctamente. El cliente ahora es Socio Activo.");
+
+      // Enviar email de la factura
+      if (factura && formData.email) {
+        const facturaHtml = generateFacturaAfipHtml(factura, `${formData.nombre} ${formData.apellido}`, new Date());
+        await generarYEnviarFactura({
+          html: facturaHtml,
+          fileName: `Factura-Socio-${formData.nombre}_${formData.apellido}.pdf`,
+          toEmail: formData.email,
+          nombrePersona: formData.nombre,
+          motivo: 'Membresía Socio Activo',
+          clienteId: formData.id || null
+        });
+      }
     } catch (e) {
       console.error(e);
       alert("Hubo un error al generar la factura.");

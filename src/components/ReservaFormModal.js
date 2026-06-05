@@ -2,9 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Alert, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { generarYEnviarFactura } from '../utils/facturaEmailHelper';
+import { generateFacturaAfipHtml } from '../utils/facturaTemplates';
 import { clienteService } from '../services/clienteService';
 import { userService } from '../services/userService';
 import { reservaService } from '../services/reservaService';
+import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
 import { descuentoService } from '../services/descuentoService';
 import { facturaService } from '../services/facturaService';
@@ -210,6 +214,18 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
             onChangeText={v => setInvitado({ ...invitado, dni: v.replace(/[^0-9]/g, '') })}
           />
           {errors?.dni && <Text style={s.errorText}>{errors.dni}</Text>}
+
+          <Text style={s.fieldLabel}>Email *</Text>
+          <TextInput
+            style={[s.fieldInput, errors?.email && s.fieldInputError]}
+            placeholder="Email del invitado para factura"
+            placeholderTextColor="#94a3b8"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={invitado.email}
+            onChangeText={v => setInvitado({ ...invitado, email: v })}
+          />
+          {errors?.email && <Text style={s.errorText}>{errors.email}</Text>}
         </View>
       )}
     </View>
@@ -217,7 +233,8 @@ function StepCliente({ mode, setMode, clientes, selectedCliente, setSelectedClie
 }
 
 // ─── PASO 3: DÍA Y HORARIO ────────────────────────────────────────────────────
-function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, cancha, errors }) {
+// ─── PASO 3: DÍA Y HORARIO ────────────────────────────────────────────────────
+function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelectedHora, reservasOcupadas, actividadesRegulares, cancha, errors }) {
   const scrollRef = useRef(null);
 
   const getNext30Days = () => {
@@ -281,9 +298,16 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
     const duracion = cancha.original?.duracionMax || 60;
     const slotEnd = slotStart + duracion;
 
-    return reservasOcupadas.some(r => {
+    const getDiaAbreviado = (dayNum) => {
+      const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      return dias[dayNum] || '';
+    };
+    const diaAbrev = getDiaAbreviado(selectedDate.getDay());
+
+    const conflictoReserva = reservasOcupadas.some(r => {
       const rFecha = r.fecha?.split('T')[0];
       const rCanchaId = r.canchaId?.toString() || r.cancha?.id?.toString();
+      
       if (rFecha !== fechaStr || rCanchaId !== cancha.id?.toString()) return false;
       
       const rInicioStr = r.horaInicio?.substring(0, 5);
@@ -295,6 +319,24 @@ function StepDiaHorario({ selectedDate, setSelectedDate, selectedHora, setSelect
       
       return slotStart < rEnd && slotEnd > rStart;
     });
+
+    if (conflictoReserva) return true;
+
+    const checkActividad = (act) => {
+      if (act.canchaId?.toString() !== cancha.id?.toString()) return false;
+      if (!act.diasSemana?.includes(diaAbrev)) return false;
+      const startStr = act.horaInicio?.substring(0, 5);
+      const endStr = act.horaFin?.substring(0, 5);
+      if (!startStr || !endStr) return false;
+      const actStart = getMinutes(startStr);
+      const actEnd = getMinutes(endStr);
+      return slotStart < actEnd && slotEnd > actStart;
+    };
+
+    const conflictoClase = actividadesRegulares?.clases?.some(checkActividad);
+    if (conflictoClase) return true;
+
+    return actividadesRegulares?.entrenamientos?.some(checkActividad);
   };
 
   return (
@@ -515,7 +557,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [selectedCancha, setSelectedCancha] = useState(null);
   const [clienteMode, setClienteMode] = useState(null);
   const [selectedCliente, setSelectedCliente] = useState(null);
-  const [invitado, setInvitado] = useState({ nombre: '', apellido: '', dni: '' });
+  const [invitado, setInvitado] = useState({ nombre: '', apellido: '', dni: '', email: '' });
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedHora, setSelectedHora] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
@@ -525,6 +567,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
   const [errorModalMessage, setErrorModalMessage] = useState(null);
   const [descuentoSocioPct, setDescuentoSocioPct] = useState(10);
   const [descuentoEfectivoPct, setDescuentoEfectivoPct] = useState(10);
+  const [actividadesRegulares, setActividadesRegulares] = useState({ clases: [], entrenamientos: [] });
 
   // States for Admin QR Modal
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -584,6 +627,16 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           if (efectivoDesc) setDescuentoEfectivoPct(efectivoDesc.porcentaje);
         } catch (e) {
           console.error("Error cargando descuentos:", e);
+        }
+
+        try {
+          const [cls, ent] = await Promise.all([
+            claseService.getAll().catch(() => []),
+            entrenamientoService.getAll().catch(() => [])
+          ]);
+          setActividadesRegulares({ clases: cls || [], entrenamientos: ent || [] });
+        } catch (e) {
+          console.error("Error cargando actividades regulares:", e);
         }
       };
       loadDescuentos();
@@ -794,6 +847,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     let reservaId = null;
     let newReservaResponse = null;
     let createdFacturaId = null;
+    let createdFactura = null;
     let createdPagoId = null;
 
     // Backend enums: EstadoReserva → Pendiente=1, Confirmada=2
@@ -828,6 +882,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       
       const facturaId = factura?.id || factura?.Id;
       createdFacturaId = facturaId;
+      createdFactura = factura;
       if (facturaId && reservaId) {
         // Backend enums: MetodoPago → Efectivo=1, Tarjeta=2, Transferencia=3
         const metodoNum = data.metodoPago === 'EFECTIVO' ? 1 : 2; // MERCADOPAGO → Tarjeta (2)
@@ -851,13 +906,29 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       console.warn("Advertencia: no se pudo crear la factura/pago asociados a la reserva:", e);
     }
     
-    return { reservaId, pagoId: createdPagoId, facturaId: createdFacturaId };
+    return { reservaId, pagoId: createdPagoId, facturaId: createdFacturaId, factura: createdFactura };
   };
 
   const processAdminReservation = async (data) => {
     try {
       setIsLoading(true);
-      await createReservaCompleta(data, 2); // 2 = Pagado
+      const { factura } = await createReservaCompleta(data, 2); // 2 = Pagado
+
+      // Enviar email si hay factura y email de destino
+      if (factura) {
+        const toEmail = data.persona.clienteId ? data.persona.email : data.emailInvitado;
+        if (toEmail) {
+          const facturaHtml = generateFacturaAfipHtml(factura, `${data.persona.nombre} ${data.persona.apellido}`, new Date());
+          await generarYEnviarFactura({
+            html: facturaHtml,
+            fileName: `Factura-Reserva-${data.persona.nombre}_${data.persona.apellido}.pdf`,
+            toEmail: toEmail,
+            nombrePersona: data.persona.nombre,
+            motivo: 'Reserva de cancha',
+            clienteId: data.persona.clienteId || null
+          });
+        }
+      }
 
       onClose();
       if (onReservaCreated) {
@@ -895,7 +966,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       if (clienteMode === 'INVITADO') {
         try {
           const payload = {
-            email: invitado.dni.toString(),
+            email: invitado.email || invitado.dni.toString(),
             password: "1234",
             cliente: {
               nombre: invitado.nombre,
@@ -975,7 +1046,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         metodoPago,
         esSocio: esSocio(),
         precioBase: getPrecioBase(),
-        isEdit: !!reservaToEdit
+        isEdit: !!reservaToEdit,
+        emailInvitado: invitado.email
       };
 
       if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {

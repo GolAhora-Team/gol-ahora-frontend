@@ -9,6 +9,8 @@ import { mercadoPagoService } from '../services/mercadoPagoService';
 import { facturaService } from '../services/facturaService';
 import { pagoService } from '../services/pagoService';
 import { reportHistoryService } from '../services/reportHistoryService';
+import { generarYEnviarFactura } from '../utils/facturaEmailHelper';
+import { generateFacturaAfipHtml } from '../utils/facturaTemplates';
 import QRCode from 'react-native-qrcode-svg';
 
 export default function InscripcionPagoModal({ visible, onClose, actividad, currentUserRole, idPersona, nombreUsuario, onSuccess }) {
@@ -157,6 +159,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
   const createPayment = async (clienteId, montoFinal, estadoPago) => {
     let createdPagoId = null;
     let createdFacturaId = null;
+    let createdFactura = null;
     try {
       const facturaPayload = {
         fechaEmision: new Date().toISOString(),
@@ -167,6 +170,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       
       const facturaId = factura?.id || factura?.Id;
       createdFacturaId = facturaId;
+      createdFactura = factura;
       if (facturaId) {
         const metodoNum = metodoPago === 'EFECTIVO' ? 1 : 2; // MERCADOPAGO → Tarjeta (2)
         const pagoPayload = {
@@ -182,7 +186,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
     } catch (e) {
       console.warn("No se pudo registrar la factura/pago:", e);
     }
-    return { createdFacturaId, createdPagoId };
+    return { createdFacturaId, createdPagoId, factura: createdFactura };
   };
 
   const handleConfirm = async () => {
@@ -238,7 +242,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
 
       // MercadoPago flow for Admin (QR Code)
       if (metodoPago === 'MERCADOPAGO' && isAdminOrPersonal) {
-        const { createdFacturaId, createdPagoId } = await createPayment(clienteId, montoFinal, 1); // 1 = Pendiente
+        const { createdFacturaId, createdPagoId, factura } = await createPayment(clienteId, montoFinal, 1); // 1 = Pendiente
         
         const mpTitle = `Inscripción ${actividad.nombre}`;
         const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
@@ -264,20 +268,32 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           await entrenamientoService.addCliente(actividad.id, clienteId);
         }
 
-        setPendingAdminPayload({ facturaId: createdFacturaId, pagoId: createdPagoId });
+        setPendingAdminPayload({ facturaId: createdFacturaId, pagoId: createdPagoId, factura: factura });
         setQrModalVisible(true);
         setIsSubmitting(false);
         return;
       }
 
       // Efectivo Flow
-      await createPayment(clienteId, montoFinal, 2); // 2 = Pagado
+      const { factura } = await createPayment(clienteId, montoFinal, 2); // 2 = Pagado
       
       // Inscribir
       if (actividad.tipo === 'CLASE') {
         await claseService.addCliente(actividad.id, clienteId);
       } else if (actividad.tipo === 'ENTRENAMIENTO') {
         await entrenamientoService.addCliente(actividad.id, clienteId);
+      }
+
+      if (factura && selectedCliente?.email) {
+        const facturaHtml = generateFacturaAfipHtml(factura, `${selectedCliente.nombre} ${selectedCliente.apellido}`, new Date());
+        await generarYEnviarFactura({
+          html: facturaHtml,
+          fileName: `Factura-Inscripcion-${selectedCliente.nombre}_${selectedCliente.apellido}.pdf`,
+          toEmail: selectedCliente.email,
+          nombrePersona: selectedCliente.nombre,
+          motivo: `Inscripción a ${actividad.nombre}`,
+          clienteId: clienteId || null
+        });
       }
 
       if (onSuccess) onSuccess();
@@ -582,6 +598,18 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                    }
                    onClose();
                    if (onSuccess) onSuccess();
+
+                   if (pendingAdminPayload?.factura && selectedCliente?.email) {
+                     const facturaHtml = generateFacturaAfipHtml(pendingAdminPayload.factura, `${selectedCliente.nombre} ${selectedCliente.apellido}`, new Date());
+                     await generarYEnviarFactura({
+                       html: facturaHtml,
+                       fileName: `Factura-Inscripcion-${selectedCliente.nombre}_${selectedCliente.apellido}.pdf`,
+                       toEmail: selectedCliente.email,
+                       nombrePersona: selectedCliente.nombre,
+                       motivo: `Inscripción a ${actividad.nombre}`,
+                       clienteId: selectedCliente.id || null
+                     });
+                   }
                  }
               }}
             >
