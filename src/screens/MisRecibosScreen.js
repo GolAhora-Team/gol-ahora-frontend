@@ -9,6 +9,8 @@ export default function MisRecibosScreen({ route, navigation }) {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortNewest, setSortNewest] = useState(true);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [facturaToPreview, setFacturaToPreview] = useState(null);
 
   useEffect(() => {
     loadFacturas();
@@ -95,14 +97,8 @@ export default function MisRecibosScreen({ route, navigation }) {
   };
 
   const handleVer = (factura) => {
-    if (Platform.OS === 'web') {
-      const htmlContent = generateHtml(factura);
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } else {
-      Alert.alert('Info', 'Disponible en versión web.');
-    }
+    setFacturaToPreview(factura);
+    setPreviewVisible(true);
   };
 
   const handleDescargar = async (factura) => {
@@ -179,7 +175,7 @@ export default function MisRecibosScreen({ route, navigation }) {
           sortedFacturas.map(factura => {
             const { icon, color } = getConceptoIcon(factura.concepto);
             return (
-              <View key={factura.id} style={[s.card, { borderColor: color + '50', borderLeftColor: color, borderLeftWidth: 6, backgroundColor: color + '05' }]}>
+              <View key={factura.id} style={[s.card, { borderColor: color + '50', borderLeftColor: color, borderLeftWidth: 6, backgroundColor: '#fff' }]}>
                 <View style={s.cardLeft}>
                   <View style={[s.iconCircle, { backgroundColor: color + '20' }]}>
                     <MaterialCommunityIcons name={icon} size={22} color={color} />
@@ -193,17 +189,17 @@ export default function MisRecibosScreen({ route, navigation }) {
                 <View style={s.cardRight}>
                   <Text style={[s.cardTotal, { color: color }]}>${(factura.total || 0).toLocaleString('es-AR')}</Text>
                   <View style={s.cardActions}>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: color + '40', backgroundColor: '#fff' }]} onPress={() => handleVer(factura)}>
-                      <MaterialCommunityIcons name="eye" size={14} color={color} />
-                      <Text style={[s.actionBtnText, { color: color }]}>Ver</Text>
+                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#3b82f6' + '40', backgroundColor: '#fff' }]} onPress={() => handleVer(factura)}>
+                      <MaterialCommunityIcons name="eye" size={14} color="#3b82f6" />
+                      <Text style={[s.actionBtnText, { color: '#3b82f6' }]}>Ver</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: color + '40', backgroundColor: '#fff' }]} onPress={() => handleDescargar(factura)}>
-                      <MaterialCommunityIcons name="download" size={14} color={color} />
-                      <Text style={[s.actionBtnText, { color: color }]}>Descargar</Text>
+                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#10b981' + '40', backgroundColor: '#fff' }]} onPress={() => handleDescargar(factura)}>
+                      <MaterialCommunityIcons name="download" size={14} color="#10b981" />
+                      <Text style={[s.actionBtnText, { color: '#10b981' }]}>Descargar</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: color + '40', backgroundColor: '#fff' }]} onPress={() => handleImprimir(factura)}>
-                      <MaterialCommunityIcons name="printer" size={14} color={color} />
-                      <Text style={[s.actionBtnText, { color: color }]}>Imprimir</Text>
+                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#f59e0b' + '40', backgroundColor: '#fff' }]} onPress={() => handleImprimir(factura)}>
+                      <MaterialCommunityIcons name="printer" size={14} color="#f59e0b" />
+                      <Text style={[s.actionBtnText, { color: '#f59e0b' }]}>Imprimir</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -212,6 +208,55 @@ export default function MisRecibosScreen({ route, navigation }) {
           })
         )}
       </ScrollView>
+
+      {/* MODAL DE VISTA PREVIA */}
+      <Modal visible={previewVisible} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={s.modalContainer}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Vista Previa</Text>
+              <TouchableOpacity onPress={() => setPreviewVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            
+            {facturaToPreview && (
+              <ScrollView style={s.receiptPreview} showsVerticalScrollIndicator={false}>
+                <View style={s.receiptHeader}>
+                  <Text style={s.receiptLogo}>GOL AHORA</Text>
+                  <Text style={s.receiptSub}>Comprobante de Pago</Text>
+                </View>
+                
+                <View style={s.receiptRow}>
+                  <Text style={s.receiptLabel}>N° Factura</Text>
+                  <Text style={s.receiptValue}>#{facturaToPreview.id}</Text>
+                </View>
+                <View style={s.receiptRow}>
+                  <Text style={s.receiptLabel}>Fecha</Text>
+                  <Text style={s.receiptValue}>{formatDate(facturaToPreview.fechaEmision)}</Text>
+                </View>
+                <View style={s.receiptRow}>
+                  <Text style={s.receiptLabel}>Concepto</Text>
+                  <Text style={s.receiptValue}>{facturaToPreview.concepto || 'General'}</Text>
+                </View>
+                <View style={s.receiptRow}>
+                  <Text style={s.receiptLabel}>Descripción</Text>
+                  <Text style={s.receiptValue}>{facturaToPreview.descripcion || '-'}</Text>
+                </View>
+                
+                <View style={s.receiptTotalContainer}>
+                  <Text style={s.receiptTotalLabel}>Total:</Text>
+                  <Text style={s.receiptTotalValue}>${(facturaToPreview.total || 0).toLocaleString('es-AR')}</Text>
+                </View>
+                
+                <View style={s.receiptFooter}>
+                  <Text style={s.receiptFooterText}>Este comprobante fue generado electrónicamente por Gol Ahora.</Text>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScreenTemplate>
   );
 }
@@ -236,4 +281,20 @@ const s = StyleSheet.create({
   cardActions: { flexDirection: 'row', gap: 6, marginTop: 4 },
   actionBtn: { flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, gap: 4 },
   actionBtnText: { fontSize: 11, fontWeight: '700' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContainer: { width: '100%', maxWidth: 450, backgroundColor: '#f8fafc', borderRadius: 20, overflow: 'hidden', maxHeight: '90%', elevation: 5 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
+  receiptPreview: { padding: 30, backgroundColor: '#fff', margin: 20, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' },
+  receiptHeader: { alignItems: 'center', marginBottom: 25, borderBottomWidth: 2, borderBottomColor: '#009b3a', paddingBottom: 15 },
+  receiptLogo: { fontSize: 24, fontWeight: '900', color: '#009b3a' },
+  receiptSub: { fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 4 },
+  receiptRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', borderStyle: 'dashed' },
+  receiptLabel: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  receiptValue: { fontSize: 14, color: '#1e293b', fontWeight: '800', maxWidth: '60%', textAlign: 'right' },
+  receiptTotalContainer: { backgroundColor: '#f0fdf4', padding: 18, borderRadius: 12, marginTop: 25, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  receiptTotalLabel: { fontSize: 18, color: '#15803d', fontWeight: '700' },
+  receiptTotalValue: { fontSize: 22, color: '#009b3a', fontWeight: '900' },
+  receiptFooter: { marginTop: 25, alignItems: 'center' },
+  receiptFooterText: { fontSize: 10, color: '#94a3b8', textAlign: 'center' }
 });
