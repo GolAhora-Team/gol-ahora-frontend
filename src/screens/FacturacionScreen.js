@@ -406,11 +406,18 @@ export default function FacturacionScreen({ route, navigation }) {
       {/* Tabs */}
       <View style={styles.tabRow}>
         <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'FACTURAS' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('FACTURAS')}
+        >
+          <MaterialCommunityIcons name="receipt" size={18} color={activeTab === 'FACTURAS' ? '#fff' : '#009b3a'} />
+          <Text style={[styles.tabText, activeTab === 'FACTURAS' && { color: '#fff' }]}>Facturas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'COMPROBANTES' && styles.tabBtnActive]}
           onPress={() => setActiveTab('COMPROBANTES')}
         >
-          <MaterialCommunityIcons name="receipt" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes Reservas</Text>
+          <MaterialCommunityIcons name="text-box-check-outline" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
+          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>C. Reservas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive]}
