@@ -286,7 +286,7 @@ export default function UserScreen({ route, navigation }) {
           await userService.createUsuarioCliente(payload);
         } else if (formData.role === 'PROFE') {
           const payloadProfe = {
-            email: formData.dni.toString(),
+            email: formData.email,
             password: "1234",
             username: formData.dni.toString(),
             dni: mappedData.dni,
@@ -302,20 +302,32 @@ export default function UserScreen({ route, navigation }) {
             pais: mappedData.pais,
             contactoEmergencia: mappedData.contactoEmergencia,
             especialidad: mappedData.especialidad,
-            obraSocial: mappedData.obraSocial,
-            certificacion: mappedData.certificacion,
-            certificados: mappedData.certificados,
-            certificacion: mappedData.certificados.length > 0 ? 'Certificado' : (mappedData.certificacion || 'Ninguna')
+            certificacion: mappedData.certificados.length > 0 ? 'Certificado' : (mappedData.certificacion || 'Ninguna'),
+            certificados: mappedData.certificados
           };
           await userService.createUsuarioProfesor(payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
-          mappedData.identificador = formData.role === 'ADMIN' ? 100 : 101;
-          mappedData.puedeFacturar = true;
-          payload.admin = mappedData;
+          payload.admin = {
+            dni: mappedData.dni,
+            nombre: mappedData.nombre,
+            apellido: mappedData.apellido,
+            genero: mappedData.genero,
+            fechaNacimiento: mappedData.fechaNacimiento,
+            telefono: mappedData.telefono,
+            direccion: mappedData.direccion,
+            localidad: mappedData.localidad,
+            codigoPostal: mappedData.codigoPostal,
+            provincia: mappedData.provincia,
+            pais: mappedData.pais,
+            contactoEmergencia: mappedData.contactoEmergencia,
+            email: formData.email,
+            identificador: formData.role === 'ADMIN' ? 100 : 101,
+            puedeFacturar: true
+          };
           await userService.createUsuarioAdmin(payload);
         }
 
-        setSuccessMessage(`Credenciales generadas:\nUsuario/DNI: ${formData.dni}\nContraseña: 1234`);
+        setSuccessMessage("El usuario se creó exitosamente.");
         setSuccessVisible(true);
         loadUsers(); 
         setModalVisible(false);

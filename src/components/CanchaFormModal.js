@@ -46,10 +46,10 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     onPress={() => {
                       let cap = "0";
                       let dim = "";
-                      let basePricePerHour = 30000;
-                      if (t === 'F5') { cap = "10"; dim = "20x40m"; basePricePerHour = 30000; }
-                      if (t === 'F7') { cap = "14"; dim = "30x50m"; basePricePerHour = 65000; }
-                      if (t === 'F11') { cap = "22"; dim = "45x90m"; basePricePerHour = 120000; }
+                      let basePricePerHour = formData.original?.precioPorHora || (t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000);
+                      if (t === 'F5') { cap = "10"; dim = "20x40m"; }
+                      if (t === 'F7') { cap = "14"; dim = "30x50m"; }
+                      if (t === 'F11') { cap = "22"; dim = "45x90m"; }
                       
                       let duracion = formData.duracionMax || 60;
                       let precioFinal = basePricePerHour * (duracion / 60);
@@ -95,10 +95,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     key={d} 
                     style={[styles.choiceBtn, formData.duracionMax === d && styles.activeBtn]} 
                     onPress={() => {
-                      let basePricePerHour = 30000;
-                      if (formData.tipo === 'F5') basePricePerHour = 30000;
-                      if (formData.tipo === 'F7') basePricePerHour = 65000;
-                      if (formData.tipo === 'F11') basePricePerHour = 120000;
+                      let basePricePerHour = formData.original?.precioPorHora || (formData.tipo === 'F5' ? 30000 : formData.tipo === 'F7' ? 65000 : 120000);
                       
                       let precioFinal = basePricePerHour * (d / 60);
                       setFormData({...formData, duracionMax: d, precioBase: precioFinal});
@@ -113,10 +110,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                 value={formData.duracionMax ? formData.duracionMax.toString() : ""} 
                 onChangeText={v => {
                   let d = parseInt(v.replace(/[^0-9]/g, '')) || 0;
-                  let basePricePerHour = 30000;
-                  if (formData.tipo === 'F5') basePricePerHour = 30000;
-                  if (formData.tipo === 'F7') basePricePerHour = 65000;
-                  if (formData.tipo === 'F11') basePricePerHour = 120000;
+                  let basePricePerHour = formData.original?.precioPorHora || (formData.tipo === 'F5' ? 30000 : formData.tipo === 'F7' ? 65000 : 120000);
                   
                   let precioFinal = basePricePerHour * (d / 60);
                   setFormData({...formData, duracionMax: d, precioBase: precioFinal});

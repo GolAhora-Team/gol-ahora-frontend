@@ -265,7 +265,7 @@ export default function CanchaScreen({ route, navigation }) {
   const filteredCanchas = canchas.filter(c => 
     c.nombre.toLowerCase().includes(search.toLowerCase()) || 
     c.tipo.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -379,6 +379,7 @@ export default function CanchaScreen({ route, navigation }) {
         visible={preciosModalVisible}
         onClose={() => setPreciosModalVisible(false)}
         onPreciosUpdated={loadCanchas}
+        canchas={canchas}
       />
     </ScreenTemplate>
   );

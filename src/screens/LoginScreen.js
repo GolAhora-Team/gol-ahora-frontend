@@ -29,6 +29,12 @@ const LoginScreen = ({ navigation, route }) => {
   const [failedAttempts, setFailedAttempts] = useState({});
   const [lockouts, setLockouts] = useState({});
 
+  const [showForceChangeModal, setShowForceChangeModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [pendingSessionData, setPendingSessionData] = useState(null);
+  const [forceChangeError, setForceChangeError] = useState('');
+
   useEffect(() => {
     if (route?.params?.sessionClosedByInactivity) {
       setShowInactivityModal(true);
@@ -167,10 +173,6 @@ const LoginScreen = ({ navigation, route }) => {
         token: response.token
       };
 
-      if (Platform.OS === 'web') {
-        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
-      }
-
       if (rememberMe) {
         await AsyncStorage.setItem('GOL_AHORA_REMEMBER_USER', email.trim());
       } else {
@@ -190,6 +192,17 @@ const LoginScreen = ({ navigation, route }) => {
         AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
       }
 
+      if (password === "1234") {
+        setPendingSessionData(sessionData);
+        setShowForceChangeModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (Platform.OS === 'web') {
+        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
+      }
+
       navigation.replace('Dashboard', sessionData);
     } catch (error) {
       const currentAttempts = (failedAttempts[userKey] || 0) + 1;
@@ -204,6 +217,43 @@ const LoginScreen = ({ navigation, route }) => {
       } else {
         setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForceChangePassword = async () => {
+    setForceChangeError('');
+    if (!newPassword || !confirmNewPassword) {
+      setForceChangeError('Por favor, completa ambos campos.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setForceChangeError('Las contraseñas no coinciden.');
+      return;
+    }
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!regex.test(newPassword)) {
+      setForceChangeError('La contraseña debe tener al menos 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await userService.changePassword({
+        idUsuario: pendingSessionData.idUsuario,
+        currentPassword: '1234',
+        newPassword: newPassword
+      });
+      
+      setShowForceChangeModal(false);
+      
+      if (Platform.OS === 'web') {
+        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(pendingSessionData));
+      }
+      navigation.replace('Dashboard', pendingSessionData);
+    } catch (err) {
+      setForceChangeError(err.message || 'Error al cambiar la contraseña.');
     } finally {
       setIsLoading(false);
     }
@@ -391,6 +441,80 @@ const LoginScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL FORZAR CAMBIO CLAVE */}
+      <Modal visible={showForceChangeModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', padding: 25, borderRadius: 20, width: '90%', maxWidth: 400 }}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <MaterialCommunityIcons name="shield-lock-outline" size={50} color="#ffb300" />
+              <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 10, textAlign: 'center' }}>
+                Cambio de Contraseña Obligatorio
+              </Text>
+              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 20 }}>
+                Estás usando la contraseña por defecto. Por seguridad, debes cambiarla antes de continuar.
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nueva Contraseña</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Mín. 8 caracteres, 1 Mayus, 1 Num, 1 Especial"
+                  placeholderTextColor="#999"
+                  secureTextEntry={isSecure}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <TouchableOpacity onPress={() => setIsSecure(!isSecure)} style={{ padding: 5 }}>
+                  <MaterialCommunityIcons name={isSecure ? "eye-off" : "eye"} size={22} color="#666" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmar Nueva Contraseña</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Repetí la contraseña"
+                  placeholderTextColor="#999"
+                  secureTextEntry={isSecure}
+                  value={confirmNewPassword}
+                  onChangeText={setConfirmNewPassword}
+                />
+              </View>
+            </View>
+
+            {forceChangeError !== '' && (
+              <View style={styles.errorContainer}>
+                <MaterialCommunityIcons name="alert-circle" size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{forceChangeError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={{ marginTop: 15, backgroundColor: '#009b3a', paddingVertical: 15, borderRadius: 12, alignItems: 'center' }}
+              onPress={handleForceChangePassword}
+              disabled={isLoading}
+            >
+              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
+                {isLoading ? 'GUARDANDO...' : 'GUARDAR Y CONTINUAR'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
+              onPress={() => { setShowForceChangeModal(false); setPendingSessionData(null); }}
+              disabled={isLoading}
+            >
+              <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 14 }}>CANCELAR Y SALIR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };

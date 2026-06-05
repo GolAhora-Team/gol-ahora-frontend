@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { canchaService } from '../services/canchaService';
 
-export default function PreciosModal({ visible, onClose, onPreciosUpdated }) {
+const { width } = Dimensions.get('window');
+
+export default function PreciosModal({ visible, onClose, onPreciosUpdated, canchas }) {
   const [precioF5, setPrecioF5] = useState('');
   const [precioF7, setPrecioF7] = useState('');
   const [precioF11, setPrecioF11] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible && canchas && canchas.length > 0) {
+      const f5 = canchas.find(c => c.tipo === 'F5');
+      const f7 = canchas.find(c => c.tipo === 'F7');
+      const f11 = canchas.find(c => c.tipo === 'F11');
+
+      if (f5) setPrecioF5(f5.original?.precioPorHora?.toString() || '');
+      if (f7) setPrecioF7(f7.original?.precioPorHora?.toString() || '');
+      if (f11) setPrecioF11(f11.original?.precioPorHora?.toString() || '');
+    }
+  }, [visible, canchas]);
 
   const handleSave = async () => {
     try {
@@ -42,66 +58,104 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated }) {
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={styles.overlay}>
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }]} />
+        )}
+        
         <View style={styles.container}>
-          <View style={styles.header}>
-            <MaterialCommunityIcons name="cash-multiple" size={24} color="#fff" />
-            <Text style={styles.title}>Actualizar Precios</Text>
+          <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.header}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={styles.iconWrapper}>
+                <MaterialCommunityIcons name="cash-multiple" size={24} color="#ffb300" />
+              </View>
+              <Text style={styles.title}>Actualizar Precios</Text>
+            </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={24} color="#fff" />
+              <MaterialCommunityIcons name="close-circle-outline" size={28} color="#94a3b8" />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
           
           <View style={styles.content}>
-            <Text style={styles.infoText}>
-              Ingresá el nuevo precio base para cada tipo de cancha. Esto actualizará todas las canchas de ese tipo. Dejá en blanco los que no quieras modificar.
-            </Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Precio Fútbol 5 (F5)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 35000"
-                keyboardType="numeric"
-                value={precioF5}
-                onChangeText={setPrecioF5}
-              />
+            <View style={styles.infoBox}>
+              <MaterialCommunityIcons name="information-outline" size={20} color="#3b82f6" />
+              <Text style={styles.infoText}>
+                Ingresá el nuevo valor base. Se actualizarán todas las canchas automáticamente.
+              </Text>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Precio Fútbol 7 (F7)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 65000"
-                keyboardType="numeric"
-                value={precioF7}
-                onChangeText={setPrecioF7}
-              />
-            </View>
+            <View style={styles.inputsContainer}>
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Fútbol 5</Text>
+                  <View style={styles.badge}><Text style={styles.badgeText}>F5</Text></View>
+                </View>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.currencyPrefix}>$</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="35000"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    value={precioF5}
+                    onChangeText={setPrecioF5}
+                  />
+                </View>
+              </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Precio Fútbol 11 (F11)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. 120000"
-                keyboardType="numeric"
-                value={precioF11}
-                onChangeText={setPrecioF11}
-              />
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Fútbol 7</Text>
+                  <View style={[styles.badge, { backgroundColor: '#8b5cf6' }]}><Text style={styles.badgeText}>F7</Text></View>
+                </View>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.currencyPrefix}>$</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="65000"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    value={precioF7}
+                    onChangeText={setPrecioF7}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Fútbol 11</Text>
+                  <View style={[styles.badge, { backgroundColor: '#ec4899' }]}><Text style={styles.badgeText}>F11</Text></View>
+                </View>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.currencyPrefix}>$</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="120000"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    value={precioF11}
+                    onChangeText={setPrecioF11}
+                  />
+                </View>
+              </View>
             </View>
 
             <TouchableOpacity 
-              style={[styles.saveBtn, saving && { opacity: 0.7 }]} 
+              style={[styles.saveBtnWrapper, saving && { opacity: 0.7 }]} 
               onPress={handleSave} 
               disabled={saving}
             >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="content-save" size={20} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.saveBtnText}>ACTUALIZAR PRECIOS</Text>
-                </>
-              )}
+              <LinearGradient colors={['#00b09b', '#96c93d']} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="check-decagram" size={22} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.saveBtnText}>CONFIRMAR Y GUARDAR</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -113,75 +167,145 @@ export default function PreciosModal({ visible, onClose, onPreciosUpdated }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: 20
   },
   container: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden'
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)'
   },
   header: {
-    backgroundColor: '#0f172a',
-    padding: 20,
+    padding: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative'
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)'
+  },
+  iconWrapper: {
+    backgroundColor: 'rgba(255,179,0,0.15)',
+    padding: 8,
+    borderRadius: 12,
+    marginRight: 12
   },
   title: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    marginLeft: 10
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.5
   },
   closeBtn: {
-    position: 'absolute',
-    right: 15,
-    top: 20
+    padding: 4
   },
   content: {
-    padding: 24
+    padding: 24,
+    backgroundColor: '#f8fafc'
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#eff6ff',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    alignItems: 'center'
   },
   infoText: {
-    color: '#64748b',
-    fontSize: 14,
-    marginBottom: 20,
-    lineHeight: 20
+    color: '#1e40af',
+    fontSize: 13,
+    lineHeight: 18,
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: '600'
+  },
+  inputsContainer: {
+    marginBottom: 10
   },
   inputGroup: {
-    marginBottom: 16
+    marginBottom: 20
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#334155',
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8
   },
+  label: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1e293b'
+  },
+  badge: {
+    backgroundColor: '#009b3a',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 10
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    overflow: 'hidden',
+    height: 55
+  },
+  currencyPrefix: {
+    paddingHorizontal: 15,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#94a3b8',
+    backgroundColor: '#f1f5f9',
+    height: '100%',
+    textAlignVertical: 'center',
+    ...Platform.select({ web: { lineHeight: '55px' } })
+  },
   input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    flex: 1,
+    paddingHorizontal: 15,
+    fontSize: 18,
     color: '#0f172a',
-    outlineStyle: 'none'
+    fontWeight: '700',
+    ...Platform.select({ web: { outlineStyle: 'none' } })
+  },
+  saveBtnWrapper: {
+    marginTop: 15,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#00b09b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8
   },
   saveBtn: {
-    backgroundColor: '#009b3a',
-    borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 18,
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10
+    alignItems: 'center'
   },
   saveBtnText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '800'
+    fontWeight: '900',
+    letterSpacing: 1
   }
 });
