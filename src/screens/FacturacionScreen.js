@@ -67,7 +67,7 @@ export default function FacturacionScreen({ route, navigation }) {
           if ((f.total || 0) < 0 && f.descripcion) {
              refStr = String(f.descripcion).padStart(8, '0');
           }
-          let pdfName = (f.total || 0) < 0 ? `Nota de Credito - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}` : `Factura B - ${nombreCliente.toUpperCase()} - ${dni} - Comp Nro ${refStr}`;
+          let pdfName = (f.total || 0) < 0 ? `Nota de Credito - ${nombreCliente.toUpperCase()} - ${dni} - Comp. Nro. ${refStr}` : `Factura B - ${nombreCliente.toUpperCase()} - ${dni} - Comp. Nro. ${refStr}`;
 
           return {
             id: f.id,
@@ -577,7 +577,7 @@ export default function FacturacionScreen({ route, navigation }) {
                     <MaterialCommunityIcons name="file-pdf-box" size={36} color={comp.isAnulada ? "#94a3b8" : "#ef4444"} />
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={[styles.comprobanteName, comp.isAnulada && { color: '#64748b', textDecorationLine: 'line-through' }]}>
-                        {comp.total < 0 ? 'Nota de Crédito' : 'Factura B'} {comp.isAnulada && '(ANULADA)'}
+                        {comp.fileName} {comp.isAnulada && '(ANULADA)'}
                       </Text>
                       <Text style={styles.comprobanteFecha}>
                         {comp.nombreCliente} - {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
