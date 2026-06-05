@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform, TextInput, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -11,6 +11,8 @@ import { reportHistoryService } from '../services/reportHistoryService';
 import { clienteService } from '../services/clienteService';
 
 export default function FacturacionScreen({ route, navigation }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const { role: currentUserRole } = route.params || { role: "ADMIN" };
   const [comprobantesReservas, setComprobantesReservas] = useState([]);
   const [comprobantesMembresias, setComprobantesMembresias] = useState([]);
@@ -525,23 +527,23 @@ export default function FacturacionScreen({ route, navigation }) {
       <Text style={styles.title}>Facturación y Cobros</Text>
 
       {/* Tabs */}
-      <View style={styles.tabRow}>
+      <View style={[styles.tabRow, isMobile && { flexDirection: 'column' }]}>
         <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'FACTURAS' && styles.tabBtnActive]}
+          style={[styles.tabBtn, activeTab === 'FACTURAS' && styles.tabBtnActive, isMobile && { flex: undefined }]}
           onPress={() => setActiveTab('FACTURAS')}
         >
           <MaterialCommunityIcons name="receipt" size={18} color={activeTab === 'FACTURAS' ? '#fff' : '#009b3a'} />
           <Text style={[styles.tabText, activeTab === 'FACTURAS' && { color: '#fff' }]}>Facturas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'COMPROBANTES' && styles.tabBtnActive]}
+          style={[styles.tabBtn, activeTab === 'COMPROBANTES' && styles.tabBtnActive, isMobile && { flex: undefined }]}
           onPress={() => setActiveTab('COMPROBANTES')}
         >
           <MaterialCommunityIcons name="text-box-check-outline" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
           <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes de Reservas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive]}
+          style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive, isMobile && { flex: undefined }]}
           onPress={() => setActiveTab('MEMBRESIAS')}
         >
           <MaterialCommunityIcons name="card-account-details-star" size={18} color={activeTab === 'MEMBRESIAS' ? '#fff' : '#009b3a'} />
@@ -584,23 +586,23 @@ export default function FacturacionScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.comprobanteBtns}>
+                  <View style={[styles.comprobanteBtns, isMobile && { flexWrap: 'wrap' }]}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => downloadPdf(comp)}
                     >
                       <MaterialCommunityIcons name="download" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => viewComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="eye" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => printComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="printer" size={16} color="#000" />
@@ -608,7 +610,7 @@ export default function FacturacionScreen({ route, navigation }) {
                     </TouchableOpacity>
                     {(!comp.isAnulada && comp.total > 0) && (
                       <TouchableOpacity 
-                        style={[styles.compBtn, { backgroundColor: '#ef4444' }]}
+                        style={[styles.compBtn, { backgroundColor: '#ef4444' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                         onPress={() => editComprobante(comp)}
                       >
                         <MaterialCommunityIcons name="pencil-remove" size={16} color="#fff" />
@@ -654,23 +656,23 @@ export default function FacturacionScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.comprobanteBtns}>
+                  <View style={[styles.comprobanteBtns, isMobile && { flexWrap: 'wrap' }]}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => downloadPdf(comp)}
                     >
                       <MaterialCommunityIcons name="download" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => viewComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="eye" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => printComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="printer" size={16} color="#000" />
@@ -715,23 +717,23 @@ export default function FacturacionScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.comprobanteBtns}>
+                  <View style={[styles.comprobanteBtns, isMobile && { flexWrap: 'wrap' }]}>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#009b3a' }]}
+                      style={[styles.compBtn, { backgroundColor: '#009b3a' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => downloadPdf(comp)}
                     >
                       <MaterialCommunityIcons name="download" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Descargar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }]}
+                      style={[styles.compBtn, { backgroundColor: '#3b82f6' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => viewComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="eye" size={16} color="#fff" />
                       <Text style={styles.compBtnText}>Ver</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.compBtn, { backgroundColor: '#ffb300' }]}
+                      style={[styles.compBtn, { backgroundColor: '#ffb300' }, isMobile && { flexGrow: 1, justifyContent: 'center' }]}
                       onPress={() => printComprobante(comp)}
                     >
                       <MaterialCommunityIcons name="printer" size={16} color="#000" />

@@ -35,7 +35,7 @@ export default function ReportesScreen({ route, navigation }) {
   const [timeFilter, setTimeFilter] = useState("Semana"); // 'Semana', 'Mes', 'Año'
   const [tooltip, setTooltip] = useState(null);
 
-  const chartWidth = isMobile ? width - 80 : Math.min(width - 240, 1050);
+  const chartWidth = isMobile ? Math.floor(width * 0.95) - 106 : Math.min(width - 240, 1050);
 
   const estadisticas = getEstadisticas();
 
@@ -678,22 +678,22 @@ export default function ReportesScreen({ route, navigation }) {
                   {expandedClase === clase.id && (
                     <View style={styles.alumnosTable}>
                       {/* Header de tabla */}
-                      <View style={styles.tableHeaderRow}>
-                        <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Alumno</Text>
-                        <Text style={styles.tableHeaderCell}>Presentes</Text>
-                        <Text style={styles.tableHeaderCell}>Total</Text>
-                        <Text style={styles.tableHeaderCell}>%</Text>
+                      <View style={[styles.tableHeaderRow, isMobile && { paddingHorizontal: 10 }]}>
+                        <Text style={[styles.tableHeaderCell, { flex: 2 }, isMobile && { fontSize: 10 }]}>Alumno</Text>
+                        <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>Presentes</Text>
+                        <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>Total</Text>
+                        <Text style={[styles.tableHeaderCell, isMobile && { fontSize: 10 }]}>%</Text>
                       </View>
                       {clase.alumnosStats.length === 0 ? (
                         <Text style={{ color: '#94a3b8', padding: 15, textAlign: 'center', fontStyle: 'italic' }}>Sin alumnos inscriptos</Text>
                       ) : (
                         clase.alumnosStats.map(alumno => (
-                          <View key={alumno.id} style={styles.tableRow}>
-                            <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }]}>{alumno.nombre}</Text>
-                            <Text style={styles.tableCell}>{alumno.presentes}</Text>
-                            <Text style={styles.tableCell}>{alumno.totalClases}</Text>
-                            <View style={[styles.pctBadge, { backgroundColor: alumno.porcentaje >= 75 ? '#f0fdf4' : alumno.porcentaje >= 50 ? '#fffbeb' : '#fef2f2' }]}>
-                              <Text style={[styles.pctText, { color: alumno.porcentaje >= 75 ? '#16a34a' : alumno.porcentaje >= 50 ? '#d97706' : '#ef4444' }]}>
+                          <View key={alumno.id} style={[styles.tableRow, isMobile && { paddingHorizontal: 10 }]}>
+                            <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }, isMobile && { fontSize: 11 }]}>{alumno.nombre}</Text>
+                            <Text style={[styles.tableCell, isMobile && { fontSize: 11 }]}>{alumno.presentes}</Text>
+                            <Text style={[styles.tableCell, isMobile && { fontSize: 11 }]}>{alumno.totalClases}</Text>
+                            <View style={[styles.pctBadge, { backgroundColor: alumno.porcentaje >= 75 ? '#f0fdf4' : alumno.porcentaje >= 50 ? '#fffbeb' : '#fef2f2' }, isMobile && { paddingHorizontal: 4 }]}>
+                              <Text style={[styles.pctText, { color: alumno.porcentaje >= 75 ? '#16a34a' : alumno.porcentaje >= 50 ? '#d97706' : '#ef4444' }, isMobile && { fontSize: 11 }]}>
                                 {alumno.porcentaje}%
                               </Text>
                             </View>
@@ -811,10 +811,11 @@ const styles = StyleSheet.create({
   description: { color: '#cbd5e1', fontSize: 12, marginTop: 10, fontStyle: 'italic', textAlign: 'center' },
   legendRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
-    gap: 20
+    gap: 12
   },
   legendItem: {
     flexDirection: 'row',
