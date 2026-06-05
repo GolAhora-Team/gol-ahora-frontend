@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIn
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { profesorService } from '../services/profesorService';
 import { claseService } from '../services/claseService';
+import { entrenamientoService } from '../services/entrenamientoService';
 
 export default function AssignClassModal({ visible, onClose, onAssignSuccess }) {
   const [profesores, setProfesores] = useState([]);
@@ -24,17 +25,23 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profData, claseData] = await Promise.all([
+      const [profData, claseData, entData] = await Promise.all([
         profesorService.getAll(),
-        claseService.getAll()
+        claseService.getAll().catch(() => []),
+        entrenamientoService.getAll().catch(() => [])
       ]);
       const now = new Date();
       const validProfesores = (profData || []).filter(p => {
         if (!p.certificados || p.certificados.length === 0) return false;
         return p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
       });
-      setProfesores(validProfesores);
-      setClases((claseData || []).filter(c => !c.profesorId && !c.profe)); // Mostrar clases sin profesor asignado o todas? Mostraremos todas por las dudas
+      setProfesores([{ id: 'REMOVE', nombre: 'Desasignar', apellido: 'Profesor', dni: 'N/A' }, ...validProfesores]);
+      
+      const combined = [
+        ...(claseData || []).map(c => ({ ...c, tipo: 'CLASE' })),
+        ...(entData || []).map(e => ({ ...e, tipo: 'ENTRENAMIENTO' }))
+      ];
+      setClases(combined);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los datos.');
@@ -45,17 +52,30 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
 
   const handleAssign = async () => {
     if (!selectedProfesor || !selectedClase) {
-      Alert.alert('Atención', 'Debes seleccionar un profesor y una clase.');
+      Alert.alert('Atención', 'Debes seleccionar un profesor y una actividad.');
       return;
     }
     setAssigning(true);
     try {
-      await claseService.addProfesor(selectedClase.id, selectedProfesor.id);
-      Alert.alert('Éxito', 'Profesor asignado a la clase correctamente.');
+      if (selectedProfesor.id === 'REMOVE') {
+         if (selectedClase.tipo === 'CLASE') {
+             await claseService.update(selectedClase.id, { ...selectedClase, profesorId: null, profe: null, profesorNombre: null });
+         } else {
+             await entrenamientoService.update(selectedClase.id, { ...selectedClase, profesorId: null, profe: null, profesorNombre: null });
+         }
+         Alert.alert('Éxito', 'Profesor desasignado correctamente.');
+      } else {
+         if (selectedClase.tipo === 'CLASE') {
+             await claseService.addProfesor(selectedClase.id, selectedProfesor.id);
+         } else {
+             await entrenamientoService.update(selectedClase.id, { ...selectedClase, profesorId: selectedProfesor.id, profe: `${selectedProfesor.nombre} ${selectedProfesor.apellido}` });
+         }
+         Alert.alert('Éxito', 'Profesor asignado correctamente.');
+      }
       if (onAssignSuccess) onAssignSuccess();
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'No se pudo asignar el profesor a la clase.');
+      Alert.alert('Error', 'No se pudo procesar la solicitud.');
     } finally {
       setAssigning(false);
     }
@@ -66,7 +86,7 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>Asignar Clase a Profesor</Text>
+            <Text style={styles.title}>Asignar / Desasignar Profesor</Text>
             <TouchableOpacity onPress={onClose}>
               <MaterialCommunityIcons name="close" size={28} color="#94a3b8" />
             </TouchableOpacity>
@@ -76,7 +96,7 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
           ) : (
             <ScrollView showsVerticalScrollIndicator={true}>
-              <Text style={styles.label}>1. Selecciona un Profesor</Text>
+              <Text style={styles.label}>1. Selecciona un Profesor o Desasignar</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
                 {profesores.map(p => (
                   <TouchableOpacity 
@@ -84,9 +104,15 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
                     style={[styles.card, selectedProfesor?.id === p.id && styles.cardSelected]}
                     onPress={() => setSelectedProfesor(p)}
                   >
-                    <MaterialCommunityIcons name="whistle" size={24} color={selectedProfesor?.id === p.id ? '#fff' : '#009b3a'} />
+                    <MaterialCommunityIcons 
+                      name={p.id === 'REMOVE' ? "account-minus" : "whistle"} 
+                      size={24} 
+                      color={selectedProfesor?.id === p.id ? '#fff' : (p.id === 'REMOVE' ? '#ef4444' : '#009b3a')} 
+                    />
                     <Text style={[styles.cardTitle, selectedProfesor?.id === p.id && { color: '#fff' }]}>{p.nombre} {p.apellido}</Text>
-                    <Text style={[styles.cardSub, selectedProfesor?.id === p.id && { color: '#d1fae5' }]}>DNI: {p.dni}</Text>
+                    {p.id !== 'REMOVE' && (
+                      <Text style={[styles.cardSub, selectedProfesor?.id === p.id && { color: '#d1fae5' }]}>DNI: {p.dni}</Text>
+                    )}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -96,24 +122,29 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
               <View style={styles.listContainer}>
                 {clases.map(c => (
                   <TouchableOpacity 
-                    key={c.id} 
-                    style={[styles.listItem, selectedClase?.id === c.id && styles.listItemSelected]}
+                    key={c.id + c.tipo} 
+                    style={[styles.listItem, selectedClase?.id === c.id && selectedClase?.tipo === c.tipo && styles.listItemSelected]}
                     onPress={() => setSelectedClase(c)}
                   >
                     <View>
-                      <Text style={[styles.listTitle, selectedClase?.id === c.id && { color: '#fff' }]}>{c.nombre}</Text>
-                      <Text style={[styles.listSub, selectedClase?.id === c.id && { color: '#d1fae5' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={{ backgroundColor: c.tipo === 'CLASE' ? '#6366f1' : '#f97316', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 6 }}>
+                           <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{c.tipo}</Text>
+                        </View>
+                        <Text style={[styles.listTitle, selectedClase?.id === c.id && selectedClase?.tipo === c.tipo && { color: '#fff' }]}>{c.nombre}</Text>
+                      </View>
+                      <Text style={[styles.listSub, selectedClase?.id === c.id && selectedClase?.tipo === c.tipo && { color: '#d1fae5' }]}>
                         Horario: {c.horario} • Capacidad: {c.capacidad}
                       </Text>
                       {(c.profesorNombre || c.profe) && (
                         <Text style={styles.warnText}>Ya tiene profesor asignado: {c.profesorNombre || c.profe}</Text>
                       )}
                     </View>
-                    {selectedClase?.id === c.id && <MaterialCommunityIcons name="check-circle" size={24} color="#fff" />}
+                    {selectedClase?.id === c.id && selectedClase?.tipo === c.tipo && <MaterialCommunityIcons name="check-circle" size={24} color="#fff" />}
                   </TouchableOpacity>
                 ))}
               </View>
-              {clases.length === 0 && <Text style={styles.emptyText}>No hay clases disponibles.</Text>}
+              {clases.length === 0 && <Text style={styles.emptyText}>No hay clases ni entrenamientos disponibles.</Text>}
             </ScrollView>
           )}
 
