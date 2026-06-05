@@ -226,7 +226,20 @@ export default function UserScreen({ route, navigation }) {
     setFormError('');
     try {
       const dateStr = formData.fechaNacimiento ? (formData.fechaNacimiento.includes('T') ? formData.fechaNacimiento : `${formData.fechaNacimiento}T00:00:00.000Z`) : "2000-01-01T00:00:00.000Z";
-      const payloadToSave = { ...formData, fechaNacimiento: dateStr };
+      
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const capNombre = capitalizeWords(formData.nombre);
+      const capApellido = capitalizeWords(formData.apellido);
+
+      const payloadToSave = { 
+        ...formData, 
+        nombre: capNombre, 
+        apellido: capApellido, 
+        fechaNacimiento: dateStr 
+      };
 
       if (isEditing) {
         // Update

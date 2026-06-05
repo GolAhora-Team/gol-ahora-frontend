@@ -102,10 +102,16 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       futureDate.setDate(futureDate.getDate() + 3);
       const safeFecha = futureDate.toISOString();
 
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const capNombre = capitalizeWords(formData.nombre.trim());
+
       let payload;
       if (type === 'CLASE') {
         payload = {
-          nombre: formData.nombre.trim(),
+          nombre: capNombre,
           descripcion: buildHorarioString(),
           capacidadMax: parseInt(formData.maxAlumnos) || 20,
           fecha: safeFecha,
@@ -116,7 +122,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
         };
       } else {
         payload = {
-          nombre: formData.nombre.trim(),
+          nombre: capNombre,
           fecha: safeFecha,
           cupoMaximo: parseInt(formData.maxAlumnos) || 20,
           profesorId: parseInt(formData.profesorId)

@@ -157,8 +157,14 @@ export default function CompetenciasScreen({ route, navigation }) {
       return Alert.alert("Atención", "El nombre es obligatorio");
     }
 
+    const capitalizeWords = (str) => {
+      if (!str) return '';
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    };
+    const capNombre = capitalizeWords(formData.nombre);
+
     const backendData = {
-      Nombre: formData.nombre,
+      Nombre: capNombre,
       Tipo: formData.tipo === 'LIGA' ? 1 : 2,
       Descripcion: formData.descripcion || '',
       CantidadEquipos: parseInt(formData.maxEquipos, 10),
@@ -373,10 +379,19 @@ export default function CompetenciasScreen({ route, navigation }) {
   // ── Equipo handlers ──
   const handleCreateEquipo = async (equipoFormData) => {
     try {
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const equipoToSave = {
+        ...equipoFormData,
+        nombre: capitalizeWords(equipoFormData.nombre)
+      };
+
       // Si es cliente, agregar CreadoPorClienteId automáticamente
       const dataToSend = isCliente && idPersona
-        ? { ...equipoFormData, creadoPorClienteId: idPersona }
-        : equipoFormData;
+        ? { ...equipoToSave, creadoPorClienteId: idPersona }
+        : equipoToSave;
       const result = await equipoService.create(dataToSend);
       const nuevo = { ...result, id: result?.id?.toString() || Date.now().toString() };
       setEquipos(prev => [...prev, nuevo]);
@@ -394,8 +409,17 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   const handleUpdateEquipo = async (equipoFormData) => {
     try {
-      await equipoService.update(editingEquipo.id, equipoFormData);
-      setEquipos(prev => prev.map(e => e.id === editingEquipo.id ? { ...e, ...equipoFormData } : e));
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const equipoToUpdate = {
+        ...equipoFormData,
+        nombre: capitalizeWords(equipoFormData.nombre)
+      };
+
+      await equipoService.update(editingEquipo.id, equipoToUpdate);
+      setEquipos(prev => prev.map(e => e.id === editingEquipo.id ? { ...e, ...equipoToUpdate } : e));
       setEquipoModalVisible(false);
       setEditingEquipo(null);
       showSuccess('¡Cambios Guardados!', 'El equipo se actualizó correctamente.');

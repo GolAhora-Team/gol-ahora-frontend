@@ -182,14 +182,21 @@ export default function RegisterScreen({ navigation }) {
 
     setIsLoading(true);
     try {
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const capNombre = capitalizeWords(nombre);
+      const capApellido = capitalizeWords(apellido);
+
       const payload = {
         Email: email, // Ahora el email va correctamente
         Username: username, // El nuevo username
         Password: password,
         Cliente: {
           Dni: parseInt(dni) || 0,
-          Nombre: nombre,
-          Apellido: apellido,
+          Nombre: capNombre,
+          Apellido: capApellido,
           Genero: genero,
           FechaNacimiento: fechaNacimiento ? `${fechaNacimiento}T00:00:00.000Z` : "2000-01-01T00:00:00.000Z",
           Telefono: telefono || "",
