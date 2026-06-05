@@ -386,6 +386,16 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
           <Text style={[s.pagoBtnSub, metodoPago === 'EFECTIVO' && { color: '#d1fae5' }]}>{pctEfectivo}% desc.</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={[s.pagoBtn, metodoPago === 'TRANSFERENCIA' && s.pagoBtnActive]}
+          onPress={() => setMetodoPago('TRANSFERENCIA')}
+        >
+          <MaterialCommunityIcons name="bank-transfer" size={28} color={metodoPago === 'TRANSFERENCIA' ? '#fff' : '#009b3a'} />
+          <Text style={[s.pagoBtnText, metodoPago === 'TRANSFERENCIA' && { color: '#fff' }]}>Transferencia</Text>
+          <Text style={[s.pagoBtnSub, metodoPago === 'TRANSFERENCIA' && { color: '#d1fae5' }]}>Sin desc.</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={[s.modeRow, { marginTop: 0 }]}>
+        <TouchableOpacity
           style={[s.pagoBtn, metodoPago === 'MERCADOPAGO' && s.pagoBtnActiveMP]}
           onPress={() => setMetodoPago('MERCADOPAGO')}
         >
@@ -796,8 +806,10 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     let createdFacturaId = null;
     let createdPagoId = null;
 
-    // Asignar el estado inicial basado en si está pagado o no
-    data.reservaPayload.Estado = estadoPago === 1 ? 1 : 2;
+    // Backend enums: EstadoReserva → Pendiente=1, Confirmada=2
+    // Siempre crear la reserva como Pendiente inicialmente;
+    // se actualizará al estado final después de vincular factura y pago.
+    data.reservaPayload.Estado = 1; // Pendiente
 
     if (data.isEdit) {
       await reservaService.update(reservaToEdit.id, data.reservaPayload);
@@ -814,7 +826,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       console.warn("No se pudo guardar el historial del reporte:", e);
     }
 
-    // Crear Factura y Pago asociados (no crítico — la reserva ya existe)
+    // Crear Factura y Pago asociados, LUEGO actualizar la Reserva con facturaId + estado final.
+    // Orden correcto: 1) Factura → 2) Pago → 3) Update Reserva (para pasar validación del backend)
     try {
       const facturaPayload = {
         fechaEmision: data.fecha,
@@ -826,13 +839,10 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const facturaId = factura?.id || factura?.Id;
       createdFacturaId = facturaId;
       if (facturaId && reservaId) {
-        // Actualizar Reserva con FacturaId
-        await reservaService.update(reservaId, { ...data.reservaPayload, facturaId: facturaId });
-
-        // Efectivo=1, Transferencia=2, MercadoPago=3
+        // Backend enums: MetodoPago → Efectivo=1, Tarjeta=2, Transferencia=3
         const metodoNum = data.metodoPago === 'EFECTIVO' ? 1
-          : data.metodoPago === 'TRANSFERENCIA' ? 2
-          : 3;
+          : data.metodoPago === 'TRANSFERENCIA' ? 3
+          : 2; // MERCADOPAGO → Tarjeta (2)
         const pagoPayload = {
           fechaPago: data.fecha,
           monto: data.montoFinal,
@@ -842,6 +852,11 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         };
         const pagoResp = await pagoService.create(pagoPayload);
         createdPagoId = pagoResp?.id || pagoResp?.Id;
+
+        // Ahora que el pago existe, actualizar la Reserva con facturaId y el estado final.
+        // Backend: Pendiente=1, Confirmada=2
+        const estadoFinal = estadoPago === 2 ? 2 : 1; // Si pagado → Confirmada(2), sino → Pendiente(1)
+        await reservaService.update(reservaId, { ...data.reservaPayload, facturaId: facturaId, Estado: estadoFinal });
       }
     } catch (e) {
       // La reserva ya está creada; sólo loguear advertencia sin lanzar error al usuario
