@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
-import { clienteService } from '../services/clienteService';
 
 export default function ManageInscripcionesModal({ visible, onClose, actividad, onUpdate }) {
   const [inscriptos, setInscriptos] = useState([]);
-  const [allClientes, setAllClientes] = useState([]);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -20,7 +17,6 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
 
   const loadData = async () => {
     setLoading(true);
-    setSearch('');
     try {
       // Cargar los inscriptos de la actividad actual
       let currentInscriptos = [];
@@ -35,10 +31,6 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
         currentInscriptos = [];
       }
       setInscriptos(currentInscriptos);
-
-      // Cargar todos los clientes para buscar
-      const clientesData = await clienteService.getAll();
-      setAllClientes(clientesData || []);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los datos.');
@@ -71,35 +63,7 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
     }
   };
 
-  const handleAdd = async (clienteId) => {
-    setActionLoading(true);
-    try {
-      if (actividad.tipo === 'CLASE') {
-        await claseService.addCliente(actividad.id, clienteId);
-      } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.addCliente(actividad.id, clienteId);
-      }
-      setSearch('');
-      await loadData();
-      if (onUpdate) onUpdate();
-      Alert.alert('Éxito', 'Usuario inscrito correctamente.');
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo inscribir al usuario. Puede que ya esté inscripto o el cupo esté lleno.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
-  // Clientes que no están inscriptos aún
-  const inscriptosIds = inscriptos.map(i => i.id?.toString() || i.id);
-  const availableClientes = allClientes.filter(c => !inscriptosIds.includes(c.id?.toString()));
-  
-  const filteredClientes = availableClientes.filter(c => {
-    const s = search.toLowerCase();
-    const fullname = `${c.nombre} ${c.apellido}`.toLowerCase();
-    const dni = c.dni ? c.dni.toString() : '';
-    return fullname.includes(s) || dni.includes(s);
-  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
@@ -140,42 +104,6 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
                   </View>
                 ))
               )}
-
-              <View style={styles.divider} />
-
-              <Text style={styles.sectionLabel}>Inscribir Nuevo Usuario</Text>
-              <View style={styles.searchBox}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
-                <TextInput 
-                  style={styles.searchInput}
-                  placeholder="Buscar por nombre o DNI..."
-                  value={search}
-                  onChangeText={setSearch}
-                />
-              </View>
-
-              {search.length > 0 && (
-                filteredClientes.length === 0 ? (
-                  <Text style={styles.emptyText}>No se encontraron usuarios.</Text>
-                ) : (
-                  filteredClientes.map(user => (
-                    <View key={user.id} style={styles.userCard}>
-                      <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{user.nombre} {user.apellido}</Text>
-                        <Text style={styles.userDni}>DNI: {user.dni}</Text>
-                      </View>
-                      <TouchableOpacity 
-                        style={styles.addBtn} 
-                        onPress={() => handleAdd(user.id)}
-                        disabled={actionLoading}
-                      >
-                        <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-                        <Text style={styles.addBtnText}>Inscribir</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )).slice(0, 5) // mostrar solo los primeros 5 en la búsqueda
-                )
-              )}
             </ScrollView>
           )}
         </View>
@@ -196,10 +124,5 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   userDni: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
-  addBtnText: { color: '#fff', fontWeight: '800', fontSize: 12, marginLeft: 4 },
-  divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 20 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 15, borderRadius: 12, marginBottom: 15 },
-  searchInput: { flex: 1, height: 45, marginLeft: 10, color: '#1e293b', fontSize: 14 }
+  removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 }
 });
