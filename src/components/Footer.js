@@ -26,7 +26,7 @@ const Footer = () => {
   return (
     <View style={styles.externalFooter}>
       <View style={styles.socialIconsContainer}>
-        <TouchableOpacity onPress={() => handleSocialPress('Instagram', 'https://www.instagram.com/')}>
+        <TouchableOpacity onPress={() => handleSocialPress('Instagram', 'https://www.instagram.com/golahoraunaj/')}>
           <MaterialCommunityIcons name="instagram" size={28} color="#fff" style={styles.socialIcon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => handleSocialPress('Facebook', 'https://www.facebook.com/')}>
