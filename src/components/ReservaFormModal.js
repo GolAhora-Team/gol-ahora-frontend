@@ -761,9 +761,9 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
 
   const getPersona = () => {
     if (clienteMode === 'CLIENTE' && selectedCliente) {
-      return { nombre: selectedCliente.nombre, apellido: selectedCliente.apellido, dni: selectedCliente.dni, esSocio: selectedCliente.esSocioActivo, clienteId: selectedCliente.id };
+      return { nombre: selectedCliente.nombre, apellido: selectedCliente.apellido, dni: selectedCliente.dni, esSocio: selectedCliente.esSocioActivo, clienteId: selectedCliente.id, email: selectedCliente.email };
     }
-    return { nombre: invitado.nombre, apellido: invitado.apellido, dni: invitado.dni, esSocio: false, clienteId: null };
+    return { nombre: invitado.nombre, apellido: invitado.apellido, dni: invitado.dni, esSocio: false, clienteId: null, email: invitado.email };
   };
 
   const getPrecioBase = () => selectedCancha?.precioPorHora || 0;
