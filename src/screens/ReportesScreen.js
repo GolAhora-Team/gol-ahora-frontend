@@ -13,7 +13,7 @@ import { entrenamientoService } from '../services/entrenamientoService';
 import { reservaService } from '../services/reservaService';
 import { facturaService } from '../services/facturaService';
 import { clienteService } from '../services/clienteService';
-import { asistenciaStorage } from '../components/AsistenciaModal';
+import { asistenciaService } from '../services/asistenciaService';
 import { BarChart, LineChart, StackedBarChart } from 'react-native-chart-kit';
 
 export default function ReportesScreen({ route, navigation }) {
@@ -231,23 +231,38 @@ export default function ReportesScreen({ route, navigation }) {
         ...entrenamientos.map(e => ({ ...e, tipo: 'ENTRENAMIENTO' }))
       ];
 
-      const result = combined.map(actividad => {
-        const allRecords = asistenciaStorage.getAll(actividad.id?.toString());
-        const dates = Object.keys(allRecords);
+      // Generar últimos 30 días para consultar asistencias
+      const fechas = [];
+      const hoy = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(hoy);
+        d.setDate(hoy.getDate() - i);
+        fechas.push(d.toISOString().split('T')[0]);
+      }
+
+      const result = [];
+      for (const actividad of combined) {
+        const actId = actividad.id;
         const alumnos = actividad.clientes || [];
 
-        const alumnosStats = alumnos.map(alumno => {
-          let presentes = 0;
-          let inasistencias = 0;
-          dates.forEach(fecha => {
-            const reg = allRecords[fecha];
-            const found = reg?.find(r => r.id === alumno.id);
-            if (found) {
-              if (found.estado === true) presentes++;
-              else if (found.estado === false) inasistencias++;
+        // Consultar asistencias de la API para cada fecha
+        const todasAsistencias = [];
+        const fechasConRegistro = new Set();
+        for (const fecha of fechas) {
+          try {
+            const registros = await asistenciaService.getAsistenciasPorClaseYFecha(actId, fecha);
+            if (registros && registros.length > 0) {
+              fechasConRegistro.add(fecha);
+              todasAsistencias.push(...registros);
             }
-          });
-          let totalClases = presentes + inasistencias;
+          } catch(e) { /* fecha sin registros */ }
+        }
+
+        const alumnosStats = alumnos.map(alumno => {
+          const registrosAlumno = todasAsistencias.filter(r => r.clienteId === alumno.id);
+          const presentes = registrosAlumno.filter(r => r.presente === true).length;
+          const inasistencias = registrosAlumno.filter(r => r.presente === false).length;
+          const totalClases = presentes + inasistencias;
           const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : 0;
           return {
             id: alumno.id,
@@ -259,16 +274,16 @@ export default function ReportesScreen({ route, navigation }) {
           };
         });
 
-        return {
-          id: `${actividad.tipo}-${actividad.id?.toString()}`,
-          originalId: actividad.id?.toString(),
+        result.push({
+          id: `${actividad.tipo}-${actId?.toString()}`,
+          originalId: actId?.toString(),
           nombre: `${actividad.nombre} (${actividad.tipo === 'ENTRENAMIENTO' ? 'Entrenamiento' : 'Clase'})`,
           horario: actividad.horario || 'Sin horario',
           totalAlumnos: alumnos.length,
-          totalClasesRegistradas: dates.length,
+          totalClasesRegistradas: fechasConRegistro.size,
           alumnosStats
-        };
-      });
+        });
+      }
       setAsistenciaData(result);
     } catch (error) {
       console.error('Error loading asistencia:', error);
