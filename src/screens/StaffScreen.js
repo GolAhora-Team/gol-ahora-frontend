@@ -290,6 +290,12 @@ export default function StaffScreen({ route, navigation }) {
                 <Text style={styles.infoValue}>{item.horario}</Text>
               </View>
               <View style={styles.infoCol}>
+                <Text style={styles.infoLabel}>Cancha</Text>
+                <Text style={[styles.infoValue, (!item.canchaId || item.canchaNombre === 'Sin Cancha') && { color: '#ef4444' }]}>
+                  {item.canchaNombre || 'Sin Cancha'}
+                </Text>
+              </View>
+              <View style={styles.infoCol}>
                 <Text style={styles.infoLabel}>Precio</Text>
                 <Text style={styles.infoValue}>${item.precio}</Text>
               </View>

@@ -14,6 +14,17 @@ const DIAS = [
   { key: 'Dom', label: 'Dom' },
 ];
 
+const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+
+const sumarUnaHora = (horaStr) => {
+  const match = horaStr.trim().match(timeRegex);
+  if (!match) return '';
+  let horas = parseInt(match[1]);
+  let minutos = match[2];
+  horas = (horas + 1) % 24;
+  return `${horas.toString().padStart(2, '0')}:${minutos}`;
+};
+
 export default function CreateActivityModal({ visible, onClose, onSave, title, type, initialData = null }) {
   const profScrollRef = useRef(null);
   const canchaScrollRef = useRef(null);
@@ -141,6 +152,10 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       Alert.alert('Atención', 'Ingresá la hora de inicio y fin.');
       return;
     }
+    if (!timeRegex.test(formData.horaInicio.trim()) || !timeRegex.test(formData.horaFin.trim())) {
+      Alert.alert('Formato de Horario Inválido', 'El horario debe estar en formato de 24 horas HH:MM (ej: 13:00, 09:30).');
+      return;
+    }
     if (!formData.profesorId) {
       Alert.alert('Atención', 'Debes seleccionar un Profesor. El profesor debe tener certificado vigente.');
       return;
@@ -250,14 +265,35 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
                   placeholder="18:00"
                   placeholderTextColor="#94a3b8"
                   value={formData.horaInicio}
-                  onChangeText={text => setFormData({...formData, horaInicio: text})}
+                  onChangeText={text => {
+                    setFormData(prev => {
+                      const newStart = text;
+                      let newEnd = prev.horaFin;
+                      if (timeRegex.test(newStart.trim()) && !newEnd) {
+                        newEnd = sumarUnaHora(newStart);
+                      }
+                      return { ...prev, horaInicio: newStart, horaFin: newEnd };
+                    });
+                  }}
                 />
               </View>
               <View style={styles.horarioSeparator}>
                 <MaterialCommunityIcons name="arrow-right" size={20} color="#64748b" />
               </View>
               <View style={styles.horarioField}>
-                <Text style={styles.horarioLabel}>Fin</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={styles.horarioLabel}>Fin</Text>
+                  {formData.horaInicio && timeRegex.test(formData.horaInicio.trim()) && (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setFormData(prev => ({ ...prev, horaFin: sumarUnaHora(prev.horaInicio) }));
+                      }}
+                      style={styles.shortcutBtn}
+                    >
+                      <Text style={styles.shortcutBtnText}>+1 hora</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <TextInput
                   style={styles.horarioInput}
                   placeholder="19:30"
@@ -432,6 +468,19 @@ const styles = StyleSheet.create({
   
   saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 20 },
   saveBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  shortcutBtn: {
+    backgroundColor: '#ede9fe',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd6fe',
+  },
+  shortcutBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6366f1',
+  },
   scrollContainer: {
     flexDirection: 'row',
     alignItems: 'center',
