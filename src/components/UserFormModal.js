@@ -27,6 +27,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
   const [cobroModalVisible, setCobroModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const handleAddCertificado = () => {
     setFormData(prev => ({
@@ -548,8 +549,10 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 onChangeText={v => {
                   const newVal = v.replace(/[^0-9]/g, '');
                   if (newVal !== '' && newVal === formData.telefono) {
-                    alert("El contacto de emergencia no puede ser igual al teléfono principal.");
+                    setPhoneError("El contacto de emergencia no puede ser igual al teléfono principal.");
+                    setFormData({ ...formData, contactoEmergencia: newVal });
                   } else {
+                    setPhoneError("");
                     setFormData({ ...formData, contactoEmergencia: newVal });
                   }
                 }}
@@ -558,6 +561,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
                 labelStyle={styles.greenLabelBold}
                 inputStyle={styles.greenInputText}
               />
+              {phoneError ? <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 13, marginTop: -10, marginBottom: 10 }}>{phoneError}</Text> : null}
             </View>
 
             <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
