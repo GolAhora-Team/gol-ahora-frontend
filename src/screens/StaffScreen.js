@@ -22,7 +22,7 @@ export default function StaffScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
 
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
-  const [claseSeleccionada, setClaseSeleccionada] = useState("");
+  const [claseSeleccionada, setClaseSeleccionada] = useState(null);
   
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [alumnosModalVisible, setAlumnosModalVisible] = useState(false);
@@ -339,7 +339,7 @@ export default function StaffScreen({ route, navigation }) {
         visible={asistenciaModalVisible} 
         onClose={() => setAsistenciaModalVisible(false)} 
         claseId={claseSeleccionada?.id}
-        claseNombre={claseSeleccionada?.nombre || claseSeleccionada}
+        claseNombre={claseSeleccionada?.nombre || ""}
         esEntrenamiento={activeTab === 'ENTRENAMIENTOS'}
       />
 
