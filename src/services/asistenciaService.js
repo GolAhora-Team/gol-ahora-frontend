@@ -5,10 +5,10 @@ export const asistenciaService = {
    * GET /api/Asistencia/clase/{claseId}?fecha=...
    * Obtiene las asistencias de una clase para una fecha dada.
    */
-  getAsistenciasPorClaseYFecha: async (claseId, fecha) => {
+  getAsistenciasPorActividadYFecha: async (actividadId, fecha, esClase) => {
     try {
       const dateString = new Date(fecha).toISOString().split('T')[0];
-      return await http.get(`${API_BASE_URL}/Asistencia/clase/${claseId}?fecha=${dateString}`);
+      return await http.get(`${API_BASE_URL}/Asistencia/actividad/${actividadId}?fecha=${dateString}&esClase=${esClase}`);
     } catch (error) {
       throw error;
     }
