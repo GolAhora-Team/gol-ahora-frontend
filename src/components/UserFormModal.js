@@ -600,7 +600,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
           }
           setCalendarCertVisible(false);
         }}
-        initialDate={calendarCertData.index !== null && calendarCertData.field ? formData.certificados[calendarCertData.index][calendarCertData.field] : ''}
+        initialDate={calendarCertData.index !== null && calendarCertData.field && formData.certificados[calendarCertData.index] ? formData.certificados[calendarCertData.index][calendarCertData.field] : ''}
       />
       <CobroMembresiaModal
         visible={cobroModalVisible}
