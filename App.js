@@ -41,6 +41,19 @@ const Stack = createNativeStackNavigator();
 
 import AutoLogoutWrapper from './src/components/AutoLogoutWrapper';
 
+// Ocultar el botón nativo de revelar contraseña del navegador (ej. Edge) en versión web
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(`
+    input::-ms-reveal,
+    input::-ms-clear {
+      display: none !important;
+    }
+  `));
+  document.head.appendChild(style);
+}
+
 // Configurar fuente por defecto para componentes de texto de React Native
 const customTextProps = { style: { fontFamily: 'Montserrat_400Regular' } };
 
