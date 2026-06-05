@@ -6,6 +6,10 @@ import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
 import { descuentoService } from '../services/descuentoService';
 import { mercadoPagoService } from '../services/mercadoPagoService';
+import { facturaService } from '../services/facturaService';
+import { pagoService } from '../services/pagoService';
+import { reportHistoryService } from '../services/reportHistoryService';
+import QRCode from 'react-native-qrcode-svg';
 
 export default function InscripcionPagoModal({ visible, onClose, actividad, currentUserRole, idPersona, nombreUsuario, onSuccess }) {
   const [step, setStep] = useState(1);
@@ -17,6 +21,12 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pctSocio, setPctSocio] = useState(10);
   const [pctEfectivo, setPctEfectivo] = useState(10);
+
+  // States for Admin QR Modal
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [qrUrl, setQrUrl] = useState('');
+  const [pendingAdminPayload, setPendingAdminPayload] = useState(null);
+  const [externalReference, setExternalReference] = useState('');
 
   const isAdminOrPersonal = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const precio = actividad?.precio || 5000;
@@ -76,7 +86,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
   const handleNext = () => {
     if (step === 1 && isAdminOrPersonal) {
       if (!selectedCliente) {
-        Alert.alert('Atención', 'Seleccioná un cliente.');
+        Alert.alert('Atención', 'Seleccioná un alumno.');
         return;
       }
       setStep(2);
@@ -98,6 +108,83 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
     else if (step > 1) setStep(step - 1);
   };
 
+  const generateComprobanteHtml = (persona, actividadObj, montoFinal, metodo, esSocioActivo, pctEfectivo, pctSocio) => {
+    const descEfectivo = metodo === 'EFECTIVO' ? actividadObj.precio * (pctEfectivo / 100) : 0;
+    const descSocio = esSocioActivo ? actividadObj.precio * (pctSocio / 100) : 0;
+    const now = new Date();
+
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 4px solid #009b3a; padding-bottom: 15px; margin-bottom: 25px; }
+            .logo { font-size: 36px; font-weight: 900; color: #009b3a; margin: 0; }
+            .sub { font-size: 12px; font-weight: bold; color: #64748b; }
+            .container { border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; background: #f8fafc; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+            .label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; }
+            .value { font-weight: 900; color: #1e293b; font-size: 14px; }
+            .discount { color: #ef4444; font-size: 13px; }
+            .total { font-size: 24px; font-weight: 900; color: #009b3a; text-align: right; margin-top: 15px; border-top: 3px solid #009b3a; padding-top: 10px; }
+            .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="logo">GOL AHORA</h1>
+            <p class="sub">COMPROBANTE DE INSCRIPCIÓN</p>
+          </div>
+          <div class="container">
+            <div class="row"><span class="label">Alumno</span> <span class="value">${persona.nombre} ${persona.apellido}</span></div>
+            <div class="row"><span class="label">DNI</span> <span class="value">${persona.dni}</span></div>
+            <div class="row"><span class="label">Actividad</span> <span class="value">${actividadObj.nombre} (${actividadObj.tipo})</span></div>
+            <div class="row"><span class="label">Horario</span> <span class="value">${actividadObj.horario || 'Sin definir'}</span></div>
+            <div class="row"><span class="label">Método de pago</span> <span class="value">${metodo === 'EFECTIVO' ? 'Efectivo' : 'Mercado Pago'}</span></div>
+            <div class="row"><span class="label">Monto original</span> <span class="value">$${actividadObj.precio.toLocaleString('es-AR')}</span></div>
+            ${descEfectivo > 0 ? `<div class="row"><span class="label discount">Desc. ${pctEfectivo}% efectivo</span> <span class="discount">-$${descEfectivo.toLocaleString('es-AR')}</span></div>` : ''}
+            ${descSocio > 0 ? `<div class="row"><span class="label discount">Desc. ${pctSocio}% socio activo</span> <span class="discount">-$${descSocio.toLocaleString('es-AR')}</span></div>` : ''}
+            <p class="total">TOTAL: $${montoFinal.toLocaleString('es-AR')}</p>
+          </div>
+          <div class="footer">
+            Emitido el ${now.toLocaleDateString('es-AR')} a las ${now.toLocaleTimeString('es-AR')}
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const createPayment = async (clienteId, montoFinal, estadoPago) => {
+    let createdPagoId = null;
+    let createdFacturaId = null;
+    try {
+      const facturaPayload = {
+        fechaEmision: new Date().toISOString(),
+        total: montoFinal,
+        clienteId: clienteId
+      };
+      const factura = await facturaService.create(facturaPayload);
+      
+      const facturaId = factura?.id || factura?.Id;
+      createdFacturaId = facturaId;
+      if (facturaId) {
+        const metodoNum = metodoPago === 'EFECTIVO' ? 1 : 2; // MERCADOPAGO → Tarjeta (2)
+        const pagoPayload = {
+          fechaPago: new Date().toISOString(),
+          monto: montoFinal,
+          metodo: metodoNum,
+          estado: estadoPago, // 1=Pendiente, 2=Pagado
+          facturaId: facturaId
+        };
+        const pagoResp = await pagoService.create(pagoPayload);
+        createdPagoId = pagoResp?.id || pagoResp?.Id;
+      }
+    } catch (e) {
+      console.warn("No se pudo registrar la factura/pago:", e);
+    }
+    return { createdFacturaId, createdPagoId };
+  };
+
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
@@ -107,27 +194,90 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
         return;
       }
 
-      // Inscribir
-      if (actividad.tipo === 'CLASE') {
-        await claseService.addCliente(actividad.id, clienteId);
-      } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.addCliente(actividad.id, clienteId);
+      // Generar Comprobante HTML
+      const html = generateComprobanteHtml(selectedCliente, actividad, montoFinal, metodoPago, selectedCliente?.esSocioActivo, pctEfectivo, pctSocio);
+      const fileName = `Comprobante-Inscripcion-${selectedCliente.nombre}_${selectedCliente.apellido}-${actividad.nombre}`.replace(/\s+/g, '_');
+      
+      try {
+        await reportHistoryService.saveReporte(html, fileName);
+      } catch (e) {
+        console.warn("No se pudo guardar el historial del reporte:", e);
       }
 
       // MercadoPago flow for clients
       if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
+        const { createdFacturaId, createdPagoId } = await createPayment(clienteId, montoFinal, 1); // 1 = Pendiente
+        
         try {
           const mpTitle = `Inscripción ${actividad.nombre}`;
+          const baseUrl = window.location.href.split('?')[0];
+          const currentUrl = baseUrl + '?mp_return=true';
+          const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
+          
+          const mpResponse = await mercadoPagoService.createPreference(
+            mpTitle, 
+            montoFinal, 
+            currentUrl,
+            webhookUrl,
+            createdFacturaId ? createdFacturaId.toString() : null
+          );
+          
           if (Platform.OS === 'web') {
-            const baseUrl = window.location.href.split('?')[0];
-            const currentUrl = baseUrl + '?mp_return=true';
-            const mpResponse = await mercadoPagoService.createPreference(mpTitle, montoFinal, currentUrl);
             window.location.href = mpResponse.initPoint;
+            return;
+          } else {
+            const { Linking } = require('react-native');
+            Linking.openURL(mpResponse.initPoint);
+            setIsSubmitting(false);
             return;
           }
         } catch (mpError) {
           console.error('Error MP:', mpError);
         }
+      }
+
+      // MercadoPago flow for Admin (QR Code)
+      if (metodoPago === 'MERCADOPAGO' && isAdminOrPersonal) {
+        const { createdFacturaId, createdPagoId } = await createPayment(clienteId, montoFinal, 1); // 1 = Pendiente
+        
+        const mpTitle = `Inscripción ${actividad.nombre}`;
+        const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
+        
+        const mpResponse = await mercadoPagoService.createPreference(
+          mpTitle, 
+          montoFinal, 
+          null, 
+          webhookUrl, 
+          createdFacturaId ? createdFacturaId.toString() : null
+        );
+        
+        setQrUrl(mpResponse.initPoint);
+        const refForPolling = mpResponse.externalReference || (createdFacturaId ? createdFacturaId.toString() : null);
+        if (refForPolling) {
+          setExternalReference(refForPolling);
+        }
+        
+        // Inscribir al cliente primero
+        if (actividad.tipo === 'CLASE') {
+          await claseService.addCliente(actividad.id, clienteId);
+        } else if (actividad.tipo === 'ENTRENAMIENTO') {
+          await entrenamientoService.addCliente(actividad.id, clienteId);
+        }
+
+        setPendingAdminPayload({ facturaId: createdFacturaId, pagoId: createdPagoId });
+        setQrModalVisible(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Efectivo Flow
+      await createPayment(clienteId, montoFinal, 2); // 2 = Pagado
+      
+      // Inscribir
+      if (actividad.tipo === 'CLASE') {
+        await claseService.addCliente(actividad.id, clienteId);
+      } else if (actividad.tipo === 'ENTRENAMIENTO') {
+        await entrenamientoService.addCliente(actividad.id, clienteId);
       }
 
       if (onSuccess) onSuccess();
@@ -401,6 +551,50 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           )}
         </View>
       </View>
+
+      <Modal visible={qrModalVisible} transparent animationType="fade">
+        <View style={s.overlay}>
+          <View style={s.qrModalContainer}>
+            <Text style={s.qrModalTitle}>Cobro con Código QR</Text>
+            <Text style={s.qrModalText}>Pedile al alumno que escanee este código desde su app de Mercado Pago o cámara.</Text>
+            
+            <View style={s.qrBox}>
+              {qrUrl ? (
+                <QRCode value={qrUrl} size={220} />
+              ) : (
+                <ActivityIndicator size="large" color="#009ee3" />
+              )}
+            </View>
+
+            <TouchableOpacity 
+              style={s.qrConfirmBtn} 
+              onPress={async () => {
+                 setQrModalVisible(false);
+                 if (pendingAdminPayload?.pagoId) {
+                   try {
+                     const pagos = await pagoService.getAll();
+                     const pago = pagos.find(p => p.id === pendingAdminPayload.pagoId || p.Id === pendingAdminPayload.pagoId);
+                     if (pago) {
+                       await pagoService.update(pendingAdminPayload.pagoId, { ...pago, estado: 2 });
+                     }
+                   } catch (e) {
+                     console.error("Error confirmando pago manual:", e);
+                   }
+                   onClose();
+                   if (onSuccess) onSuccess();
+                 }
+              }}
+            >
+              <Text style={s.qrConfirmBtnText}>Marcar como Pagado</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={s.qrCancelBtn} onPress={() => setQrModalVisible(false)}>
+              <Text style={s.qrCancelBtnText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </Modal>
   );
 }
@@ -461,4 +655,13 @@ const s = StyleSheet.create({
   nextBtnText: { color: '#fff', fontWeight: '900' },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, gap: 5 },
   confirmBtnText: { color: '#fff', fontWeight: '900' },
+  
+  qrModalContainer: { width: '90%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center' },
+  qrModalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 10 },
+  qrModalText: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 20 },
+  qrBox: { width: 240, height: 240, backgroundColor: '#f8fafc', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#e2e8f0' },
+  qrConfirmBtn: { backgroundColor: '#009b3a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 10 },
+  qrConfirmBtnText: { color: '#fff', fontWeight: '900', fontSize: 15 },
+  qrCancelBtn: { paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center' },
+  qrCancelBtnText: { color: '#ef4444', fontWeight: '800', fontSize: 15 },
 });
