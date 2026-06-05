@@ -19,6 +19,8 @@ export default function FacturacionScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState('FACTURAS');
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [viewingComprobante, setViewingComprobante] = useState(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingFactura, setEditingFactura] = useState(null);
   const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
@@ -140,15 +142,8 @@ export default function FacturacionScreen({ route, navigation }) {
   };
 
   const editComprobante = (comprobante) => {
-    Alert.alert(
-      'Opciones de Edición',
-      `¿Qué acción deseas realizar sobre la factura #${comprobante.id}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Editar Datos', onPress: () => console.log('Editar', comprobante.id) },
-        { text: 'Anular Factura', onPress: () => console.log('Anular', comprobante.id), style: 'destructive' }
-      ]
-    );
+    setEditingFactura(comprobante);
+    setEditModalVisible(true);
   };
 
   const generateFacturaAfipHtml = (factura, nombreCliente, fecha) => {
@@ -429,14 +424,14 @@ export default function FacturacionScreen({ route, navigation }) {
           onPress={() => setActiveTab('COMPROBANTES')}
         >
           <MaterialCommunityIcons name="text-box-check-outline" size={18} color={activeTab === 'COMPROBANTES' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>C. Reservas</Text>
+          <Text style={[styles.tabText, activeTab === 'COMPROBANTES' && { color: '#fff' }]}>Comprobantes de Reservas</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'MEMBRESIAS' && styles.tabBtnActive]}
           onPress={() => setActiveTab('MEMBRESIAS')}
         >
           <MaterialCommunityIcons name="card-account-details-star" size={18} color={activeTab === 'MEMBRESIAS' ? '#fff' : '#009b3a'} />
-          <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes Membresías</Text>
+          <Text style={[styles.tabText, activeTab === 'MEMBRESIAS' && { color: '#fff' }]}>Comprobantes de Membresias</Text>
         </TouchableOpacity>
       </View>
       
@@ -665,6 +660,59 @@ export default function FacturacionScreen({ route, navigation }) {
                 </>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Editar Comprobante */}
+      <Modal visible={editModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.viewOverlay}>
+          <View style={[styles.viewContainer, { maxWidth: 500 }]}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>Editar Factura #{editingFactura?.id}</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <MaterialCommunityIcons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 15, lineHeight: 20 }}>
+                Las facturas emitidas y autorizadas por AFIP no pueden ser modificadas directamente. 
+                Debe generar una Nota de Crédito para anularla y emitir una nueva.
+              </Text>
+
+              <View style={{ backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, marginBottom: 20 }}>
+                <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Cliente:</Text>
+                <Text style={{ color: '#475569', marginBottom: 10 }}>{editingFactura?.nombreCliente}</Text>
+                
+                <Text style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>Total Actual:</Text>
+                <Text style={{ color: '#009b3a', fontSize: 18, fontWeight: '900' }}>
+                  ${(editingFactura?.total || 0).toLocaleString('es-AR')}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#ef4444', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    Alert.alert('Anular', 'Generando Nota de Crédito...', [{ text: 'OK', onPress: () => setEditModalVisible(false) }]);
+                  }}
+                >
+                  <MaterialCommunityIcons name="file-cancel" size={24} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Anular / Nota Crédito</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: '#3b82f6', padding: 15, borderRadius: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    Alert.alert('Editar', 'Abriendo formulario de rectificación...', [{ text: 'OK', onPress: () => setEditModalVisible(false) }]);
+                  }}
+                >
+                  <MaterialCommunityIcons name="file-document-edit" size={24} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: 'bold', marginTop: 5 }}>Rectificar Datos</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>

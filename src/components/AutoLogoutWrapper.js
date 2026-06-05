@@ -13,6 +13,28 @@ export default function AutoLogoutWrapper({ children, navigationRef, currentRout
       return;
     }
 
+    let role = null;
+    if (navigationRef && navigationRef.isReady()) {
+      const currentRoute = navigationRef.getCurrentRoute();
+      role = currentRoute?.params?.role || currentRoute?.params?.userRole;
+    }
+
+    if (Platform.OS === 'web' && !role) {
+      try {
+        const saved = localStorage.getItem('GOL_AHORA_SESSION');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          role = parsed.role;
+        }
+      } catch (e) {}
+    }
+
+    // Exceptuar a Administradores y Personal del deslogueo por inactividad
+    if (role === 'ADMIN' || role === 'PERSONAL') {
+      clearTimers();
+      return;
+    }
+
     clearTimers();
     idleTimer.current = setTimeout(() => {
       handleIdle();
