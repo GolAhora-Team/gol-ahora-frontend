@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } f
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 
-export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, errorMessage }) {
+export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, errorMessage, canchas }) {
   const tipos = ['F5', 'F7', 'F11'];
   const superficies = ['Sintético', 'Césped Natural', 'Parquet', 'Cemento'];
 
@@ -46,7 +46,14 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
                     onPress={() => {
                       let cap = "0";
                       let dim = "";
-                      let basePricePerHour = formData.precioPorHora ?? (t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000);
+                      let basePricePerHour = t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000;
+                      if (canchas && canchas.length > 0) {
+                        const existingCancha = canchas.find(c => c.tipo === t);
+                        if (existingCancha && existingCancha.original?.precioPorHora) {
+                          basePricePerHour = existingCancha.original.precioPorHora;
+                        }
+                      }
+
                       if (t === 'F5') { cap = "10"; dim = "20x40m"; }
                       if (t === 'F7') { cap = "14"; dim = "30x50m"; }
                       if (t === 'F11') { cap = "22"; dim = "45x90m"; }

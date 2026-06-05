@@ -24,7 +24,7 @@ export default function CanchaCard({ item, onEdit, onDelete, onToggleMaintenance
           <MaterialCommunityIcons name="account-group" size={16} color={isMaint ? "#cbd5e1" : "#94a3b8"} style={{marginLeft: 10}} />
           <Text style={[styles.specText, isMaint && {color: '#cbd5e1'}]}>{item.capacidad} jug.</Text>
           <Text style={[styles.specText, { marginLeft: 10, color: isMaint ? '#cbd5e1' : '#16a34a', fontWeight: '800' }]}>
-            ${(item.original?.precioPorHora || (item.tipo === 'F5' ? 30000 : item.tipo === 'F7' ? 65000 : 120000)).toLocaleString('es-AR')} / {item.original?.duracionMax || 60} min
+            ${((item.original?.precioPorHora || (item.tipo === 'F5' ? 30000 : item.tipo === 'F7' ? 65000 : 120000)) * ((item.original?.duracionMax || 60) / 60)).toLocaleString('es-AR')} / {item.original?.duracionMax || 60} min
           </Text>
         </View>
       </View>

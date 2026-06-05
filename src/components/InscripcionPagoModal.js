@@ -49,7 +49,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       } else {
         // Cliente se auto-inscribe
         const data = await clienteService.getAll();
-        const found = data?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+        const found = data?.find(c => c.id === idPersona || `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
         if (found) setSelectedCliente(found);
         setClientes(data || []);
       }
@@ -236,6 +236,11 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                     <View style={s.selectedCard}>
                       <MaterialCommunityIcons name="account" size={20} color="#009b3a" />
                       <Text style={s.selectedName}>{selectedCliente.nombre} {selectedCliente.apellido}</Text>
+                      {selectedCliente.esSocioActivo && (
+                        <View style={s.socioBadge}>
+                          <Text style={s.socioBadgeText}>SOCIO</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
@@ -312,6 +317,18 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                       <Text style={s.confirmLabel}>Método</Text>
                       <Text style={s.confirmValue}>{metodoPago === 'EFECTIVO' ? 'Efectivo' : 'MercadoPago'}</Text>
                     </View>
+                    {descEfectivo > 0 && (
+                      <View style={s.confirmRow}>
+                        <Text style={s.descLabel}>Desc. {pctEfectivo}% efectivo</Text>
+                        <Text style={s.descValue}>-${descEfectivo.toLocaleString('es-AR')}</Text>
+                      </View>
+                    )}
+                    {descSocio > 0 && (
+                      <View style={s.confirmRow}>
+                        <Text style={s.descLabel}>Desc. {pctSocio}% socio</Text>
+                        <Text style={s.descValue}>-${descSocio.toLocaleString('es-AR')}</Text>
+                      </View>
+                    )}
                     <View style={[s.confirmRow, { borderBottomWidth: 0 }]}>
                       <Text style={s.confirmLabel}>Monto</Text>
                       <Text style={[s.confirmValue, { color: '#009b3a', fontSize: 18 }]}>${montoFinal.toLocaleString('es-AR')}</Text>
