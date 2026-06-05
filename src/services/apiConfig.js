@@ -99,15 +99,18 @@ initAuthToken();
 export const handleResponse = async (response) => {
   const contentType = response.headers.get('content-type');
   const isJson = contentType?.includes('json');
-  const isText = contentType?.includes('text/plain');
   
   let data = null;
   let textData = null;
   
-  if (isJson) {
-    data = await response.json();
-  } else {
-    textData = await response.text();
+  try {
+    const text = await response.text();
+    textData = text;
+    if (isJson && text && text.trim()) {
+      data = JSON.parse(text);
+    }
+  } catch (e) {
+    console.warn('Error leyendo o parseando la respuesta:', e);
   }
 
   if (!response.ok) {
@@ -123,9 +126,16 @@ export const handleResponse = async (response) => {
         errorMessage = data.title;
       }
     } else if (textData) {
-      errorMessage = textData;
+      // Si el texto es muy largo o contiene código HTML de error IIS, lo recortamos o simplificamos
+      if (textData.includes('<!DOCTYPE html>') || textData.includes('<html>')) {
+        errorMessage = `Error del servidor (${response.status}): ${response.statusText || 'Internal Server Error'}`;
+      } else {
+        errorMessage = textData;
+      }
     } else if (response.statusText) {
       errorMessage = response.statusText;
+    } else {
+      errorMessage = `Error HTTP ${response.status}`;
     }
 
     throw new Error(errorMessage);
