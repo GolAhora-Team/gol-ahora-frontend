@@ -60,9 +60,11 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
   const loadAlumnos = async () => {
     setLoading(true);
     try {
-      const clase = await claseService.getById(claseId);
+      const clase = esEntrenamiento 
+        ? await entrenamientoService.getById(claseId)
+        : await claseService.getById(claseId);
       const clientesRaw = clase?.alumnos || clase?.clientes || [];
-      const asistenciasHoy = await asistenciaService.getAsistenciasPorClaseYFecha(claseId, fechaHoy).catch(() => []);
+      const asistenciasHoy = await asistenciaService.getAsistenciasPorActividadYFecha(claseId, fechaHoy, !esEntrenamiento).catch(() => []);
       const idsPresentes = new Set((asistenciasHoy || []).filter(a => a.presente).map(a => a.clienteId));
 
       setAlumnos(clientesRaw.map(c => ({
