@@ -386,16 +386,6 @@ function StepPago({ metodoPago, setMetodoPago, codigoVale, setCodigoVale, precio
           <Text style={[s.pagoBtnSub, metodoPago === 'EFECTIVO' && { color: '#d1fae5' }]}>{pctEfectivo}% desc.</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.pagoBtn, metodoPago === 'TRANSFERENCIA' && s.pagoBtnActive]}
-          onPress={() => setMetodoPago('TRANSFERENCIA')}
-        >
-          <MaterialCommunityIcons name="bank-transfer" size={28} color={metodoPago === 'TRANSFERENCIA' ? '#fff' : '#009b3a'} />
-          <Text style={[s.pagoBtnText, metodoPago === 'TRANSFERENCIA' && { color: '#fff' }]}>Transferencia</Text>
-          <Text style={[s.pagoBtnSub, metodoPago === 'TRANSFERENCIA' && { color: '#d1fae5' }]}>Sin desc.</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={[s.modeRow, { marginTop: 0 }]}>
-        <TouchableOpacity
           style={[s.pagoBtn, metodoPago === 'MERCADOPAGO' && s.pagoBtnActiveMP]}
           onPress={() => setMetodoPago('MERCADOPAGO')}
         >
@@ -840,9 +830,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       createdFacturaId = facturaId;
       if (facturaId && reservaId) {
         // Backend enums: MetodoPago → Efectivo=1, Tarjeta=2, Transferencia=3
-        const metodoNum = data.metodoPago === 'EFECTIVO' ? 1
-          : data.metodoPago === 'TRANSFERENCIA' ? 3
-          : 2; // MERCADOPAGO → Tarjeta (2)
+        const metodoNum = data.metodoPago === 'EFECTIVO' ? 1 : 2; // MERCADOPAGO → Tarjeta (2)
         const pagoPayload = {
           fechaPago: data.fecha,
           monto: data.montoFinal,
@@ -1068,8 +1056,8 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         setIsLoading(false);
         return;
       }
-      // ─── FLUJO EFECTIVO / TRANSFERENCIA ───────────────────────────────────────
-      if (metodoPago === 'EFECTIVO' || metodoPago === 'TRANSFERENCIA') {
+      // ─── FLUJO EFECTIVO ───────────────────────────────────────
+      if (metodoPago === 'EFECTIVO') {
         await processAdminReservation({ ...payloadBase });
         return;
       }

@@ -110,7 +110,7 @@ export default function ReservaScreen({ route, navigation }) {
                           const reservas = await reservaService.getAll();
                           const r = reservas.find(x => x.id?.toString() === pending.reservaId?.toString() || x.Id?.toString() === pending.reservaId?.toString());
                           if (r) {
-                              await reservaService.update(r.id || r.Id, { ...r, estado: 'Confirmada', Estado: 1 });
+                              await reservaService.update(r.id || r.Id, { ...r, estado: 'Confirmada', Estado: 2 });
                           }
                        } catch(e) { console.log('Error update res', e); }
                     }
