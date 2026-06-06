@@ -555,6 +555,7 @@ export default function RegisterScreen({ navigation }) {
         onClose={() => setCalendarVisible(false)}
         onSelect={(date) => setFechaNacimiento(date)}
         initialDate={fechaNacimiento}
+        maxDate={new Date().toISOString().split('T')[0]}
       />
 
       <Modal visible={showTermsModal} animationType="slide" transparent={true}>
