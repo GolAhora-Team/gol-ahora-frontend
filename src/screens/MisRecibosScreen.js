@@ -43,9 +43,10 @@ export default function MisRecibosScreen({ route, navigation }) {
   };
 
   const sortedFacturas = [...facturas].sort((a, b) => {
-    const dateA = new Date(a.fechaEmision);
-    const dateB = new Date(b.fechaEmision);
-    return sortNewest ? dateB - dateA : dateA - dateB;
+    const parseDate = (d) => d ? new Date(d.endsWith('Z') ? d : d + 'Z').getTime() : 0;
+    const timeA = parseDate(a.fechaEmision);
+    const timeB = parseDate(b.fechaEmision);
+    return sortNewest ? timeB - timeA : timeA - timeB;
   });
 
   const getConceptoIcon = (concepto) => {
