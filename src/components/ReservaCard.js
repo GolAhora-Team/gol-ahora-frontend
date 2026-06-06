@@ -102,11 +102,11 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
               {item.tipoCompeticion === 'Liga' ? '🏆 LIGA' : '🏆 TORNEO'}: {item.competicionNombre}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <View style={[styles.escudoSmall, { backgroundColor: item.equipoLocalColorPrimario || '#ccc' }]} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoLocalNombre}</Text>
+              <View style={[styles.escudoSmall, { backgroundColor: item.equipoLocalColorPrimario || '#cbd5e1' }]} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoLocalNombre || 'Por definir'}</Text>
               <Text style={{ fontSize: 12, fontWeight: '800', color: '#94a3b8', marginHorizontal: 6 }}>VS</Text>
-              <View style={[styles.escudoSmall, { backgroundColor: item.equipoVisitanteColorPrimario || '#ccc' }]} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoVisitanteNombre}</Text>
+              <View style={[styles.escudoSmall, { backgroundColor: item.equipoVisitanteColorPrimario || '#cbd5e1' }]} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoVisitanteNombre || 'Por definir'}</Text>
             </View>
           </View>
         ) : (

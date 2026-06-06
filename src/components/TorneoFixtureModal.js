@@ -201,7 +201,9 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
 
         <View style={styles.teamRow}>
           <TeamShield primario={match.equipoLocalColorPrimario} secundario={match.equipoLocalColorSecundario} fallbackName={match.equipoLocalNombre} />
-          <Text style={[styles.teamName, localWinner && styles.winnerName]}>{match.equipoLocalNombre || `Local ${match.equipoLocalId}`}</Text>
+          <Text style={[styles.teamName, localWinner && styles.winnerName]}>
+            {match.equipoLocalId ? (match.equipoLocalNombre || `Local ${match.equipoLocalId}`) : "Por definir"}
+          </Text>
           <View style={{ alignItems: 'center' }}>
             <Text style={[styles.scoreText, localWinner && styles.winnerScore]}>{isFinished ? match.golesLocal : '-'}</Text>
             {isFinished && match.golesLocal === match.golesVisitante && match.penalesLocal != null && (
@@ -214,7 +216,9 @@ export default function TorneoFixtureModal({ visible, onClose, competicion, isSt
         
         <View style={styles.teamRow}>
           <TeamShield primario={match.equipoVisitanteColorPrimario} secundario={match.equipoVisitanteColorSecundario} fallbackName={match.equipoVisitanteNombre} />
-          <Text style={[styles.teamName, visitWinner && styles.winnerName]}>{match.equipoVisitanteNombre || `Visitante ${match.equipoVisitanteId}`}</Text>
+          <Text style={[styles.teamName, visitWinner && styles.winnerName]}>
+            {match.equipoVisitanteId ? (match.equipoVisitanteNombre || `Visitante ${match.equipoVisitanteId}`) : "Por definir"}
+          </Text>
           <View style={{ alignItems: 'center' }}>
             <Text style={[styles.scoreText, visitWinner && styles.winnerScore]}>{isFinished ? match.golesVisitante : '-'}</Text>
             {isFinished && match.golesLocal === match.golesVisitante && match.penalesVisitante != null && (
