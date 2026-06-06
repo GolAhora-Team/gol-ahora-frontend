@@ -169,17 +169,26 @@ export default function Dashboard({ route, navigation }) {
   };
 
   React.useEffect(() => {
-    if (role === 'CLIENTE' && idPersona) {
+    if (role === 'CLIENTE') {
       loadCliente();
     } else if (role === 'PROFE' && idPersona) {
       loadProfesor();
     }
-  }, [role, idPersona]);
+  }, [role, idPersona, userName]);
 
   const loadCliente = async () => {
     try {
-      const cliente = await clienteService.getById(idPersona);
-      setCurrentCliente(cliente);
+      let resolvedId = idPersona;
+      if (!resolvedId && userName) {
+        const clientesData = await clienteService.getAll();
+        const found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === userName);
+        if (found) resolvedId = found.id || found.Id;
+      }
+
+      if (resolvedId) {
+        const cliente = await clienteService.getById(resolvedId);
+        setCurrentCliente(cliente);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -342,8 +351,24 @@ export default function Dashboard({ route, navigation }) {
           const unAnio = new Date();
           unAnio.setFullYear(hoy.getFullYear() + 1);
 
+          let resolvedId = idPersona;
+          if (!resolvedId && userName) {
+            try {
+              const clientesData = await clienteService.getAll();
+              const found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === userName);
+              if (found) resolvedId = found.id || found.Id;
+            } catch (e) {
+              console.warn('No se pudo buscar el cliente por nombre de usuario');
+            }
+          }
+
+          if (!resolvedId) {
+             alert('No se pudo identificar tu usuario para subir el apto médico.');
+             return;
+          }
+
           await userService.uploadAptoMedico({
-            clienteId: idPersona,
+            clienteId: resolvedId,
             archivoBase64: base64,
             fechaInicio: hoy.toISOString(),
             fechaFin: unAnio.toISOString()

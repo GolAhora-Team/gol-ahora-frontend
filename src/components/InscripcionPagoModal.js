@@ -212,10 +212,10 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       } catch (enrollErr) {
         const msg = enrollErr?.message || enrollErr?.mensaje || '';
         if (msg.toLowerCase().includes('ya') && (msg.toLowerCase().includes('inscripto') || msg.toLowerCase().includes('inscrito'))) {
-          // Si el error es solo que ya está inscripto, lo ignoramos para permitirle pagar
           console.log('El alumno ya estaba inscripto. Procediendo a generar el pago...');
+        } else if (msg.toLowerCase().includes('apto médico cargado')) {
+          throw new Error('Figura que tenés el apto físico aprobado, pero falta adjuntar el archivo (PDF/Imagen) del certificado médico real. Por favor, subí el archivo desde la configuración de tu perfil (la tuerca en la barra lateral).');
         } else {
-          // Si es otro error (como falta de apto médico o cupo lleno), cortamos la ejecución
           throw enrollErr;
         }
       }
