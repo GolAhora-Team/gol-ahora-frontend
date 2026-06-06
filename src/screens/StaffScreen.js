@@ -63,7 +63,7 @@ export default function StaffScreen({ route, navigation }) {
           profe: profeNombre,
           profesorId: profId,
           alumnos: cantidadInscriptos,
-          precio: c.precioInscripcion || c.precio || 0,
+          precio: c.precioInscripcion,
           capacidad: c.capacidadMax || c.capacidad || 20,
           horario: c.descripcion || `${c.horaInicio} - ${c.horaFin}`
         };

@@ -195,6 +195,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
           horaInicio: formatTimeSpan(formData.horaInicio),
           horaFin: formatTimeSpan(formData.horaFin),
           diasSemana: diasStr,
+          precioInscripcion: parseFloat(formData.precio) || 5000,
           profesorId: formData.profesorId ? parseInt(formData.profesorId) : null,
           canchaId: formData.canchaId ? parseInt(formData.canchaId) : null
         };
