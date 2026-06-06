@@ -8,6 +8,7 @@ import { entrenamientoService } from '../services/entrenamientoService';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
 import SuccessModal from '../components/SuccessModal';
+import EditCompetenciaModal from '../components/EditCompetenciaModal';
 import { pagoService } from '../services/pagoService';
 import { Platform } from 'react-native';
 
@@ -26,6 +27,10 @@ export default function InscripcionesScreen({ route, navigation }) {
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMode, setErrorMode] = useState(false);
+
+  // Edit modal for TORNEO/LIGA
+  const [editCompModalVisible, setEditCompModalVisible] = useState(false);
+  const [competenciaToEdit, setCompetenciaToEdit] = useState(null);
 
   useEffect(() => {
     loadActividades();
@@ -141,6 +146,11 @@ export default function InscripcionesScreen({ route, navigation }) {
     setManageModalVisible(true);
   };
 
+  const handleEditCompetencia = (item) => {
+    setCompetenciaToEdit(item);
+    setEditCompModalVisible(true);
+  };
+
   const handleInscribirse = async (item) => {
     if (item.tipo === 'LIGA' || item.tipo === 'TORNEO') {
       Alert.alert('Información', 'Para inscribirte en una Competencia, dirigite a Competencias.');
@@ -193,6 +203,7 @@ export default function InscripcionesScreen({ route, navigation }) {
 
   const canCreate = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
   const isCliente = currentUserRole === 'CLIENTE';
+  const canEdit = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
 
   const getBadgeColor = (item) => {
     if (item.cupo >= item.max) return '#ef4444';
@@ -257,6 +268,16 @@ export default function InscripcionesScreen({ route, navigation }) {
             <Text style={styles.btnTextSmall}>Ver Competición</Text>
           </TouchableOpacity>
         )}
+
+        {(item.tipo === 'LIGA' || item.tipo === 'TORNEO') && canEdit && (
+          <TouchableOpacity 
+            style={[styles.manageBtn, { backgroundColor: '#f59e0b' }]}
+            onPress={() => handleEditCompetencia(item)}
+          >
+            <MaterialCommunityIcons name="pencil" size={18} color="#fff" />
+            <Text style={styles.btnTextSmall}>Editar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -315,6 +336,13 @@ export default function InscripcionesScreen({ route, navigation }) {
           loadActividades();
           setSuccessModalVisible(true);
         }}
+      />
+
+      <EditCompetenciaModal
+        visible={editCompModalVisible}
+        onClose={() => { setEditCompModalVisible(false); setCompetenciaToEdit(null); }}
+        competencia={competenciaToEdit}
+        onSaved={loadActividades}
       />
 
       <SuccessModal
