@@ -18,8 +18,9 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
 
   useEffect(() => {
     if (visible && token) {
-      fetchNotificaciones();
-      marcarLeidas();
+      fetchNotificaciones().then(() => {
+        marcarLeidas();
+      });
     }
   }, [visible, token]);
 
