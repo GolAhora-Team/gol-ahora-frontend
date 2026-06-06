@@ -254,6 +254,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.18)',
     marginTop: Platform.OS === 'android' ? 5 : 0,
     elevation: 5,
+    zIndex: 50,
   },
   headerMobile: {
     paddingHorizontal: 10,

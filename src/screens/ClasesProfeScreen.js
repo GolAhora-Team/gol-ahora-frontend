@@ -46,7 +46,7 @@ export default function ClasesProfeScreen({ route, navigation }) {
     setAsistenciaModalVisible(true);
     setLoadingAsistencia(true);
     try {
-      const result = await asistenciaService.getAsistenciasPorClaseYFecha(clase.id, asistenciaDate);
+      const result = await asistenciaService.getAsistenciasPorActividadYFecha(clase.id, asistenciaDate, true);
       if (result && result.length > 0) {
         const pre = result.filter(a => a.presente).map(a => a.clienteId);
         setPresentesIds(pre);

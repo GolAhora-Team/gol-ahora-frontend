@@ -44,7 +44,7 @@ export default function StatCards() {
 
           if (clases && clases.length > 0) {
             const promesas = clases.map(clase =>
-              asistenciaService.getAsistenciasPorClaseYFecha(clase.id, hoy)
+              asistenciaService.getAsistenciasPorActividadYFecha(clase.id, hoy, true)
                 .then(registros => ({ claseId: clase.id, registros: registros || [], alumnos: (clase.alumnos || clase.clientes || []).length }))
                 .catch(() => ({ claseId: clase.id, registros: [], alumnos: (clase.alumnos || clase.clientes || []).length }))
             );

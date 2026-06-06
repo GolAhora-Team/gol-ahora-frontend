@@ -252,7 +252,7 @@ export default function ReportesScreen({ route, navigation }) {
       for (const actividad of combined) {
         for (const fecha of fechas) {
           promesas.push(
-            asistenciaService.getAsistenciasPorClaseYFecha(actividad.id, fecha)
+            asistenciaService.getAsistenciasPorActividadYFecha(actividad.id, fecha, true)
               .then(registros => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: registros || [] }))
               .catch(() => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: [] }))
           );
