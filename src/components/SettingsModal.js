@@ -123,6 +123,11 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
       Alert.alert("Atención", "El nombre y apellido son obligatorios.");
       return;
     }
+
+    if (isEditingInfo && usernameAvailable === false) {
+      Alert.alert("Atención", "El nombre de usuario no está disponible.");
+      return;
+    }
     
     setIsLoading(true);
     try {

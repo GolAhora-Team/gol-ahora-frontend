@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet, Platform } from 'react-native';
+import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -662,7 +662,16 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               {phoneError ? <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 13, marginTop: -10, marginBottom: 10 }}>{phoneError}</Text> : null}
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
+            <TouchableOpacity 
+              style={styles.saveBtn} 
+              onPress={() => {
+                if (usernameAvailable === false) {
+                  Alert.alert("Atención", "El nombre de usuario no está disponible.");
+                  return;
+                }
+                onSave();
+              }}
+            >
               <Text style={styles.saveBtnText}>{isEditing ? 'ACTUALIZAR CAMBIOS' : 'CREAR USUARIO'}</Text>
             </TouchableOpacity>
           </ScrollView>
