@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, TextInput, Switch, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -12,6 +12,7 @@ import CustomInput from './CustomInput';
 import DatePickerModal from './DatePickerModal';
 import CobroMembresiaModal from './CobroMembresiaModal';
 import SuccessModal from './SuccessModal';
+import { userService } from '../services/userService';
 
 const formatDateDisplay = (dateStr) => {
   if (!dateStr || !dateStr.includes('-')) return dateStr;
@@ -30,6 +31,51 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
   const [cobroModalVisible, setCobroModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [phoneError, setPhoneError] = useState('');
+
+  // Username real-time checking
+  const [usernameAvailable, setUsernameAvailable] = useState(null); // null=not checked, true=available, false=taken
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const usernameTimerRef = useRef(null);
+  const [originalUsername, setOriginalUsername] = useState('');
+
+  // Track original username when modal opens for editing
+  useEffect(() => {
+    if (visible && isEditing && formData.username) {
+      setOriginalUsername(formData.username);
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
+    } else if (visible && !isEditing) {
+      setOriginalUsername('');
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
+    }
+  }, [visible, isEditing]);
+
+  const handleUsernameChange = (v) => {
+    const clean = v.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+    setFormData({ ...formData, username: clean });
+    setUsernameAvailable(null);
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+    if (clean === originalUsername) {
+      setUsernameAvailable(null);
+      return;
+    }
+    if (clean.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setUsernameChecking(true);
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const result = await userService.checkUsernameAvailable(clean, formData.idUsuario || null);
+        setUsernameAvailable(result.available);
+      } catch (e) {
+        setUsernameAvailable(null);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 500);
+  };
 
   const handleAddCertificado = () => {
     setFormData(prev => ({
@@ -256,7 +302,27 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <Text style={styles.sectionTitle}>1. IDENTIDAD</Text>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}><CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({ ...formData, dni: v.replace(/[^0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
-                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="USUARIO" placeholder="Ej: perez123" editable={!isEditing} value={formData.username} onChangeText={v => setFormData({ ...formData, username: v.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase() })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={[styles.greenInputText, isEditing && { color: '#94a3b8', backgroundColor: '#f1f5f9' }]} /></View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+                    <View style={{ flex: 1 }}>
+                      <CustomInput label="USUARIO" placeholder="Ej: perez123" value={formData.username} onChangeText={handleUsernameChange} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
+                    </View>
+                    {formData.username && formData.username !== originalUsername && formData.username.length >= 3 && (
+                      <View style={{ marginLeft: 6, marginBottom: 8, width: 26, alignItems: 'center', justifyContent: 'center' }}>
+                        {usernameChecking ? (
+                          <Text style={{ fontSize: 10, color: '#94a3b8' }}>...</Text>
+                        ) : usernameAvailable === true ? (
+                          <MaterialCommunityIcons name="check-circle" size={22} color="#22c55e" />
+                        ) : usernameAvailable === false ? (
+                          <MaterialCommunityIcons name="close-circle" size={22} color="#ef4444" />
+                        ) : null}
+                      </View>
+                    )}
+                  </View>
+                  {usernameAvailable === false && (
+                    <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: '700', marginTop: -4, marginBottom: 4, paddingLeft: 2 }}>Nombre de usuario no disponible</Text>
+                  )}
+                </View>
               </View>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}><CustomInput label="NOMBRE" value={formData.nombre} onChangeText={v => setFormData({ ...formData, nombre: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>

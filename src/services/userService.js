@@ -163,4 +163,33 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/User/check-username-available
+   * Checks if a username is available, optionally excluding a user ID.
+   */
+  checkUsernameAvailable: async (username, excludeUserId = null) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('username', username);
+      if (excludeUserId) params.append('excludeUserId', excludeUserId);
+      return await http.get(`${URL}/check-username-available?${params.toString()}`);
+    } catch (error) {
+      console.error('Error en checkUsernameAvailable:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * PUT /api/User/update-username
+   * Updates the username for a given user.
+   */
+  updateUsername: async (userId, newUsername) => {
+    try {
+      return await http.put(`${URL}/update-username`, { userId, newUsername });
+    } catch (error) {
+      console.error('Error en updateUsername:', error);
+      throw error;
+    }
+  },
 };

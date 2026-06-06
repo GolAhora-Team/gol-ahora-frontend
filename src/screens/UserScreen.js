@@ -157,15 +157,20 @@ export default function UserScreen({ route, navigation }) {
       try {
         const usernamesData = await userService.getAllUsernames();
         const usernameMap = {};
+        const userIdMap = {};
         if (usernamesData && Array.isArray(usernamesData)) {
           usernamesData.forEach(item => {
              usernameMap[item.personaId] = item.username;
+             userIdMap[item.personaId] = item.id;
           });
         }
         
         combinedUsers.forEach(u => {
           if (usernameMap[u.id]) {
             u.username = usernameMap[u.id];
+          }
+          if (userIdMap[u.id]) {
+            u.idUsuario = userIdMap[u.id];
           }
         });
       } catch (e) {
@@ -348,6 +353,15 @@ export default function UserScreen({ route, navigation }) {
           await profesorService.updateSimple(formData.id, payloadProfe);
         } else if (formData.role === 'ADMIN' || formData.role === 'PERSONAL') {
           await administradorService.updateSimple(formData.id, payloadToSave);
+        }
+
+        // Update username if it was changed
+        if (formData.username && formData.idUsuario) {
+          try {
+            await userService.updateUsername(formData.idUsuario, formData.username);
+          } catch (e) {
+            console.error('Error updating username:', e);
+          }
         }
         
         setUsers(users.map(u => u.id === formData.id ? { ...payloadToSave } : u));
