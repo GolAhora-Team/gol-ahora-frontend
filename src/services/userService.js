@@ -151,4 +151,16 @@ export const userService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/User/all-usernames
+   */
+  getAllUsernames: async () => {
+    try {
+      return await http.get(`${URL}/all-usernames`);
+    } catch (error) {
+      console.error('Error en getAllUsernames:', error);
+      throw error;
+    }
+  },
 };

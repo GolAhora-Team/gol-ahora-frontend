@@ -152,7 +152,27 @@ export default function UserScreen({ route, navigation }) {
         }));
       } catch (e) { /* admin endpoint puede fallar si está vacío */ }
 
-      setUsers([...clientesMapped, ...profesores, ...administradores]);
+      const combinedUsers = [...clientesMapped, ...profesores, ...administradores];
+
+      try {
+        const usernamesData = await userService.getAllUsernames();
+        const usernameMap = {};
+        if (usernamesData && Array.isArray(usernamesData)) {
+          usernamesData.forEach(item => {
+             usernameMap[item.personaId] = item.username;
+          });
+        }
+        
+        combinedUsers.forEach(u => {
+          if (usernameMap[u.id]) {
+            u.username = usernameMap[u.id];
+          }
+        });
+      } catch (e) {
+        console.error("Error cargando usernames", e);
+      }
+
+      setUsers(combinedUsers);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los usuarios.');
     } finally {

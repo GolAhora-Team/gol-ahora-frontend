@@ -256,7 +256,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
               <Text style={styles.sectionTitle}>1. IDENTIDAD</Text>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}><CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({ ...formData, dni: v.replace(/[^0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
-                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="USUARIO" placeholder="Ej: perez123" value={formData.username} onChangeText={v => setFormData({ ...formData, username: v.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase() })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
+                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="USUARIO" placeholder="Ej: perez123" editable={!isEditing} value={formData.username} onChangeText={v => setFormData({ ...formData, username: v.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase() })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={[styles.greenInputText, isEditing && { color: '#94a3b8', backgroundColor: '#f1f5f9' }]} /></View>
               </View>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}><CustomInput label="NOMBRE" value={formData.nombre} onChangeText={v => setFormData({ ...formData, nombre: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
