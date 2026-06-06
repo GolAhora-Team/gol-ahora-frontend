@@ -269,7 +269,13 @@ export default function Dashboard({ route, navigation }) {
           }
         } else {
           const targetModule = getParam('mp_module') || 'ReservasScreen';
-          navigation.navigate(targetModule, { role, idPersona, nombreUsuario: userName });
+          navigation.navigate(targetModule, { 
+            role, 
+            idPersona, 
+            nombreUsuario: userName,
+            collection_status: getParam('collection_status'),
+            mp_return: getParam('mp_return')
+          });
         }
       } else if (hasParam('pagoSocio') && hasParam('collection_status') && getParam('collection_status') !== 'approved') {
         setErrorModalMessage("El pago no se pudo completar y no se pudo dar de alta para ser socio.");
@@ -280,7 +286,13 @@ export default function Dashboard({ route, navigation }) {
         cleanUpUrl();
       } else if (hasParam('preference_id') || hasParam('mp_return')) {
         const targetModule = getParam('mp_module') || 'ReservasScreen';
-        navigation.navigate(targetModule, { role, idPersona, nombreUsuario: userName });
+        navigation.navigate(targetModule, { 
+          role, 
+          idPersona, 
+          nombreUsuario: userName,
+          collection_status: getParam('collection_status'),
+          mp_return: getParam('mp_return')
+        });
       }
     }
   }, []);

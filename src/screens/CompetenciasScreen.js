@@ -108,9 +108,9 @@ export default function CompetenciasScreen({ route, navigation }) {
     loadData();
 
     if (Platform.OS === 'web') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('collection_status');
-      const isMpReturn = urlParams.get('mp_return') === 'true';
+      const status = route.params?.collection_status || new URLSearchParams(window.location.search).get('collection_status');
+      const isMpReturnStr = route.params?.mp_return || new URLSearchParams(window.location.search).get('mp_return');
+      const isMpReturn = isMpReturnStr === 'true' || isMpReturnStr === true;
 
       if (status === 'approved') {
         const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
@@ -125,7 +125,8 @@ export default function CompetenciasScreen({ route, navigation }) {
               // pero no hay un registro explícito del pago antes de ir a MercadoPago. 
               // El Webhook puede interceptar la factura, o dejarse como está.
 
-              window.history.replaceState({}, document.title, window.location.pathname);
+              // Remove params from navigation state to prevent re-triggering
+              navigation.setParams({ collection_status: undefined, mp_return: undefined });
               
               setSuccessTitle('¡Inscripción Exitosa!');
               setSuccessMessage('El pago se ha realizado con éxito. Tu equipo está inscripto en la competencia.');
@@ -141,7 +142,7 @@ export default function CompetenciasScreen({ route, navigation }) {
         const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
         if (pendingStr) {
           window.localStorage.removeItem('pendingInscripcionComp');
-          window.history.replaceState({}, document.title, window.location.pathname);
+          navigation.setParams({ collection_status: undefined, mp_return: undefined });
           
           setSuccessTitle('Pago Pendiente');
           setSuccessMessage('El pago no se pudo completar. Tu equipo está inscripto en la competencia pero el pago quedó PENDIENTE.');

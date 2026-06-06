@@ -81,10 +81,10 @@ export default function ReservaScreen({ route, navigation }) {
 
     // Verificación de retorno exitoso o fallido de Mercado Pago
     if (Platform.OS === 'web') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('collection_status');
-      const prefId = urlParams.get('preference_id');
-      const isMpReturn = urlParams.get('mp_return') === 'true';
+      const status = route.params?.collection_status || new URLSearchParams(window.location.search).get('collection_status');
+      const prefId = route.params?.preference_id || new URLSearchParams(window.location.search).get('preference_id');
+      const isMpReturnStr = route.params?.mp_return || new URLSearchParams(window.location.search).get('mp_return');
+      const isMpReturn = isMpReturnStr === 'true' || isMpReturnStr === true;
       
       if (status === 'approved') {
         const pendingResStr = window.localStorage.getItem('pendingReservation');
@@ -148,9 +148,10 @@ export default function ReservaScreen({ route, navigation }) {
                 }
               }
               
-              window.history.replaceState({}, document.title, window.location.pathname);
+              // Remove params from navigation state
+              navigation.setParams({ collection_status: undefined, mp_return: undefined, preference_id: undefined });
               
-              // Mostramos el modal de éxito (esto recargará las reservas desde la BD ya actualizada)
+              setSuccessMessage('La reserva se ha registrado y pagado correctamente.');
               handleReservaCreated({
                 html: pending.html, fileName: pending.fileName, persona: pending.persona, 
                 cancha: pending.cancha, fecha: new Date(pending.fecha), 
@@ -170,7 +171,7 @@ export default function ReservaScreen({ route, navigation }) {
           try {
             const pending = JSON.parse(pendingResStr);
             window.localStorage.removeItem('pendingReservation');
-            window.history.replaceState({}, document.title, window.location.pathname);
+            navigation.setParams({ collection_status: undefined, mp_return: undefined, preference_id: undefined });
             
             // LA RESERVA QUEDA EN ESTADO PENDIENTE PARA QUE PUEDA PAGARLA LUEGO
             // No la cancelamos.

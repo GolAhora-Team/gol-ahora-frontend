@@ -31,9 +31,9 @@ export default function InscripcionesScreen({ route, navigation }) {
     loadActividades();
 
     if (Platform.OS === 'web') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('collection_status');
-      const isMpReturn = urlParams.get('mp_return') === 'true';
+      const status = route.params?.collection_status || new URLSearchParams(window.location.search).get('collection_status');
+      const isMpReturnStr = route.params?.mp_return || new URLSearchParams(window.location.search).get('mp_return');
+      const isMpReturn = isMpReturnStr === 'true' || isMpReturnStr === true;
 
       if (status === 'approved') {
         const pendingStr = window.localStorage.getItem('pendingInscripcion');
@@ -53,7 +53,8 @@ export default function InscripcionesScreen({ route, navigation }) {
                 } catch(e) { console.log('Error update pago', e); }
               }
 
-              window.history.replaceState({}, document.title, window.location.pathname);
+              // Remove params from navigation state to prevent re-triggering
+              navigation.setParams({ collection_status: undefined, mp_return: undefined });
               
               setSuccessMessage('La inscripción se ha registrado y pagado correctamente.');
               setErrorMode(false);
@@ -68,7 +69,7 @@ export default function InscripcionesScreen({ route, navigation }) {
         const pendingStr = window.localStorage.getItem('pendingInscripcion');
         if (pendingStr) {
           window.localStorage.removeItem('pendingInscripcion');
-          window.history.replaceState({}, document.title, window.location.pathname);
+          navigation.setParams({ collection_status: undefined, mp_return: undefined });
           
           setSuccessMessage('El pago no se pudo completar. Estás inscripto en la actividad pero el pago quedó PENDIENTE.');
           setErrorMode(true);
