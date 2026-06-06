@@ -62,7 +62,7 @@ export default function ClienteInscripcionCompModal({ visible, onClose, competen
           total: precio,
           concepto: 'Inscripción a torneo',
           descripcion: `Inscripción equipo "${selectedEquipo.nombre}" al torneo ${competencia.nombre}`,
-          fechaEmision: new Date().toISOString()
+          fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1)
         });
       } catch (factErr) {
         console.log('Factura creation error (non-blocking):', factErr);

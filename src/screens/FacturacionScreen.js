@@ -194,7 +194,7 @@ export default function FacturacionScreen({ route, navigation }) {
       // Crear una nueva factura con el total en negativo para anular la original (Nota de Crédito)
       const payload = {
         total: -(Math.abs(editingFactura.total || 0)),
-        fechaEmision: new Date().toISOString(),
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         clienteId: editingFactura.clienteId,
         concepto: "ANULACION",
         descripcion: editingFactura.id.toString()
@@ -225,7 +225,7 @@ export default function FacturacionScreen({ route, navigation }) {
       // 1. Emitir Nota de Crédito (Anular la vieja)
       const ncPayload = {
         total: -(Math.abs(editingFactura.total || 0)),
-        fechaEmision: new Date().toISOString(),
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         clienteId: editingFactura.clienteId,
         concepto: "ANULACION",
         descripcion: editingFactura.id.toString()
@@ -235,7 +235,7 @@ export default function FacturacionScreen({ route, navigation }) {
       // 2. Emitir Factura Nueva Rectificada
       const nuevaPayload = {
         total: parseFloat(editTotal),
-        fechaEmision: new Date().toISOString(),
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         clienteId: editClienteId || editingFactura.clienteId
       };
       await facturaService.create(nuevaPayload);
@@ -611,7 +611,7 @@ export default function FacturacionScreen({ route, navigation }) {
                         {comp.fileName} {comp.isAnulada && '(ANULADA)'}
                       </Text>
                       <Text style={styles.comprobanteFecha}>
-                        {comp.nombreCliente} - {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
+                        {comp.nombreCliente} - {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + '-03:00').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
                       </Text>
                     </View>
                   </View>
@@ -671,8 +671,8 @@ export default function FacturacionScreen({ route, navigation }) {
               </View>
             ) : (
               [...filteredReservas].sort((a, b) => {
-                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
-                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
+                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + '-03:00').getTime();
+                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + '-03:00').getTime();
                 return sortDesc ? d2 - d1 : d1 - d2;
               }).map(comp => (
                 <View key={comp.id} style={styles.comprobanteCard}>
@@ -681,7 +681,7 @@ export default function FacturacionScreen({ route, navigation }) {
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={styles.comprobanteName}>{comp.fileName || 'Comprobante de Reserva'}</Text>
                       <Text style={styles.comprobanteFecha}>
-                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString()}
+                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + '-03:00').toLocaleString()}
                       </Text>
                     </View>
                   </View>
@@ -732,8 +732,8 @@ export default function FacturacionScreen({ route, navigation }) {
               </View>
             ) : (
               [...filteredMembresias].sort((a, b) => {
-                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + 'Z').getTime();
-                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + 'Z').getTime();
+                const d1 = new Date(a.fecha?.endsWith('Z') ? a.fecha : a.fecha + '-03:00').getTime();
+                const d2 = new Date(b.fecha?.endsWith('Z') ? b.fecha : b.fecha + '-03:00').getTime();
                 return sortDesc ? d2 - d1 : d1 - d2;
               }).map(comp => (
                 <View key={comp.id} style={styles.comprobanteCard}>
@@ -742,7 +742,7 @@ export default function FacturacionScreen({ route, navigation }) {
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={styles.comprobanteName}>{comp.fileName || 'Comprobante de Membresía'}</Text>
                       <Text style={styles.comprobanteFecha}>
-                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + 'Z').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
+                        {new Date(comp.fecha?.endsWith('Z') ? comp.fecha : comp.fecha + '-03:00').toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false })} hs
                       </Text>
                     </View>
                   </View>

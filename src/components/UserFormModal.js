@@ -238,7 +238,7 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
       now.setHours(now.getHours() - 3); // Ajuste horario para Argentina (UTC-3)
 
       const payload = {
-        fechaEmision: now.toISOString(),
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         total: precio,
         estado: 1,
         tipo: 1,

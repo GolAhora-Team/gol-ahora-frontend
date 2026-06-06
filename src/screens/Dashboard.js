@@ -242,7 +242,7 @@ export default function Dashboard({ route, navigation }) {
                   const now = new Date();
                   now.setHours(now.getHours() - 3);
                   await facturaService.create({
-                    fechaEmision: now.toISOString(),
+                    fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
                     total: getPrecioMembresia(),
                     estado: 2,
                     tipo: 1,

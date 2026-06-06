@@ -162,7 +162,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
     let createdFactura = null;
     try {
       const facturaPayload = {
-        fechaEmision: new Date().toISOString(),
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         total: montoFinal,
         clienteId: clienteId,
         concepto: `Inscripción a ${actividad.tipo.toLowerCase()}`,

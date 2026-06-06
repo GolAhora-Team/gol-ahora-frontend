@@ -874,7 +874,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
     // Orden correcto: 1) Factura → 2) Pago → 3) Update Reserva (para pasar validación del backend)
     try {
       const facturaPayload = {
-        fechaEmision: data.fecha,
+        fechaEmision: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1),
         total: data.montoFinal,
         clienteId: data.reservaPayload.ClienteId,
         concepto: 'Reserva de cancha',

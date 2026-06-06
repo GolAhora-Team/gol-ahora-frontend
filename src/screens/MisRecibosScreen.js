@@ -41,7 +41,7 @@ export default function MisRecibosScreen({ route, navigation }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     try {
-      const date = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+      const date = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + '-03:00');
       if (isNaN(date.getTime())) return '-';
       return date.toLocaleString('es-AR', {
         timeZone: 'America/Argentina/Buenos_Aires',
