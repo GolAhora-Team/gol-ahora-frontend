@@ -244,7 +244,10 @@ export default function ReportesScreen({ route, navigation }) {
       for (let i = 0; i < 7; i++) {
         const d = new Date(hoy);
         d.setDate(hoy.getDate() - i);
-        fechas.push(d.toISOString().split('T')[0]);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        fechas.push(`${year}-${month}-${day}`);
       }
 
       // Construir todas las promesas en paralelo (actividad × fecha)
@@ -252,7 +255,7 @@ export default function ReportesScreen({ route, navigation }) {
       for (const actividad of combined) {
         for (const fecha of fechas) {
           promesas.push(
-            asistenciaService.getAsistenciasPorActividadYFecha(actividad.id, fecha, true)
+            asistenciaService.getAsistenciasPorActividadYFecha(actividad.id, fecha, actividad.tipo === 'CLASE')
               .then(registros => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: registros || [] }))
               .catch(() => ({ actividadId: actividad.id, tipo: actividad.tipo, fecha, registros: [] }))
           );
@@ -279,12 +282,12 @@ export default function ReportesScreen({ route, navigation }) {
         const key = `${actividad.tipo}-${actividad.id}`;
         const datos = asistenciasPorActividad[key] || { registros: [], fechasConRegistro: new Set() };
         const alumnos = actividad.alumnos || actividad.clientes || [];
+        const totalClases = datos.fechasConRegistro.size;
 
         const alumnosStats = alumnos.map(alumno => {
           const registrosAlumno = datos.registros.filter(r => r.clienteId === alumno.id);
           const presentes = registrosAlumno.filter(r => r.presente === true).length;
-          const inasistencias = registrosAlumno.filter(r => r.presente === false).length;
-          const totalClases = presentes + inasistencias;
+          const inasistencias = Math.max(0, totalClases - presentes);
           const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : 0;
           return {
             id: alumno.id,
@@ -302,7 +305,7 @@ export default function ReportesScreen({ route, navigation }) {
           nombre: `${actividad.nombre} (${actividad.tipo === 'ENTRENAMIENTO' ? 'Entrenamiento' : 'Clase'})`,
           horario: actividad.horario || 'Sin horario',
           totalAlumnos: alumnos.length,
-          totalClasesRegistradas: datos.fechasConRegistro.size,
+          totalClasesRegistradas: totalClases,
           alumnosStats
         };
       });

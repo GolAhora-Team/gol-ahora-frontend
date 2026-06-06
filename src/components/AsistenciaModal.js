@@ -52,7 +52,14 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
 
-  const fechaHoy = new Date().toISOString().split('T')[0];
+  const getLocalFechaHoy = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const fechaHoy = getLocalFechaHoy();
 
   useEffect(() => {
     if (visible && claseId) {
@@ -157,12 +164,44 @@ export default function AsistenciaModal({ visible, onClose, claseId, claseNombre
     setScanMessage(null);
     try {
       await asistenciaService.registrarCodigoBarras(cod, claseId, !esEntrenamiento);
-      const alumnoNombre = alumnos.find(a => a.codigoBarras === cod)?.nombre || cod;
+      
+      // Guardar ids de alumnos que ya estaban presentes antes
+      const oldPresentes = new Set(alumnos.filter(a => a.presente).map(a => a.clienteId));
+      
+      // Recargar alumnos de la API
+      let updatedAlumnos = [];
+      try {
+        const clase = esEntrenamiento 
+          ? await entrenamientoService.getById(claseId)
+          : await claseService.getById(claseId);
+        const clientesRaw = clase?.alumnos || clase?.clientes || [];
+        const asistenciasHoy = await asistenciaService.getAsistenciasPorActividadYFecha(claseId, fechaHoy, !esEntrenamiento).catch(() => []);
+        const idsPresentes = new Set((asistenciasHoy || []).filter(a => a.presente).map(a => a.clienteId));
+  
+        updatedAlumnos = clientesRaw.map(c => ({
+          id: c.id,
+          clienteId: c.id,
+          nombre: `${c.nombre || ''} ${c.apellido || ''}`.trim(),
+          codigoBarras: c.codigoBarras || null,
+          presente: idsPresentes.has(c.id),
+        }));
+        setAlumnos(updatedAlumnos);
+      } catch (err) {
+        console.warn('Error al recargar alumnos:', err);
+      }
+
+      // Buscar el alumno que pasó de ausente a presente
+      // Si no podemos determinarlo (por ejemplo, ya estaba presente o falló la recarga),
+      // intentamos buscar por código de barra local como fallback, de lo contrario mostramos el código
+      const nuevoPresente = updatedAlumnos.find(a => a.presente && !oldPresentes.has(a.clienteId));
+      let alumnoNombre = nuevoPresente ? nuevoPresente.nombre : null;
+      if (!alumnoNombre) {
+        alumnoNombre = alumnos.find(a => a.codigoBarras === cod)?.nombre || cod;
+      }
+
       setScanMessage({ type: 'success', text: `✅ Asistencia registrada: ${alumnoNombre}` });
       setScanHistory(prev => [{ codigo: cod, nombre: alumnoNombre, hora: new Date().toLocaleTimeString('es-AR') }, ...prev.slice(0, 9)]);
       setBarcodeInput('');
-      // Actualizar estado local del alumno
-      setAlumnos(prev => prev.map(a => a.codigoBarras === cod ? { ...a, presente: true } : a));
     } catch (e) {
       setScanMessage({ type: 'error', text: `❌ ${e.message || 'Código no encontrado.'}` });
     } finally {

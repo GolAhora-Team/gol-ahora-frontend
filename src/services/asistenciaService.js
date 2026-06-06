@@ -7,7 +7,16 @@ export const asistenciaService = {
    */
   getAsistenciasPorActividadYFecha: async (actividadId, fecha, esClase) => {
     try {
-      const dateString = new Date(fecha).toISOString().split('T')[0];
+      let dateString;
+      if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+        dateString = fecha;
+      } else {
+        const d = new Date(fecha);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dateString = `${year}-${month}-${day}`;
+      }
       return await http.get(`${API_BASE_URL}/Asistencia/actividad/${actividadId}?fecha=${dateString}&esClase=${esClase}`);
     } catch (error) {
       throw error;
