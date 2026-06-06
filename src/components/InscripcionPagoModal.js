@@ -61,7 +61,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       } else {
         // Cliente se auto-inscribe
         const data = await clienteService.getAll();
-        const found = data?.find(c => c.id === idPersona || `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+        const found = data?.find(c => c.id?.toString() === idPersona?.toString() || `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
         if (found) setSelectedCliente(found);
         setClientes(data || []);
       }
@@ -232,11 +232,15 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
             const pendingInscripcion = { pagoId: createdPagoId, actividadId: actividad.id };
             window.localStorage.setItem('pendingInscripcion', JSON.stringify(pendingInscripcion));
             
-            // Inscribir al cliente
-            if (actividad.tipo === 'CLASE') {
-              await claseService.addCliente(actividad.id, clienteId);
-            } else if (actividad.tipo === 'ENTRENAMIENTO') {
-              await entrenamientoService.addCliente(actividad.id, clienteId);
+            // Inscribir al cliente (puede fallar si ya está inscripto)
+            try {
+              if (actividad.tipo === 'CLASE') {
+                await claseService.addCliente(actividad.id, clienteId);
+              } else if (actividad.tipo === 'ENTRENAMIENTO') {
+                await entrenamientoService.addCliente(actividad.id, clienteId);
+              }
+            } catch (enrollErr) {
+              console.log('Enroll error (ignoring to proceed with payment):', enrollErr);
             }
             
             window.location.href = mpResponse.initPoint;
@@ -249,6 +253,9 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           }
         } catch (mpError) {
           console.error('Error MP:', mpError);
+          Alert.alert('Error', 'No se pudo generar el pago con Mercado Pago.');
+          setIsSubmitting(false);
+          return;
         }
       }
 
