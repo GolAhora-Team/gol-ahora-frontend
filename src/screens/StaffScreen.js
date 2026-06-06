@@ -77,15 +77,19 @@ export default function StaffScreen({ route, navigation }) {
           ? e.cantidadAlumnos 
           : (Array.isArray(e.alumnos) ? e.alumnos.length : (e.clientes?.length || 0));
 
+        const formattedHorario = e.diasSemana && e.horaInicio && e.horaFin 
+          ? `${e.diasSemana} ${e.horaInicio.substring(0,5)}-${e.horaFin.substring(0,5)}`
+          : (e.fecha ? e.fecha.split('T')[0] : 'Sin fecha');
+
         return {
           ...e,
           id: e.id?.toString(),
           profe: profeNombre,
           profesorId: profId,
           alumnos: cantidadInscriptos,
-          precio: e.precio || 0,
+          precio: e.precioInscripcion || 0,
           capacidad: e.cupoMaximo || 20,
-          horario: e.fecha ? e.fecha.split('T')[0] : 'Sin fecha'
+          horario: formattedHorario
         };
       });
       setTodosLosEntrenamientos(mappedEntrenamientos);

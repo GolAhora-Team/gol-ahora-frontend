@@ -339,6 +339,10 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
                       <Text style={s.activityDetail}>{actividad?.horario || 'Sin horario'}</Text>
                     </View>
                     <View style={s.activityRow}>
+                      <MaterialCommunityIcons name="whistle" size={16} color="#64748b" />
+                      <Text style={s.activityDetail}>{actividad?.profe || 'Profesor no asignado'}</Text>
+                    </View>
+                    <View style={s.activityRow}>
                       <MaterialCommunityIcons name="account-group" size={16} color="#64748b" />
                       <Text style={s.activityDetail}>Cupos: {actividad?.cupo || 0} / {actividad?.max || 20}</Text>
                     </View>

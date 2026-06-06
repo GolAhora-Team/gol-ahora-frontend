@@ -45,13 +45,20 @@ export default function InscripcionesScreen({ route, navigation }) {
 
       try {
         const entrenamientos = await entrenamientoService.getAll();
-        items = [...items, ...(entrenamientos || []).map(e => ({
-          ...e, id: e.id?.toString(), tipo: 'ENTRENAMIENTO',
-          cupo: e.cantidadAlumnos || e.alumnos?.length || e.clientes?.length || 0, 
-          max: e.cupoMaximo || e.capacidad || e.maxAlumnos || 20,
-          profe: e.profesor?.nombre ? `${e.profesor.nombre} ${e.profesor.apellido || ''}` : e.profesorNombre || e.profe || 'Sin Asignar',
-          precio: e.precio || 5000
-        }))];
+        items = [...items, ...(entrenamientos || []).map(e => {
+          const formattedHorario = e.diasSemana && e.horaInicio && e.horaFin 
+            ? `${e.diasSemana} ${e.horaInicio.substring(0,5)}-${e.horaFin.substring(0,5)}` 
+            : (e.fecha ? e.fecha.split('T')[0] : 'Sin fecha');
+
+          return {
+            ...e, id: e.id?.toString(), tipo: 'ENTRENAMIENTO',
+            cupo: e.cantidadAlumnos || e.alumnos?.length || e.clientes?.length || 0, 
+            max: e.cupoMaximo || e.capacidad || e.maxAlumnos || 20,
+            profe: e.profesor?.nombre ? `${e.profesor.nombre} ${e.profesor.apellido || ''}` : e.profesorNombre || e.profe || 'Sin Asignar',
+            precio: e.precioInscripcion || 5000,
+            horario: formattedHorario
+          };
+        })];
       } catch (e) { /* entrenamientos puede fallar */ }
 
       try {
