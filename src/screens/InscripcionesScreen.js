@@ -8,6 +8,8 @@ import { entrenamientoService } from '../services/entrenamientoService';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
 import SuccessModal from '../components/SuccessModal';
+import { pagoService } from '../services/pagoService';
+import { Platform } from 'react-native';
 
 export default function InscripcionesScreen({ route, navigation }) {
   const { role: currentUserRole, idPersona, nombreUsuario } = route.params || { role: "ADMIN" };
@@ -22,9 +24,58 @@ export default function InscripcionesScreen({ route, navigation }) {
   const [actividadParaPago, setActividadParaPago] = useState(null);
   
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMode, setErrorMode] = useState(false);
 
   useEffect(() => {
     loadActividades();
+
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('collection_status');
+      const isMpReturn = urlParams.get('mp_return') === 'true';
+
+      if (status === 'approved') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcion');
+        if (pendingStr) {
+          const processReturn = async () => {
+            try {
+              const pending = JSON.parse(pendingStr);
+              window.localStorage.removeItem('pendingInscripcion');
+
+              if (pending.pagoId) {
+                try {
+                  const pagos = await pagoService.getAll();
+                  const p = pagos.find(x => x.id?.toString() === pending.pagoId?.toString() || x.Id?.toString() === pending.pagoId?.toString());
+                  if (p) {
+                    await pagoService.update(p.id || p.Id, { ...p, estado: 2 }); // 2 = Pagado
+                  }
+                } catch(e) { console.log('Error update pago', e); }
+              }
+
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              setSuccessMessage('La inscripción se ha registrado y pagado correctamente.');
+              setErrorMode(false);
+              setSuccessModalVisible(true);
+            } catch(e) {
+              console.error("Error procesando inscripcion pendiente", e);
+            }
+          };
+          processReturn();
+        }
+      } else if (isMpReturn || status === 'rejected' || status === 'null') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcion');
+        if (pendingStr) {
+          window.localStorage.removeItem('pendingInscripcion');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          setSuccessMessage('El pago no se pudo completar. Estás inscripto en la actividad pero el pago quedó PENDIENTE.');
+          setErrorMode(true);
+          setSuccessModalVisible(true);
+        }
+      }
+    }
   }, []);
 
   const loadActividades = async () => {
@@ -239,9 +290,14 @@ export default function InscripcionesScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
-        title="¡Inscripción Exitosa!"
-        message="La inscripción se ha registrado correctamente en la actividad."
+        onClose={() => {
+          setSuccessModalVisible(false);
+          setSuccessMessage('');
+          setErrorMode(false);
+        }}
+        title={errorMode ? "Pago Pendiente" : "¡Inscripción Exitosa!"}
+        message={successMessage || "La inscripción se ha registrado correctamente en la actividad."}
+        isError={errorMode}
       />
     </ScreenTemplate>
   );

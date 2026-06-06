@@ -73,9 +73,10 @@ export default function ClienteInscripcionCompModal({ visible, onClose, competen
         const mpTitle = `Inscripción ${selectedEquipo.nombre} - ${competencia.nombre}`;
         if (Platform.OS === 'web') {
           const baseUrl = window.location.href.split('?')[0];
-          const currentUrl = baseUrl + '?mp_return=true';
+          const currentUrl = baseUrl + '?mp_return=true&mp_module=CompetenciasScreen';
           const mpResponse = await mercadoPagoService.createPreference(mpTitle, precio, currentUrl);
           if (mpResponse?.initPoint) {
+            window.localStorage.setItem('pendingInscripcionComp', JSON.stringify({ equipoId: selectedEquipo.id, competenciaId: competencia.id }));
             window.location.href = mpResponse.initPoint;
             return;
           }

@@ -217,7 +217,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
         try {
           const mpTitle = `Inscripción ${actividad.nombre}`;
           const baseUrl = window.location.href.split('?')[0];
-          const currentUrl = baseUrl + '?mp_return=true';
+          const currentUrl = baseUrl + '?mp_return=true&mp_module=InscripcionesScreen';
           const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
           
           const mpResponse = await mercadoPagoService.createPreference(
@@ -229,6 +229,16 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           );
           
           if (Platform.OS === 'web') {
+            const pendingInscripcion = { pagoId: createdPagoId, actividadId: actividad.id };
+            window.localStorage.setItem('pendingInscripcion', JSON.stringify(pendingInscripcion));
+            
+            // Inscribir al cliente
+            if (actividad.tipo === 'CLASE') {
+              await claseService.addCliente(actividad.id, clienteId);
+            } else if (actividad.tipo === 'ENTRENAMIENTO') {
+              await entrenamientoService.addCliente(actividad.id, clienteId);
+            }
+            
             window.location.href = mpResponse.initPoint;
             return;
           } else {

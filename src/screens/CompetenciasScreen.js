@@ -23,6 +23,8 @@ import { competicionService } from '../services/competicionService';
 import { equipoService } from '../services/equipoService';
 import { jugadorService } from '../services/jugadorService';
 import { partidoService } from '../services/partidoService';
+import { pagoService } from '../services/pagoService';
+import { Platform } from 'react-native';
 
 export default function CompetenciasScreen({ route, navigation }) {
   const { role: currentUserRole, idPersona, idUsuario } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
@@ -56,6 +58,7 @@ export default function CompetenciasScreen({ route, navigation }) {
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [successTitle, setSuccessTitle] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMode, setErrorMode] = useState(false);
 
   // Delete confirm modal (Equipo)
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -103,6 +106,50 @@ export default function CompetenciasScreen({ route, navigation }) {
 
   useEffect(() => {
     loadData();
+
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('collection_status');
+      const isMpReturn = urlParams.get('mp_return') === 'true';
+
+      if (status === 'approved') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
+        if (pendingStr) {
+          const processReturn = async () => {
+            try {
+              const pending = JSON.parse(pendingStr);
+              window.localStorage.removeItem('pendingInscripcionComp');
+
+              // En competencias no guardábamos el pagoId porque MercadoPago redirige de inmediato 
+              // (y no llama a createPayment() como en clases), en realidad la facturaService sí crea la factura
+              // pero no hay un registro explícito del pago antes de ir a MercadoPago. 
+              // El Webhook puede interceptar la factura, o dejarse como está.
+
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              setSuccessTitle('¡Inscripción Exitosa!');
+              setSuccessMessage('El pago se ha realizado con éxito. Tu equipo está inscripto en la competencia.');
+              setErrorMode(false);
+              setSuccessModalVisible(true);
+            } catch(e) {
+              console.error("Error procesando inscripcion a comp pendiente", e);
+            }
+          };
+          processReturn();
+        }
+      } else if (isMpReturn || status === 'rejected' || status === 'null') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
+        if (pendingStr) {
+          window.localStorage.removeItem('pendingInscripcionComp');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          setSuccessTitle('Pago Pendiente');
+          setSuccessMessage('El pago no se pudo completar. Tu equipo está inscripto en la competencia pero el pago quedó PENDIENTE.');
+          setErrorMode(true);
+          setSuccessModalVisible(true);
+        }
+      }
+    }
   }, []);
 
   const loadData = async () => {
@@ -773,9 +820,13 @@ export default function CompetenciasScreen({ route, navigation }) {
 
       <SuccessModal
         visible={successModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
+        onClose={() => {
+          setSuccessModalVisible(false);
+          setErrorMode(false);
+        }}
         title={successTitle}
         message={successMessage}
+        isError={errorMode}
       />
 
       <TorneoFixtureModal 

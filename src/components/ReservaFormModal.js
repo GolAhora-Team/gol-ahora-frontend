@@ -1058,7 +1058,7 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
         const baseUrl = window.location.href.split('?')[0]; 
-        const currentUrl = baseUrl + '?mp_return=true'; // El cliente vuelve a esta URL
+        const currentUrl = baseUrl + '?mp_return=true&mp_module=ReservasScreen'; // El cliente vuelve a esta URL
         const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
         
         const payloadMP = {
