@@ -28,35 +28,61 @@ export default function MisRecibosScreen({ route, navigation }) {
     }
   };
 
+  const parseDate = (dateStr) => {
+    if (!dateStr) return 0;
+    try {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    } catch {
+      return 0;
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
-    return date.toLocaleString('es-AR', {
-      timeZone: 'America/Argentina/Buenos_Aires',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+    try {
+      const date = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch {
+      return '-';
+    }
   };
 
   const sortedFacturas = [...facturas].sort((a, b) => {
-    const parseDate = (d) => d ? new Date(d.endsWith('Z') ? d : d + 'Z').getTime() : 0;
     const timeA = parseDate(a.fechaEmision);
     const timeB = parseDate(b.fechaEmision);
-    return sortNewest ? timeB - timeA : timeA - timeB;
+    return sortNewest ? (timeB - timeA) : (timeA - timeB);
   });
 
-  const getConceptoIcon = (concepto) => {
-    if (!concepto) return { icon: 'file-document', color: '#64748b' };
+  // Module color mapping based on concepto - matches Dashboard ALL_MODULES colors
+  const getConceptoTheme = (concepto) => {
+    if (!concepto) return { icon: 'receipt', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Pago' };
     const c = concepto.toLowerCase();
-    if (c.includes('inscripción') || c.includes('competencia')) return { icon: 'trophy', color: '#eab308' };
-    if (c.includes('membresía') || c.includes('socio')) return { icon: 'card-account-details', color: '#3b82f6' };
-    if (c.includes('reserva')) return { icon: 'calendar-check', color: '#a855f7' };
-    if (c.includes('clase')) return { icon: 'whistle', color: '#6366f1' };
-    return { icon: 'receipt', color: '#ec4899' };
+    if (c.includes('inscripción') || c.includes('inscripc') || c.includes('competencia') || c.includes('torneo') || c.includes('liga')) {
+      return { icon: 'trophy-variant', color: '#eab308', bg: '#fefce8', border: '#fde68a', label: 'Competencias' };
+    }
+    if (c.includes('membresía') || c.includes('membresia') || c.includes('socio')) {
+      return { icon: 'card-account-details', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: 'Membresía' };
+    }
+    if (c.includes('reserva') || c.includes('cancha') || c.includes('turno')) {
+      return { icon: 'calendar-clock', color: '#a855f7', bg: '#faf5ff', border: '#e9d5ff', label: 'Reservas' };
+    }
+    if (c.includes('clase') || c.includes('entrenamiento') || c.includes('inscripcion')) {
+      return { icon: 'whistle', color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', label: 'Clases' };
+    }
+    if (c.includes('factura') || c.includes('cobro') || c.includes('caja')) {
+      return { icon: 'cash-register', color: '#06b6d4', bg: '#ecfeff', border: '#a5f3fc', label: 'Facturación' };
+    }
+    return { icon: 'receipt', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Pago' };
   };
 
   const generateHtml = (factura) => {
@@ -174,31 +200,39 @@ export default function MisRecibosScreen({ route, navigation }) {
           </View>
         ) : (
           sortedFacturas.map(factura => {
-            const { icon, color } = getConceptoIcon(factura.concepto);
+            const theme = getConceptoTheme(factura.concepto);
             return (
-              <View key={factura.id} style={[s.card, { borderColor: color + '50', borderLeftColor: color, borderLeftWidth: 6, backgroundColor: '#fff' }]}>
-                <View style={s.cardLeft}>
-                  <View style={[s.iconCircle, { backgroundColor: color + '20' }]}>
-                    <MaterialCommunityIcons name={icon} size={22} color={color} />
+              <View key={factura.id} style={[s.card, { backgroundColor: theme.bg, borderColor: theme.border, borderLeftColor: theme.color, borderLeftWidth: 5 }]}>
+                <View style={s.cardTop}>
+                  <View style={s.cardLeft}>
+                    <View style={[s.iconCircle, { backgroundColor: theme.color + '25' }]}>
+                      <MaterialCommunityIcons name={theme.icon} size={22} color={theme.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.cardConcepto, { color: theme.color }]}>{factura.concepto || 'Pago'}</Text>
+                      {factura.descripcion ? <Text style={s.cardDesc} numberOfLines={2}>{factura.descripcion}</Text> : null}
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.cardConcepto, { color: color }]}>{factura.concepto || 'Pago'}</Text>
-                    {factura.descripcion ? <Text style={s.cardDesc}>{factura.descripcion}</Text> : null}
-                    <Text style={s.cardDate}>{formatDate(factura.fechaEmision)}</Text>
+                  <View style={s.cardRight}>
+                    <Text style={[s.cardTotal, { color: theme.color }]}>${(factura.total || 0).toLocaleString('es-AR')}</Text>
                   </View>
                 </View>
-                <View style={s.cardRight}>
-                  <Text style={[s.cardTotal, { color: color }]}>${(factura.total || 0).toLocaleString('es-AR')}</Text>
+                <View style={s.cardBottom}>
+                  <View style={[s.moduleBadge, { backgroundColor: theme.color + '18' }]}>
+                    <MaterialCommunityIcons name={theme.icon} size={12} color={theme.color} />
+                    <Text style={[s.moduleBadgeText, { color: theme.color }]}>{theme.label}</Text>
+                  </View>
+                  <Text style={s.cardDate}>{formatDate(factura.fechaEmision)}</Text>
                   <View style={s.cardActions}>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#3b82f6' + '40', backgroundColor: '#fff' }]} onPress={() => handleVer(factura)}>
-                      <MaterialCommunityIcons name="eye" size={14} color="#3b82f6" />
-                      <Text style={[s.actionBtnText, { color: '#3b82f6' }]}>Ver</Text>
+                    <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#fff', borderColor: theme.color + '40' }]} onPress={() => handleVer(factura)}>
+                      <MaterialCommunityIcons name="eye" size={14} color={theme.color} />
+                      <Text style={[s.actionBtnText, { color: theme.color }]}>Ver</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#10b981' + '40', backgroundColor: '#fff' }]} onPress={() => handleDescargar(factura)}>
+                    <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#fff', borderColor: '#10b981' + '40' }]} onPress={() => handleDescargar(factura)}>
                       <MaterialCommunityIcons name="download" size={14} color="#10b981" />
-                      <Text style={[s.actionBtnText, { color: '#10b981' }]}>Descargar</Text>
+                      <Text style={[s.actionBtnText, { color: '#10b981' }]}>PDF</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[s.actionBtn, { borderColor: '#f59e0b' + '40', backgroundColor: '#fff' }]} onPress={() => handleImprimir(factura)}>
+                    <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#fff', borderColor: '#f59e0b' + '40' }]} onPress={() => handleImprimir(factura)}>
                       <MaterialCommunityIcons name="printer" size={14} color="#f59e0b" />
                       <Text style={[s.actionBtnText, { color: '#f59e0b' }]}>Imprimir</Text>
                     </TouchableOpacity>
@@ -271,15 +305,19 @@ const s = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '900', color: '#94a3b8', marginTop: 12 },
   emptyDesc: { fontSize: 13, color: '#64748b', marginTop: 4 },
-  card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+  card: { borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1.5 },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 10 },
-  iconCircle: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-  cardConcepto: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
+  iconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  cardConcepto: { fontSize: 14, fontWeight: '900' },
   cardDesc: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
-  cardDate: { fontSize: 10, color: '#94a3b8', fontWeight: '700', marginTop: 3 },
   cardRight: { alignItems: 'flex-end' },
-  cardTotal: { fontSize: 16, fontWeight: '900', color: '#009b3a', marginBottom: 8 },
-  cardActions: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  cardTotal: { fontSize: 18, fontWeight: '900' },
+  cardBottom: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)', flexWrap: 'wrap', gap: 8 },
+  moduleBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
+  moduleBadgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardDate: { fontSize: 11, color: '#64748b', fontWeight: '700', flex: 1 },
+  cardActions: { flexDirection: 'row', gap: 6 },
   actionBtn: { flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, gap: 4 },
   actionBtnText: { fontSize: 11, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -299,3 +337,4 @@ const s = StyleSheet.create({
   receiptFooter: { marginTop: 25, alignItems: 'center' },
   receiptFooterText: { fontSize: 10, color: '#94a3b8', textAlign: 'center' }
 });
+
