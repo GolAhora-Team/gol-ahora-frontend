@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { profesorService } from '../services/profesorService';
 import { canchaService } from '../services/canchaService';
@@ -23,6 +23,15 @@ const sumarUnaHora = (horaStr) => {
   let minutos = match[2];
   horas = (horas + 1) % 24;
   return `${horas.toString().padStart(2, '0')}:${minutos}`;
+};
+
+const showAlert = (t, msg) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${t}\n\n${msg}`);
+  } else {
+    const { Alert } = require('react-native');
+    Alert.alert(t, msg);
+  }
 };
 
 export default function CreateActivityModal({ visible, onClose, onSave, title, type, initialData = null }) {
@@ -136,19 +145,19 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
 
   const handleSave = async () => {
     if (!formData.nombre.trim()) {
-      Alert.alert('Atención', 'El nombre es obligatorio.');
+      showAlert('Atención', 'El nombre es obligatorio.');
       return;
     }
     if (formData.diasSeleccionados.length === 0) {
-      Alert.alert('Atención', 'Seleccioná al menos un día.');
+      showAlert('Atención', 'Seleccioná al menos un día.');
       return;
     }
     if (!formData.horaInicio || !formData.horaFin) {
-      Alert.alert('Atención', 'Ingresá la hora de inicio y fin.');
+      showAlert('Atención', 'Ingresá la hora de inicio y fin.');
       return;
     }
     if (!timeRegex.test(formData.horaInicio.trim()) || !timeRegex.test(formData.horaFin.trim())) {
-      Alert.alert('Formato de Horario Inválido', 'El horario debe estar en formato de 24 horas HH:MM (ej: 13:00, 09:30).');
+      showAlert('Formato de Horario Inválido', 'El horario debe estar en formato de 24 horas HH:MM (ej: 13:00, 09:30).');
       return;
     }
 
@@ -201,7 +210,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     } catch (error) {
       // Mostramos el mensaje de error devuelto por el backend al usuario
       const msg = error?.message || 'No se pudo guardar. Verificá los datos e intentá nuevamente.';
-      Alert.alert('Error al guardar', msg);
+      showAlert('Error al guardar', msg);
       console.error('[CreateActivityModal] Error al guardar:', error);
     } finally {
       setSaving(false);

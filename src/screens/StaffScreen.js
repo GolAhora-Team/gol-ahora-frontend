@@ -52,14 +52,14 @@ export default function StaffScreen({ route, navigation }) {
       
       const mappedClases = (clasesData || []).map(c => {
         const profeNombre = c.profesor ? `${c.profesor.nombre} ${c.profesor.apellido}` : (c.profesorNombre || c.profe || 'Sin asignar');
-        const profId = c.profesor?.id?.toString() || c.profesorId?.toString();
+        const profId = c.profesor?.id?.toString() || c.profesor?.Id?.toString() || c.profesorId?.toString();
         const cantidadInscriptos = typeof c.cantidadAlumnos === 'number' 
           ? c.cantidadAlumnos 
           : (Array.isArray(c.alumnos) ? c.alumnos.length : (c.clientes?.length || c.asistencias?.length || 0));
 
         return {
           ...c,
-          id: c.id?.toString(),
+          id: (c.id || c.Id)?.toString(),
           profe: profeNombre,
           profesorId: profId,
           alumnos: cantidadInscriptos,
@@ -83,7 +83,7 @@ export default function StaffScreen({ route, navigation }) {
 
         return {
           ...e,
-          id: e.id?.toString(),
+          id: (e.id || e.Id)?.toString(),
           profe: profeNombre,
           profesorId: profId,
           alumnos: cantidadInscriptos,
@@ -125,17 +125,35 @@ export default function StaffScreen({ route, navigation }) {
     setCreateModalVisible(true);
   };
 
+  const showAlert = (title, message) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const confirmAction = (title, message) => {
+    if (Platform.OS === 'web') {
+      return window.confirm(`${title}\n\n${message}`);
+    }
+    // Para nativo, devolver una promesa que se resuelve con el Alert
+    return new Promise((resolve) => {
+      Alert.alert(title, message, [
+        { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Confirmar', style: 'destructive', onPress: () => resolve(true) }
+      ]);
+    });
+  };
+
   const handleCreateSave = async (payload, type) => {
-    // Esta función es llamada desde CreateActivityModal.
-    // El modal re-lanza el error si falla, así que lo manejamos aquí
-    // y mostramos UNA SOLA alerta al usuario.
     if (editData) {
       if (type === 'CLASE') {
         await claseService.update(editData.id, payload);
       } else {
         await entrenamientoService.update(editData.id, payload);
       }
-      Alert.alert(
+      showAlert(
         '✅ ¡Actualizado con éxito!',
         `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se actualizó correctamente.`
       );
@@ -145,7 +163,7 @@ export default function StaffScreen({ route, navigation }) {
       } else {
         await entrenamientoService.create(payload);
       }
-      Alert.alert(
+      showAlert(
         '✅ ¡Creado con éxito!',
         `${type === 'CLASE' ? 'La clase' : 'El entrenamiento'} "${payload.nombre}" se guardó en la base de datos.`
       );
@@ -158,31 +176,24 @@ export default function StaffScreen({ route, navigation }) {
     setAlumnosModalVisible(true);
   };
 
-  const handleDeleteActivity = (id, type, nombre) => {
-    Alert.alert(
+  const handleDeleteActivity = async (id, type, nombre) => {
+    const confirmed = await confirmAction(
       'Confirmar Eliminación',
-      `¿Estás seguro de que deseas eliminar ${type === 'CLASE' ? 'la clase' : 'el entrenamiento'} "${nombre}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (type === 'CLASE') {
-                await claseService.delete(id);
-              } else {
-                await entrenamientoService.delete(id);
-              }
-              Alert.alert('Éxito', 'Eliminado correctamente.');
-              loadData();
-            } catch (error) {
-              Alert.alert('Error', error.message || 'No se pudo eliminar.');
-            }
-          }
-        }
-      ]
+      `¿Estás seguro de que deseas eliminar ${type === 'CLASE' ? 'la clase' : 'el entrenamiento'} "${nombre}"?`
     );
+    if (!confirmed) return;
+
+    try {
+      if (type === 'CLASE') {
+        await claseService.delete(id);
+      } else {
+        await entrenamientoService.delete(id);
+      }
+      showAlert('Éxito', 'Eliminado correctamente.');
+      loadData();
+    } catch (error) {
+      showAlert('Error', error.message || 'No se pudo eliminar.');
+    }
   };
 
   const handleDescargarReporteProfesor = async (profesorId, profesorNombre) => {
@@ -290,7 +301,7 @@ export default function StaffScreen({ route, navigation }) {
 
             <View style={styles.cardInfoGrid}>
               <View style={styles.infoCol}>
-                <Text style={styles.infoLabel}>Horario / Fecha</Text>
+                <Text style={styles.infoLabel}>Inicio</Text>
                 <Text style={styles.infoValue}>{item.horario}</Text>
               </View>
               <View style={styles.infoCol}>
