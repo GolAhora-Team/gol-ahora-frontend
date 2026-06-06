@@ -8,7 +8,7 @@ import { entrenamientoService } from '../services/entrenamientoService';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
 import SuccessModal from '../components/SuccessModal';
-import EditCompetenciaModal from '../components/EditCompetenciaModal';
+import CreateActivityModal from '../components/CreateActivityModal';
 import { pagoService } from '../services/pagoService';
 import { Platform } from 'react-native';
 
@@ -28,9 +28,9 @@ export default function InscripcionesScreen({ route, navigation }) {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMode, setErrorMode] = useState(false);
 
-  // Edit modal for TORNEO/LIGA
-  const [editCompModalVisible, setEditCompModalVisible] = useState(false);
-  const [competenciaToEdit, setCompetenciaToEdit] = useState(null);
+  // Edit modal for CLASE/ENTRENAMIENTO
+  const [editActividadVisible, setEditActividadVisible] = useState(false);
+  const [actividadToEdit, setActividadToEdit] = useState(null);
 
   useEffect(() => {
     loadActividades();
@@ -146,9 +146,23 @@ export default function InscripcionesScreen({ route, navigation }) {
     setManageModalVisible(true);
   };
 
-  const handleEditCompetencia = (item) => {
-    setCompetenciaToEdit(item);
-    setEditCompModalVisible(true);
+  const handleEditActividad = (item) => {
+    setActividadToEdit(item);
+    setEditActividadVisible(true);
+  };
+
+  const handleSaveEdit = async (payload, type) => {
+    try {
+      if (actividadToEdit.tipo === 'CLASE') {
+        await claseService.update(actividadToEdit.id, payload);
+      } else if (actividadToEdit.tipo === 'ENTRENAMIENTO') {
+        await entrenamientoService.update(actividadToEdit.id, payload);
+      }
+      Alert.alert('¡Éxito!', 'La actividad fue actualizada correctamente.');
+      loadActividades();
+    } catch (e) {
+      throw e; // Let CreateActivityModal handle the error display
+    }
   };
 
   const handleInscribirse = async (item) => {
@@ -269,10 +283,10 @@ export default function InscripcionesScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {(item.tipo === 'LIGA' || item.tipo === 'TORNEO') && canEdit && (
+        {(item.tipo === 'CLASE' || item.tipo === 'ENTRENAMIENTO') && canEdit && (
           <TouchableOpacity 
             style={[styles.manageBtn, { backgroundColor: '#f59e0b' }]}
-            onPress={() => handleEditCompetencia(item)}
+            onPress={() => handleEditActividad(item)}
           >
             <MaterialCommunityIcons name="pencil" size={18} color="#fff" />
             <Text style={styles.btnTextSmall}>Editar</Text>
@@ -338,11 +352,13 @@ export default function InscripcionesScreen({ route, navigation }) {
         }}
       />
 
-      <EditCompetenciaModal
-        visible={editCompModalVisible}
-        onClose={() => { setEditCompModalVisible(false); setCompetenciaToEdit(null); }}
-        competencia={competenciaToEdit}
-        onSaved={loadActividades}
+      <CreateActivityModal
+        visible={editActividadVisible}
+        onClose={() => { setEditActividadVisible(false); setActividadToEdit(null); }}
+        onSave={handleSaveEdit}
+        title={actividadToEdit?.tipo === 'CLASE' ? 'Editar Clase' : 'Editar Entrenamiento'}
+        type={actividadToEdit?.tipo || 'CLASE'}
+        initialData={actividadToEdit}
       />
 
       <SuccessModal
