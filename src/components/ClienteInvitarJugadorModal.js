@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { userService } from '../services/userService';
 import { equipoService } from '../services/equipoService';
@@ -7,19 +7,21 @@ import { equipoService } from '../services/equipoService';
 export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, idUsuario, onSuccess }) {
   const [username, setUsername] = useState('');
   const [searching, setSearching] = useState(false);
-  const [resultados, setResultados] = useState([]);
+  const [usuarioEncontrado, setUsuarioEncontrado] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [enviandoId, setEnviandoId] = useState(null);
   const [enviado, setEnviado] = useState(false);
   const debounceRef = useRef(null);
 
   const handleChangeUsername = (text) => {
     setUsername(text);
-    setResultados([]);
+    setUsuarioEncontrado(null);
+    setHasSearched(false);
     setEnviado(false);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (text.trim().length >= 3) {
+    if (text.trim().length > 0) {
       debounceRef.current = setTimeout(() => buscarUsername(text.trim()), 500);
     }
   };
@@ -28,11 +30,13 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
     setSearching(true);
     try {
       const data = await userService.buscarPorUsername(uname);
-      setResultados(data.resultados || []);
+      const exactMatch = (data.resultados || []).find(u => u.username.toLowerCase() === uname.toLowerCase());
+      setUsuarioEncontrado(exactMatch || null);
     } catch (err) {
-      setResultados([]);
+      setUsuarioEncontrado(null);
     } finally {
       setSearching(false);
+      setHasSearched(true);
     }
   };
 
@@ -57,7 +61,8 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
 
   const handleClose = () => {
     setUsername('');
-    setResultados([]);
+    setUsuarioEncontrado(null);
+    setHasSearched(false);
     setEnviandoId(null);
     setEnviado(false);
     onClose();
@@ -77,12 +82,12 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
             </TouchableOpacity>
           </View>
 
-          <Text style={s.label}>Nombre de usuario o Nombre</Text>
+          <Text style={s.label}>Nombre de usuario</Text>
           <View style={s.inputRow}>
             <MaterialCommunityIcons name="account-search" size={20} color="#94a3b8" />
             <TextInput
               style={s.input}
-              placeholder="Buscar por nombre, apellido o usuario..."
+              placeholder="Escribe el nombre de usuario exacto..."
               placeholderTextColor="#94a3b8"
               value={username}
               onChangeText={handleChangeUsername}
@@ -90,44 +95,44 @@ export default function ClienteInvitarJugadorModal({ visible, onClose, equipo, i
               autoCorrect={false}
             />
             {searching && <ActivityIndicator size="small" color="#009b3a" />}
+            {!searching && hasSearched && username.trim().length > 0 && usuarioEncontrado && (
+              <MaterialCommunityIcons name="check-circle" size={24} color="#16a34a" />
+            )}
+            {!searching && hasSearched && username.trim().length > 0 && !usuarioEncontrado && (
+              <MaterialCommunityIcons name="close-circle" size={24} color="#ef4444" />
+            )}
           </View>
 
-          {/* Resultados de búsqueda */}
-          {!searching && resultados.length > 0 && (
-            <View style={{ maxHeight: 240, marginBottom: 15 }}>
-              <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
-                {resultados.map(res => (
-                  <View key={res.usuarioId} style={[s.resultCard, s.resultOk, { padding: 10, marginBottom: 8 }]}>
-                    <MaterialCommunityIcons name="account-circle" size={32} color="#15803d" />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={s.resultName}>{res.nombre}</Text>
-                      <Text style={s.resultUsername}>@{res.username}</Text>
-                    </View>
-                    <TouchableOpacity 
-                      style={[s.sendBtn, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, gap: 5 }]}
-                      onPress={() => handleEnviarInvitacion(res)}
-                      disabled={enviandoId === res.usuarioId || enviado}
-                    >
-                      {enviandoId === res.usuarioId ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <>
-                          <MaterialCommunityIcons name="send" size={16} color="#fff" />
-                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>INVITAR</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
+          {/* Resultado de búsqueda exacta */}
+          {!searching && hasSearched && username.trim().length > 0 && usuarioEncontrado && (
+            <View style={[s.resultCard, s.resultOk, { padding: 10, marginBottom: 15 }]}>
+              <MaterialCommunityIcons name="account-circle" size={32} color="#15803d" />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={s.resultName}>{usuarioEncontrado.nombre}</Text>
+                <Text style={s.resultUsername}>@{usuarioEncontrado.username}</Text>
+              </View>
+              <TouchableOpacity 
+                style={[s.sendBtn, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, gap: 5 }]}
+                onPress={() => handleEnviarInvitacion(usuarioEncontrado)}
+                disabled={enviandoId === usuarioEncontrado.usuarioId || enviado}
+              >
+                {enviandoId === usuarioEncontrado.usuarioId ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="send" size={16} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>INVITAR</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           )}
 
-          {!searching && username.trim().length >= 3 && resultados.length === 0 && (
+          {!searching && hasSearched && username.trim().length > 0 && !usuarioEncontrado && (
               <View style={[s.resultCard, s.resultError]}>
                 <MaterialCommunityIcons name="account-alert" size={24} color="#ef4444" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={s.resultErrorText}>No se encontraron clientes con esa búsqueda.</Text>
+                  <Text style={s.resultErrorText}>El nombre de usuario ingresado no existe.</Text>
                 </View>
               </View>
           )}
