@@ -201,10 +201,21 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       }
 
       // 1. Inscribir al cliente PRIMERO. Si falla (ej. sin apto médico), corta todo.
-      if (actividad.tipo === 'CLASE') {
-        await claseService.addCliente(actividad.id, clienteId);
-      } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.addCliente(actividad.id, clienteId);
+      try {
+        if (actividad.tipo === 'CLASE') {
+          await claseService.addCliente(actividad.id, clienteId);
+        } else if (actividad.tipo === 'ENTRENAMIENTO') {
+          await entrenamientoService.addCliente(actividad.id, clienteId);
+        }
+      } catch (enrollErr) {
+        const msg = enrollErr?.message || enrollErr?.mensaje || '';
+        if (msg.toLowerCase().includes('ya') && (msg.toLowerCase().includes('inscripto') || msg.toLowerCase().includes('inscrito'))) {
+          // Si el error es solo que ya está inscripto, lo ignoramos para permitirle pagar
+          console.log('El alumno ya estaba inscripto. Procediendo a generar el pago...');
+        } else {
+          // Si es otro error (como falta de apto médico o cupo lleno), cortamos la ejecución
+          throw enrollErr;
+        }
       }
 
       // Generar Comprobante HTML
@@ -300,6 +311,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
+      console.error('ERROR EN HANDLECONFIRM:', error);
       Alert.alert('Error', error?.mensaje || error?.message || 'No se pudo procesar la inscripción.');
     } finally {
       setIsSubmitting(false);
