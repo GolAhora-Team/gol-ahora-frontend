@@ -156,10 +156,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       Alert.alert('Formato de Horario Inválido', 'El horario debe estar en formato de 24 horas HH:MM (ej: 13:00, 09:30).');
       return;
     }
-    if (!formData.profesorId) {
-      Alert.alert('Atención', 'Debes seleccionar un Profesor. El profesor debe tener certificado vigente.');
-      return;
-    }
+
     
     setSaving(true);
     try {
@@ -187,7 +184,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
           horaFin: formatTimeSpan(formData.horaFin),
           diasSemana: diasStr,
           precioInscripcion: parseFloat(formData.precio) || 5000,
-          profesorId: parseInt(formData.profesorId),
+          profesorId: formData.profesorId ? parseInt(formData.profesorId) : null,
           canchaId: formData.canchaId ? parseInt(formData.canchaId) : null
         };
       } else {
@@ -198,7 +195,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
           horaInicio: formatTimeSpan(formData.horaInicio),
           horaFin: formatTimeSpan(formData.horaFin),
           diasSemana: diasStr,
-          profesorId: parseInt(formData.profesorId),
+          profesorId: formData.profesorId ? parseInt(formData.profesorId) : null,
           canchaId: formData.canchaId ? parseInt(formData.canchaId) : null
         };
       }
@@ -332,7 +329,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
               onChangeText={text => setFormData({...formData, precio: text.replace(/[^0-9]/g, '')})}
             />
 
-            <Text style={styles.label}>Profesor <Text style={{ color: '#ef4444' }}>(Obligatorio — debe tener certificado vigente)</Text></Text>
+            <Text style={styles.label}>Profesor <Text style={{ color: '#94a3b8' }}>(Opcional)</Text></Text>
             {loading ? (
               <ActivityIndicator size="small" color="#009b3a" style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
             ) : (
