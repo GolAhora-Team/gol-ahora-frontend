@@ -55,10 +55,12 @@ export default function InscripcionesScreen({ route, navigation }) {
 
               // Remove params from navigation state to prevent re-triggering
               navigation.setParams({ collection_status: undefined, mp_return: undefined });
-              
               setSuccessMessage('La inscripción se ha registrado y pagado correctamente.');
               setErrorMode(false);
               setSuccessModalVisible(true);
+              
+              // Recargar las actividades para reflejar el cupo actualizado
+              loadActividades();
             } catch(e) {
               console.error("Error procesando inscripcion pendiente", e);
             }
