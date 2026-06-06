@@ -665,9 +665,15 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             <TouchableOpacity 
               style={styles.saveBtn} 
               onPress={() => {
-                if (usernameAvailable === false) {
-                  Alert.alert("Atención", "El nombre de usuario no está disponible.");
-                  return;
+                if (formData.username && formData.username !== originalUsername && formData.username.length >= 3) {
+                  if (usernameChecking || usernameAvailable === null) {
+                    Alert.alert("Atención", "Validando disponibilidad del nombre de usuario, por favor esperá un momento.");
+                    return;
+                  }
+                  if (usernameAvailable === false) {
+                    Alert.alert("Atención", "El nombre de usuario no está disponible.");
+                    return;
+                  }
                 }
                 onSave();
               }}

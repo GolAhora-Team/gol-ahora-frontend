@@ -124,9 +124,15 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
       return;
     }
 
-    if (isEditingInfo && usernameAvailable === false) {
-      Alert.alert("Atención", "El nombre de usuario no está disponible.");
-      return;
+    if (isEditingInfo && editedUsername !== currentUsername && editedUsername.length >= 3) {
+      if (usernameChecking || usernameAvailable === null) {
+        Alert.alert("Atención", "Validando disponibilidad del nombre de usuario, por favor esperá un momento.");
+        return;
+      }
+      if (usernameAvailable === false) {
+        Alert.alert("Atención", "El nombre de usuario no está disponible.");
+        return;
+      }
     }
     
     setIsLoading(true);
