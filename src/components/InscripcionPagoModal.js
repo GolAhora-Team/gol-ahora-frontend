@@ -18,6 +18,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
   const [clientes, setClientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [metodoPago, setMetodoPago] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -193,6 +194,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
       const clienteId = selectedCliente?.id;
       if (!clienteId) {
@@ -260,6 +262,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           }
         } catch (mpError) {
           console.error('Error MP:', mpError);
+          setErrorMessage('No se pudo generar el pago con Mercado Pago.');
           Alert.alert('Error', 'No se pudo generar el pago con Mercado Pago.');
           setIsSubmitting(false);
           return;
@@ -312,7 +315,9 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       onClose();
     } catch (error) {
       console.error('ERROR EN HANDLECONFIRM:', error);
-      Alert.alert('Error', error?.mensaje || error?.message || 'No se pudo procesar la inscripción.');
+      const msg = error?.mensaje || error?.message || 'No se pudo procesar la inscripción.';
+      setErrorMessage(msg);
+      Alert.alert('Error', msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -336,8 +341,14 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           {loading ? (
             <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 40 }} />
           ) : (
-            <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
+            <ScrollView style={s.content} showsVerticalScrollIndicator={false}>
               
+              {errorMessage && (
+                <View style={{ backgroundColor: '#fee2e2', padding: 12, borderRadius: 8, marginBottom: 15 }}>
+                  <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>{errorMessage}</Text>
+                </View>
+              )}
+
               {/* STEP 1: Seleccionar cliente (ADMIN) o resumen (CLIENTE) */}
               {step === 1 && (
                 <View>
