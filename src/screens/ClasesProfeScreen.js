@@ -19,6 +19,7 @@ export default function ClasesProfeScreen({ route, navigation }) {
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
   const [selectedClase, setSelectedClase] = useState(null);
   const [presentesIds, setPresentesIds] = useState([]);
+  const [presentesOriginales, setPresentesOriginales] = useState([]);  // estado al abrir el modal
   const [asistenciaDate, setAsistenciaDate] = useState(new Date().toISOString().split('T')[0]);
   const [loadingAsistencia, setLoadingAsistencia] = useState(false);
 
@@ -71,11 +72,15 @@ export default function ClasesProfeScreen({ route, navigation }) {
       if (result && result.length > 0) {
         const pre = result.filter(a => a.presente).map(a => a.clienteId);
         setPresentesIds(pre);
+        setPresentesOriginales(pre);
       } else {
         setPresentesIds([]);
+        setPresentesOriginales([]);
       }
     } catch (e) {
       console.error(e);
+      setPresentesIds([]);
+      setPresentesOriginales([]);
     } finally {
       setLoadingAsistencia(false);
     }
@@ -92,15 +97,25 @@ export default function ClasesProfeScreen({ route, navigation }) {
   const saveAsistencia = async () => {
     if (!selectedClase) return;
     try {
-      const promises = presentesIds.map(clienteId =>
-        asistenciaService.registrarManual(selectedClase.id, clienteId, true)
-          .catch(() => null)
-      );
+      // Alumnos nuevamente marcados como presentes (no estaban antes)
+      const nuevosPresentes = presentesIds.filter(id => !presentesOriginales.includes(id));
+      // Alumnos desmarcados (estaban presentes y ahora no)
+      const removidos = presentesOriginales.filter(id => !presentesIds.includes(id));
+
+      const promises = [
+        ...nuevosPresentes.map(clienteId =>
+          asistenciaService.registrarManual(selectedClase.id, clienteId, true).catch(() => null)
+        ),
+        ...removidos.map(clienteId =>
+          asistenciaService.eliminarAsistencia(selectedClase.id, clienteId, true).catch(() => null)
+        )
+      ];
+
       await Promise.all(promises);
-      Alert.alert('Éxito', 'La asistencia fue registrada correctamente.');
+      Alert.alert('Éxito', 'La asistencia fue guardada correctamente.');
       setAsistenciaModalVisible(false);
       // Refrescar asistencia de esa clase en el mapa
-      setAsistenciasMap(prev => ({ ...prev, [selectedClase.id]: undefined }));
+      setAsistenciasMap(prev => { const n = { ...prev }; delete n[selectedClase.id]; return n; });
       loadAsistenciaParaClase(selectedClase.id);
     } catch (e) {
       Alert.alert('Error', 'Hubo un error al guardar la asistencia.');
