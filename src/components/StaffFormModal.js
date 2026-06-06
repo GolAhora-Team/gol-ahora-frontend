@@ -55,7 +55,7 @@ export default function StaffFormModal({ visible, onClose, onSave, initialData }
               style={[styles.input, { borderColor: '#009b3a', borderWidth: 1.5 }]} 
               value={formData.certificado} 
               onChangeText={(t) => setFormData({...formData, certificado: t})}
-              placeholder="Obligatorio para el alta"
+              placeholder="Opcional"
             />
 
             <Text style={styles.label}>Email de Contacto</Text>

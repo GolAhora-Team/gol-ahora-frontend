@@ -30,12 +30,7 @@ export default function AssignClassModal({ visible, onClose, onAssignSuccess }) 
         claseService.getAll().catch(() => []),
         entrenamientoService.getAll().catch(() => [])
       ]);
-      const now = new Date();
-      const validProfesores = (profData || []).filter(p => {
-        if (!p.certificados || p.certificados.length === 0) return false;
-        return p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
-      });
-      setProfesores([{ id: 'REMOVE', nombre: 'Desasignar', apellido: 'Profesor', dni: 'N/A' }, ...validProfesores]);
+      setProfesores([{ id: 'REMOVE', nombre: 'Desasignar', apellido: 'Profesor', dni: 'N/A' }, ...(profData || [])]);
       
       const combined = [
         ...(claseData || []).map(c => ({ ...c, tipo: 'CLASE' })),
