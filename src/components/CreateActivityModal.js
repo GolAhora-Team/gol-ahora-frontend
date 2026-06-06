@@ -98,12 +98,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
     setLoading(true);
     try {
       const data = await profesorService.getAll();
-      const now = new Date();
-      const validos = (data || []).filter(p => {
-        if (!p.certificados || p.certificados.length === 0) return false;
-        return p.certificados.some(c => !c.fechaVencimiento || new Date(c.fechaVencimiento) > now);
-      });
-      setProfesores(validos);
+      setProfesores(data || []);
 
       const dataCanchas = await canchaService.getAll();
       setCanchas(dataCanchas || []);

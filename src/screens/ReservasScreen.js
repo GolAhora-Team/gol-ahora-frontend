@@ -334,6 +334,14 @@ export default function ReservaScreen({ route, navigation }) {
         horaFin: r.horaFin?.substring(0, 5) || r.horaFin,
         estado: getEstadoDerivado(r),
         fecha: r.fecha,
+        // Campos de partido/competición
+        esPartido: r.esPartido || false,
+        competicionNombre: r.competicionNombre || null,
+        tipoCompeticion: r.tipoCompeticion || null,
+        equipoLocalNombre: r.equipoLocalNombre || null,
+        equipoLocalColorPrimario: r.equipoLocalColorPrimario || null,
+        equipoVisitanteNombre: r.equipoVisitanteNombre || null,
+        equipoVisitanteColorPrimario: r.equipoVisitanteColorPrimario || null,
       }));
 
       setAllReservas(mappedReservas);
@@ -792,10 +800,34 @@ export default function ReservaScreen({ route, navigation }) {
                 </View>
                 <View style={styles.viewDivider} />
 
-                <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>CLIENTE</Text>
-                  <Text style={styles.viewValue}>{viewingReserva.clienteNombre || 'N/A'} {viewingReserva.clienteEdad ? `(${viewingReserva.clienteEdad} años)` : ''}</Text>
-                </View>
+                {viewingReserva.esPartido && (
+                  <View style={{ backgroundColor: '#eef2ff', borderRadius: 12, padding: 15, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <MaterialCommunityIcons name="trophy" size={20} color="#6366f1" />
+                      <Text style={{ marginLeft: 8, fontWeight: '900', color: '#6366f1', fontSize: 14 }}>
+                        {viewingReserva.tipoCompeticion === 'Liga' ? 'LIGA' : 'TORNEO'}: {viewingReserva.competicionNombre}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, gap: 12 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: viewingReserva.equipoLocalColorPrimario || '#ccc', borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)', marginBottom: 6 }} />
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b', textAlign: 'center' }}>{viewingReserva.equipoLocalNombre}</Text>
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#94a3b8' }}>VS</Text>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: viewingReserva.equipoVisitanteColorPrimario || '#ccc', borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)', marginBottom: 6 }} />
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b', textAlign: 'center' }}>{viewingReserva.equipoVisitanteNombre}</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {!viewingReserva.esPartido && (
+                  <View style={styles.viewRow}>
+                    <Text style={styles.viewLabel}>CLIENTE</Text>
+                    <Text style={styles.viewValue}>{viewingReserva.clienteNombre || 'N/A'} {viewingReserva.clienteEdad ? `(${viewingReserva.clienteEdad} años)` : ''}</Text>
+                  </View>
+                )}
                 <View style={styles.viewRow}>
                   <Text style={styles.viewLabel}>CANCHA</Text>
                   <Text style={styles.viewValue}>{viewingReserva.canchaNombre || 'N/A'}</Text>

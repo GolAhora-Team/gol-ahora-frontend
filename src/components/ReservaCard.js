@@ -37,9 +37,10 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
     }
   } catch (e) {}
 
-  // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas, y no son actividades virtuales
+  // Solo se pueden eliminar/modificar si no están finalizadas, en juego o canceladas, y no son actividades virtuales ni partidos de competición
   const isActividad = item.estado === 'Clase' || item.estado === 'Entrenamiento';
-  const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada && !isActividad;
+  const isPartido = item.esPartido === true;
+  const allowModify = canModify && !isFinalizado && !isEnJuego && !isCancelada && !isActividad && !isPartido;
 
   useEffect(() => {
     let interval;
@@ -95,9 +96,24 @@ export default function ReservaCard({ item, onEdit, onDelete, onView, canModify 
 
       <View style={styles.infoSide}>
         <Text style={[styles.canchaName, isPast && { color: '#64748b' }]}>{item.canchaNombre}</Text>
-        <Text style={styles.clienteName}>
-          {item.clienteNombre} {item.clienteEdad ? `(${item.clienteEdad} años)` : ''}
-        </Text>
+        {item.esPartido ? (
+          <View style={{ marginTop: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#6366f1' }}>
+              {item.tipoCompeticion === 'Liga' ? '🏆 LIGA' : '🏆 TORNEO'}: {item.competicionNombre}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <View style={[styles.escudoSmall, { backgroundColor: item.equipoLocalColorPrimario || '#ccc' }]} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoLocalNombre}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#94a3b8', marginHorizontal: 6 }}>VS</Text>
+              <View style={[styles.escudoSmall, { backgroundColor: item.equipoVisitanteColorPrimario || '#ccc' }]} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155', marginLeft: 4 }}>{item.equipoVisitanteNombre}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.clienteName}>
+            {item.cliente?.nombre ? `${item.cliente?.nombre} ${item.cliente?.apellido || ''}` : item.clienteNombre} {item.clienteEdad ? `(${item.clienteEdad} años)` : ''}
+          </Text>
+        )}
         
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 5 }}>
           <View style={[
@@ -170,5 +186,6 @@ const styles = StyleSheet.create({
   timerBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#d1fae5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   timerText: { fontSize: 11, fontWeight: '800', color: '#059669' },
   actionSide: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  actionBtn: { padding: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }
+  actionBtn: { padding: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  escudoSmall: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }
 });
