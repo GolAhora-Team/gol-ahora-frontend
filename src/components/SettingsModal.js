@@ -20,6 +20,13 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Username states
+  const [currentUsername, setCurrentUsername] = useState('');
+  const [editedUsername, setEditedUsername] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null); // null = not checked, true = available, false = taken
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameCheckTimer, setUsernameCheckTimer] = useState(null);
+
   const topObrasSociales = [
     "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
     "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
@@ -90,6 +97,20 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
           contactoEmergencia: data.contactoEmergencia || ''
         });
       }
+
+      // Load username from all-usernames endpoint (map by personaId)
+      try {
+        const usernamesData = await userService.getAllUsernames();
+        if (usernamesData && Array.isArray(usernamesData)) {
+          const match = usernamesData.find(u => u.personaId === idPersona);
+          if (match) {
+            setCurrentUsername(match.username || '');
+            setEditedUsername(match.username || '');
+          }
+        }
+      } catch (e) {
+        console.error('Error loading username:', e);
+      }
     } catch (error) {
       console.error("Error al cargar datos del usuario", error);
     } finally {
@@ -126,6 +147,16 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         await profesorService.updateSimple(idPersona, updatedData);
       } else if (userRole === 'ADMIN' || userRole === 'PERSONAL') {
         await administradorService.updateSimple(idPersona, updatedData);
+      }
+
+      // If username was changed, update it too
+      if (editedUsername && editedUsername !== currentUsername && usernameAvailable === true) {
+        try {
+          await userService.updateUsername(idUsuario, editedUsername);
+          setCurrentUsername(editedUsername);
+        } catch (e) {
+          Alert.alert('Error', e.message || 'No se pudo actualizar el nombre de usuario.');
+        }
       }
       
       setSuccessMsg("¡Cambios guardados correctamente!");
@@ -216,12 +247,63 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       onChangeText={(t)=>setPerfil({...perfil, apellido:t})} 
                       editable={false}
                     />
-                    <Text style={styles.label}>DNI / Usuario (No editable)</Text>
+                    <Text style={styles.label}>DNI (No editable)</Text>
                     <TextInput 
                       style={[styles.input, styles.inputDisabled]} 
                       value={perfil.dni} 
                       editable={false} 
                     />
+                    <Text style={styles.label}>Nombre de Usuario</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TextInput 
+                        style={[styles.input, !isEditingInfo && styles.inputDisabled, { flex: 1 }]} 
+                        value={editedUsername}
+                        onChangeText={(t) => {
+                          const clean = t.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+                          setEditedUsername(clean);
+                          setUsernameAvailable(null);
+                          if (usernameCheckTimer) clearTimeout(usernameCheckTimer);
+                          if (clean === currentUsername) {
+                            setUsernameAvailable(null);
+                            return;
+                          }
+                          if (clean.length < 3) {
+                            setUsernameAvailable(null);
+                            return;
+                          }
+                          setUsernameChecking(true);
+                          const timer = setTimeout(async () => {
+                            try {
+                              const result = await userService.checkUsernameAvailable(clean, idUsuario);
+                              setUsernameAvailable(result.available);
+                            } catch (e) {
+                              setUsernameAvailable(null);
+                            } finally {
+                              setUsernameChecking(false);
+                            }
+                          }, 500);
+                          setUsernameCheckTimer(timer);
+                        }}
+                        editable={isEditingInfo}
+                        autoCapitalize="none"
+                        placeholder="Ej: juanperez"
+                        placeholderTextColor="#999"
+                      />
+                      {isEditingInfo && editedUsername !== currentUsername && editedUsername.length >= 3 && (
+                        <View style={{ marginLeft: 8, width: 28, alignItems: 'center' }}>
+                          {usernameChecking ? (
+                            <ActivityIndicator size="small" color="#94a3b8" />
+                          ) : usernameAvailable === true ? (
+                            <MaterialCommunityIcons name="check-circle" size={24} color="#22c55e" />
+                          ) : usernameAvailable === false ? (
+                            <MaterialCommunityIcons name="close-circle" size={24} color="#ef4444" />
+                          ) : null}
+                        </View>
+                      )}
+                    </View>
+                    {isEditingInfo && usernameAvailable === false && (
+                      <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '700', marginTop: 4 }}>Ese nombre de usuario no está disponible</Text>
+                    )}
                     <Text style={styles.label}>Correo Electrónico</Text>
                     <TextInput 
                       style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
