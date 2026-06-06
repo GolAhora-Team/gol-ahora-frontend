@@ -164,7 +164,9 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       const facturaPayload = {
         fechaEmision: new Date().toISOString(),
         total: montoFinal,
-        clienteId: clienteId
+        clienteId: clienteId,
+        concepto: `Inscripción a ${actividad.tipo.toLowerCase()}`,
+        descripcion: `Inscripción a ${actividad.nombre}`
       };
       const factura = await facturaService.create(facturaPayload);
       

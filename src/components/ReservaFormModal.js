@@ -876,7 +876,9 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const facturaPayload = {
         fechaEmision: data.fecha,
         total: data.montoFinal,
-        clienteId: data.reservaPayload.ClienteId
+        clienteId: data.reservaPayload.ClienteId,
+        concepto: 'Reserva de cancha',
+        descripcion: `Reserva de ${data.cancha.nombre} el ${new Date(data.fecha).toLocaleDateString('es-AR')} a las ${data.hora}hs`
       };
       const factura = await facturaService.create(facturaPayload);
       

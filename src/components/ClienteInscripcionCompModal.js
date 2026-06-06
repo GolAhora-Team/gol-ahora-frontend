@@ -60,8 +60,8 @@ export default function ClienteInscripcionCompModal({ visible, onClose, competen
         await facturaService.create({
           clienteId: idPersona,
           total: precio,
-          concepto: 'Inscripción Competencia',
-          descripcion: `Inscripción equipo "${selectedEquipo.nombre}" en ${competencia.nombre}`,
+          concepto: 'Inscripción a torneo',
+          descripcion: `Inscripción equipo "${selectedEquipo.nombre}" al torneo ${competencia.nombre}`,
           fechaEmision: new Date().toISOString()
         });
       } catch (factErr) {
