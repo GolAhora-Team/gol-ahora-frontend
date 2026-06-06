@@ -141,7 +141,7 @@ export default function InscripcionesScreen({ route, navigation }) {
     setManageModalVisible(true);
   };
 
-  const handleInscribirse = (item) => {
+  const handleInscribirse = async (item) => {
     if (item.tipo === 'LIGA' || item.tipo === 'TORNEO') {
       Alert.alert('Información', 'Para inscribirte en una Competencia, dirigite a Competencias.');
       return;
@@ -150,6 +150,32 @@ export default function InscripcionesScreen({ route, navigation }) {
       Alert.alert('Cupo lleno', 'Esta actividad ya no tiene cupos disponibles.');
       return;
     }
+
+    if (currentUserRole === 'CLIENTE') {
+      try {
+        const { clienteService } = await import('../services/clienteService');
+        let resolvedId = idPersona;
+        if (!resolvedId && nombreUsuario) {
+          const clientesData = await clienteService.getAll();
+          const found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          if (found) resolvedId = found.id || found.Id;
+        }
+
+        if (resolvedId) {
+          const cliente = await clienteService.getById(resolvedId);
+          if (!cliente.aptoFisico) {
+            Alert.alert(
+              'Apto médico faltante', 
+              'No puedes inscribirte hasta que no cargues tu apto físico.\n\nPor favor, ingresa a la configuración de tu perfil (la tuerca en la barra lateral) y adjunta tu certificado médico para poder continuar.'
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Error al verificar apto fisico', e);
+      }
+    }
+
     setActividadParaPago(item);
     setPagoModalVisible(true);
   };

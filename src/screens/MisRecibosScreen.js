@@ -5,7 +5,7 @@ import ScreenTemplate from './ScreenTemplate';
 import { facturaService } from '../services/facturaService';
 
 export default function MisRecibosScreen({ route, navigation }) {
-  const { role, idPersona } = route.params || {};
+  const { role, idPersona, nombreUsuario } = route.params || {};
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortNewest, setSortNewest] = useState(true);
@@ -19,8 +19,24 @@ export default function MisRecibosScreen({ route, navigation }) {
   const loadFacturas = async () => {
     setLoading(true);
     try {
-      const data = await facturaService.getByClienteId(idPersona);
-      setFacturas(data || []);
+      let resolvedId = idPersona;
+      
+      // Fallback para usuarios legacy sin idPersona mappeado
+      if (!resolvedId && nombreUsuario) {
+        const { clienteService } = await import('../services/clienteService');
+        const clientesData = await clienteService.getAll();
+        const found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+        if (found) {
+          resolvedId = found.id || found.Id;
+        }
+      }
+
+      if (resolvedId) {
+        const data = await facturaService.getByClienteId(resolvedId);
+        setFacturas(data || []);
+      } else {
+        setFacturas([]);
+      }
     } catch (error) {
       console.error('Error cargando facturas:', error);
     } finally {

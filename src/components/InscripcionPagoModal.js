@@ -200,6 +200,13 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
         return;
       }
 
+      // 1. Inscribir al cliente PRIMERO. Si falla (ej. sin apto médico), corta todo.
+      if (actividad.tipo === 'CLASE') {
+        await claseService.addCliente(actividad.id, clienteId);
+      } else if (actividad.tipo === 'ENTRENAMIENTO') {
+        await entrenamientoService.addCliente(actividad.id, clienteId);
+      }
+
       // Generar Comprobante HTML
       const html = generateComprobanteHtml(selectedCliente, actividad, montoFinal, metodoPago, selectedCliente?.esSocioActivo, pctEfectivo, pctSocio);
       const fileName = `Comprobante-Inscripcion-${selectedCliente.nombre}_${selectedCliente.apellido}-${actividad.nombre}`.replace(/\s+/g, '_');
@@ -231,17 +238,6 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
           if (Platform.OS === 'web') {
             const pendingInscripcion = { pagoId: createdPagoId, actividadId: actividad.id };
             window.localStorage.setItem('pendingInscripcion', JSON.stringify(pendingInscripcion));
-            
-            // Inscribir al cliente (puede fallar si ya está inscripto)
-            try {
-              if (actividad.tipo === 'CLASE') {
-                await claseService.addCliente(actividad.id, clienteId);
-              } else if (actividad.tipo === 'ENTRENAMIENTO') {
-                await entrenamientoService.addCliente(actividad.id, clienteId);
-              }
-            } catch (enrollErr) {
-              console.log('Enroll error (ignoring to proceed with payment):', enrollErr);
-            }
             
             window.location.href = mpResponse.initPoint;
             return;
@@ -279,13 +275,6 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
         if (refForPolling) {
           setExternalReference(refForPolling);
         }
-        
-        // Inscribir al cliente primero
-        if (actividad.tipo === 'CLASE') {
-          await claseService.addCliente(actividad.id, clienteId);
-        } else if (actividad.tipo === 'ENTRENAMIENTO') {
-          await entrenamientoService.addCliente(actividad.id, clienteId);
-        }
 
         setPendingAdminPayload({ facturaId: createdFacturaId, pagoId: createdPagoId, factura: factura });
         setQrModalVisible(true);
@@ -296,13 +285,6 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       // Efectivo Flow
       const { factura } = await createPayment(clienteId, montoFinal, 2); // 2 = Pagado
       
-      // Inscribir
-      if (actividad.tipo === 'CLASE') {
-        await claseService.addCliente(actividad.id, clienteId);
-      } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.addCliente(actividad.id, clienteId);
-      }
-
       if (factura && selectedCliente?.email) {
         const facturaHtml = generateFacturaAfipHtml(factura, `${selectedCliente.nombre} ${selectedCliente.apellido}`, new Date());
         await generarYEnviarFactura({
@@ -318,7 +300,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo completar la inscripción. Puede que el alumno ya esté inscripto o el cupo esté lleno.');
+      Alert.alert('Error', error?.mensaje || error?.message || 'No se pudo procesar la inscripción.');
     } finally {
       setIsSubmitting(false);
     }
