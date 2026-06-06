@@ -197,7 +197,12 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
         estado: 1,
         tipo: 1,
         descripcion: `Suscripción Socio Activo - Presencial (${metodoPago})`,
-        clienteId: formData.id
+        clienteId: formData.id,
+        user: {
+          email: formData.email || formData.dni.toString(),
+          password: "1234",
+          username: formData.username && formData.username.trim() !== '' ? formData.username.trim() : formData.dni.toString()
+        }
       };
       const factura = await facturaService.create(payload);
 
@@ -249,7 +254,10 @@ export default function UserFormModal({ visible, onClose, isEditing, formData, s
             {/* 1. IDENTIDAD */}
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>1. IDENTIDAD</Text>
-              <CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({ ...formData, dni: v.replace(/[^0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} />
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}><CustomInput label="DNI" keyboardType="numeric" value={formData.dni} onChangeText={v => setFormData({ ...formData, dni: v.replace(/[^0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
+                <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="USUARIO" placeholder="Ej: perez123" value={formData.username} onChangeText={v => setFormData({ ...formData, username: v.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase() })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
+              </View>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}><CustomInput label="NOMBRE" value={formData.nombre} onChangeText={v => setFormData({ ...formData, nombre: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>
                 <View style={{ flex: 1, marginLeft: 10 }}><CustomInput label="APELLIDO" value={formData.apellido} onChangeText={v => setFormData({ ...formData, apellido: v.replace(/[0-9]/g, '') })} containerStyle={styles.cleanInput} labelStyle={styles.greenLabelBold} inputStyle={styles.greenInputText} /></View>

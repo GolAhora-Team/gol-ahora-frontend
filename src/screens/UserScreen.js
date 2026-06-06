@@ -54,7 +54,7 @@ export default function UserScreen({ route, navigation }) {
   const [savingPrecio, setSavingPrecio] = useState(false);
   
   const initialFormState = {
-    dni: '', nombre: '', apellido: '', genero: 'Masculino',
+    dni: '', username: '', nombre: '', apellido: '', genero: 'Masculino',
     telefono: '', direccion: '', localidad: '', codigoPostal: '', provincia: 'Buenos Aires',
     pais: 'Argentina', email: '', role: 'CLIENTE', contactoEmergencia: '', activo: true,
     esSocioActivo: false, obraSocial: '', tieneObraSocial: false, aptoFisico: false, especializacion: '',
@@ -352,9 +352,9 @@ export default function UserScreen({ route, navigation }) {
         };
         
         const payload = {
-          email: formData.dni.toString(),
+          email: formData.email || formData.dni.toString(),
           password: "1234",
-          username: formData.dni.toString()
+          username: formData.username && formData.username.trim() !== '' ? formData.username.trim() : formData.dni.toString()
         };
 
         if (formData.role === 'CLIENTE') {
@@ -364,7 +364,7 @@ export default function UserScreen({ route, navigation }) {
           const payloadProfe = {
             email: formData.email,
             password: "1234",
-            username: formData.dni.toString(),
+            username: formData.username && formData.username.trim() !== '' ? formData.username.trim() : mappedData.dni.toString(),
             dni: mappedData.dni,
             nombre: mappedData.nombre,
             apellido: mappedData.apellido,
