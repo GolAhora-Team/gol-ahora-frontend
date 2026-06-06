@@ -166,7 +166,7 @@ export default function InscripcionesScreen({ route, navigation }) {
           if (!cliente.aptoFisico) {
             Alert.alert(
               'Apto médico faltante', 
-              'No puedes inscribirte hasta que no cargues tu apto físico.\n\nPor favor, ingresa a la configuración de tu perfil (la tuerca en la barra lateral) y adjunta tu certificado médico para poder continuar.'
+              'No puedes inscribirte hasta que no cargues tu apto físico.'
             );
             return;
           }
