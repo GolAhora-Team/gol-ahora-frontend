@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
@@ -8,6 +8,10 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
   const [inscriptos, setInscriptos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [userToRemove, setUserToRemove] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     if (visible && actividad) {
@@ -33,53 +37,36 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
       setInscriptos(currentInscriptos);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los datos.');
+      setShowError(true);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemove = (user) => {
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm(`¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`);
-      if (confirm) {
-        executeRemove(user);
-      }
-    } else {
-      Alert.alert(
-        'Eliminar alumno',
-        `¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Eliminar', style: 'destructive', onPress: () => executeRemove(user) }
-        ]
-      );
-    }
+    setUserToRemove(user);
+    setShowConfirm(true);
   };
 
-  const executeRemove = async (user) => {
+  const executeRemove = async () => {
+    if (!userToRemove) return;
     setActionLoading(true);
+    setShowConfirm(false);
     try {
       if (actividad.tipo === 'CLASE') {
-        await claseService.removeCliente(actividad.id, user.id);
+        await claseService.removeCliente(actividad.id, userToRemove.id);
       } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.removeCliente(actividad.id, user.id);
+        await entrenamientoService.removeCliente(actividad.id, userToRemove.id);
       }
       await loadData();
       if (onUpdate) onUpdate();
-      if (Platform.OS === 'web') {
-        window.alert('Se eliminó correctamente el alumno de la clase');
-      } else {
-        Alert.alert('Éxito', 'Se eliminó correctamente el alumno de la clase');
-      }
+      setShowSuccess(true);
     } catch (error) {
-      if (Platform.OS === 'web') {
-        window.alert('Error: No se pudo eliminar al alumno.');
-      } else {
-        Alert.alert('Error', 'No se pudo eliminar al alumno.');
-      }
+      console.error(error);
+      setShowError(true);
     } finally {
       setActionLoading(false);
+      setUserToRemove(null);
     }
   };
 
@@ -128,6 +115,62 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
           )}
         </View>
       </View>
+
+      {/* CONFIRM MODAL */}
+      <Modal visible={showConfirm} animationType="fade" transparent={true}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContent}>
+            <View style={styles.iconCircleError}>
+              <MaterialCommunityIcons name="alert" size={32} color="#ef4444" />
+            </View>
+            <Text style={styles.alertTitle}>Eliminar Alumno</Text>
+            <Text style={styles.alertMessage}>
+              ¿Está seguro de eliminar al alumno {userToRemove?.nombre} {userToRemove?.apellido}?
+            </Text>
+            <View style={styles.alertButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowConfirm(false)}>
+                <Text style={styles.cancelButtonText}>CANCELAR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={executeRemove}>
+                <Text style={styles.confirmButtonText}>ELIMINAR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SUCCESS MODAL */}
+      <Modal visible={showSuccess} animationType="fade" transparent={true}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContent}>
+            <View style={styles.iconCircleSuccess}>
+              <MaterialCommunityIcons name="check" size={40} color="#009b3a" />
+            </View>
+            <Text style={styles.alertTitle}>¡Éxito!</Text>
+            <Text style={styles.alertMessage}>Se eliminó correctamente el alumno de la clase.</Text>
+            <TouchableOpacity style={styles.okButton} onPress={() => setShowSuccess(false)}>
+              <Text style={styles.okButtonText}>ENTENDIDO</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ERROR MODAL */}
+      <Modal visible={showError} animationType="fade" transparent={true}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertContent}>
+            <View style={styles.iconCircleError}>
+              <MaterialCommunityIcons name="close" size={40} color="#ef4444" />
+            </View>
+            <Text style={styles.alertTitle}>Error</Text>
+            <Text style={styles.alertMessage}>No se pudo completar la operación. Por favor intenta de nuevo.</Text>
+            <TouchableOpacity style={styles.okButtonError} onPress={() => setShowError(false)}>
+              <Text style={styles.okButtonText}>CERRAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </Modal>
   );
 }
@@ -144,5 +187,21 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   userDni: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 }
+  removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
+  
+  // Custom Modals
+  alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  alertContent: { backgroundColor: '#fff', borderRadius: 24, padding: 25, width: '85%', maxWidth: 350, alignItems: 'center', elevation: 10 },
+  iconCircleError: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  iconCircleSuccess: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  alertTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 10, textAlign: 'center' },
+  alertMessage: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 25, lineHeight: 20 },
+  alertButtons: { flexDirection: 'row', gap: 12, width: '100%' },
+  cancelButton: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  cancelButtonText: { color: '#64748b', fontWeight: '800', fontSize: 13 },
+  confirmButton: { flex: 1, backgroundColor: '#ef4444', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  confirmButtonText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  okButton: { width: '100%', backgroundColor: '#009b3a', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  okButtonError: { width: '100%', backgroundColor: '#ef4444', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  okButtonText: { color: '#fff', fontWeight: '900', fontSize: 13 }
 });
