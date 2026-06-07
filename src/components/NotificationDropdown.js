@@ -81,10 +81,10 @@ const NotificationDropdown = ({ visible, onClose, token, userRole }) => {
   const notificacionesFiltradas = notificaciones.filter(item => {
     if (!isAdminOrPersonal) return true;
     if (filtro === 'Todas') return true;
-    if (filtro === 'Reservas') return item.tipo === 'Reserva';
+    if (filtro === 'Reservas') return item.tipo === 'Reserva' || (item.mensaje && item.mensaje.toLowerCase().includes('reserva cancelada'));
     if (filtro === 'Competiciones') return item.tipo === 'Equipo' || item.tipo === 'Torneo';
     if (filtro === 'Membresías') return item.tipo === 'Membresia' || (item.mensaje && (item.mensaje.toLowerCase().includes('socio') || item.mensaje.toLowerCase().includes('membresía')));
-    if (filtro === 'Clases y Entrenamientos') return item.tipo === 'Clase' || item.tipo === 'Entrenamiento';
+    if (filtro === 'Clases y Entrenamientos') return item.tipo === 'Clase' || item.tipo === 'Entrenamiento' || (item.mensaje && item.mensaje.toLowerCase().includes('se ha inscrito a'));
     if (filtro === 'Nuevos Usuarios') return item.tipo === 'NuevoRegistro';
     if (filtro === 'Documentación') return item.tipo === 'Documentacion';
     return true;
