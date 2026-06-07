@@ -342,7 +342,7 @@ export default function Dashboard({ route, navigation }) {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
         if (file.size > 2 * 1024 * 1024) {
-          alert('El archivo excede el límite de 2MB.');
+          setErrorModalMessage('El archivo excede el límite de 2MB.');
           return;
         }
 
@@ -364,7 +364,7 @@ export default function Dashboard({ route, navigation }) {
           }
 
           if (!resolvedId) {
-             alert('No se pudo identificar tu usuario para subir el apto médico.');
+             setErrorModalMessage('No se pudo identificar tu usuario para subir el apto médico.');
              return;
           }
 
@@ -375,7 +375,7 @@ export default function Dashboard({ route, navigation }) {
             fechaFin: unAnio.toISOString()
           });
 
-          alert("Apto médico subido correctamente.");
+          setSuccessModalMessage("Apto médico subido correctamente.");
           loadCliente();
         };
 
@@ -393,7 +393,7 @@ export default function Dashboard({ route, navigation }) {
       }
     } catch (e) {
       console.error(e);
-      alert("Error al subir el apto médico.");
+      setErrorModalMessage("Error al subir el apto médico.");
     }
   };
 
@@ -422,7 +422,7 @@ export default function Dashboard({ route, navigation }) {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
         if (file.size > 4 * 1024 * 1024) {
-          alert('El archivo excede el límite de 4MB.');
+          setErrorModalMessage('El archivo excede el límite de 4MB.');
           return;
         }
 
@@ -448,7 +448,7 @@ export default function Dashboard({ route, navigation }) {
             certificadoFechaFin: unAnio.toISOString()
           });
 
-          alert("Certificado profesional subido correctamente.");
+          setSuccessModalMessage("Certificado profesional subido correctamente.");
           loadProfesor();
         };
 
@@ -466,7 +466,7 @@ export default function Dashboard({ route, navigation }) {
       }
     } catch (e) {
       console.error(e);
-      alert("Error al subir el certificado profesional.");
+      setErrorModalMessage("Error al subir el certificado profesional.");
     }
   };
 
