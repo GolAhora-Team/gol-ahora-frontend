@@ -81,7 +81,7 @@ const NotificationDropdown = ({ visible, onClose, token, userRole }) => {
   const notificacionesFiltradas = notificaciones.filter(item => {
     if (!isAdminOrPersonal) return true;
     if (filtro === 'Todas') return true;
-    if (filtro === 'Reservas') return item.tipo === 'Reserva' || (item.mensaje && item.mensaje.toLowerCase().includes('reserva cancelada'));
+    if (filtro === 'Reservas') return item.tipo === 'Reserva' || item.tipo === 'ReservaCancelada' || (item.mensaje && item.mensaje.toLowerCase().includes('reserva cancelada'));
     if (filtro === 'Competiciones') return item.tipo === 'Equipo' || item.tipo === 'Torneo';
     if (filtro === 'Membresías') return item.tipo === 'Membresia' || (item.mensaje && (item.mensaje.toLowerCase().includes('socio') || item.mensaje.toLowerCase().includes('membresía')));
     if (filtro === 'Clases y Entrenamientos') return item.tipo === 'Clase' || item.tipo === 'Entrenamiento' || (item.mensaje && item.mensaje.toLowerCase().includes('se ha inscrito a'));
@@ -98,6 +98,7 @@ const NotificationDropdown = ({ visible, onClose, token, userRole }) => {
     let iconName = "bell-outline";
     let iconColor = "#000";
     if (item.tipo === "Reserva") { iconName = "calendar-check"; iconColor = "#28a745"; }
+    else if (item.tipo === "ReservaCancelada") { iconName = "calendar-remove"; iconColor = "#dc3545"; }
     else if (item.tipo === "NuevoRegistro") { iconName = "account-plus"; iconColor = "#17a2b8"; }
     else if (item.tipo === "Documentacion") { iconName = "file-document-alert"; iconColor = "#dc3545"; }
     else if (item.tipo === "Equipo" || item.tipo === "Torneo") { iconName = "trophy-outline"; iconColor = "#ffb300"; }

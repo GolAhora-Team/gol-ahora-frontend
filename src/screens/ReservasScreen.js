@@ -347,7 +347,7 @@ export default function ReservaScreen({ route, navigation }) {
 
       setAllReservas(mappedReservas);
 
-      if (currentUserRole === 'CLIENTE') {
+      if (currentUserRole === 'CLIENTE' || currentUserRole === 'PROFE' || currentUserRole === 'PROFESORES') {
         mappedReservas = mappedReservas.filter(r => r.clienteNombre === currentUserName);
       }
 
