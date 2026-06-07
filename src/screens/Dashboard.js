@@ -47,6 +47,7 @@ const ALL_MODULES = [
   { id: "reportes", title: "Reportes", screen: "ReportesScreen", icon: "chart-bar", desc: "Estadísticas", color: "#f97316" },
   { id: "clases-profe", title: "Clases a Cargo", screen: "ClasesProfeScreen", icon: "whistle", desc: "Ver alumnos inscriptos", color: "#6366f1" },
   { id: "mis-recibos", title: "Mis Recibos", screen: "MisRecibosScreen", icon: "receipt", desc: "Comprobantes de pago", color: "#ec4899" },
+  { id: "mis-clases-cliente", title: "Mis Clases", screen: "MisClasesClienteScreen", icon: "clipboard-list-outline", desc: "Clases y entrenamientos", color: "#eab308" },
 ];
 
 const ModuleCard = ({ module, currentRole, idPersona, idUsuario, userName, navigation, isMobile }) => {
@@ -482,7 +483,7 @@ export default function Dashboard({ route, navigation }) {
         });
 
       case 'CLIENTE':
-        const allowedCliente = ['canchas', 'reservas', 'competencias', 'inscripciones', 'mis-recibos'];
+        const allowedCliente = ['canchas', 'reservas', 'competencias', 'inscripciones', 'mis-recibos', 'mis-clases-cliente'];
         return ALL_MODULES
           .filter(m => allowedCliente.includes(m.id))
           .map(m => {

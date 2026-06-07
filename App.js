@@ -22,6 +22,7 @@ import ReportesScreen from './src/screens/ReportesScreen';
 import ClientesScreen from './src/screens/ClientesScreen';
 import ClasesProfeScreen from './src/screens/ClasesProfeScreen';
 import MisRecibosScreen from './src/screens/MisRecibosScreen';
+import MisClasesClienteScreen from './src/screens/MisClasesClienteScreen';
 
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
@@ -167,6 +168,7 @@ export default function App() {
           <Stack.Screen name="ClientesScreen" component={ClientesScreen} options={{ title: "Gol Ahora - Clientes" }} />
           <Stack.Screen name="ClasesProfeScreen" component={ClasesProfeScreen} options={{ title: "Gol Ahora - Mis Clases" }} />
           <Stack.Screen name="MisRecibosScreen" component={MisRecibosScreen} options={{ title: "Gol Ahora - Mis Recibos" }} />
+          <Stack.Screen name="MisClasesClienteScreen" component={MisClasesClienteScreen} options={{ title: "Gol Ahora - Mis Clases y Entrenamientos" }} />
 
         </Stack.Navigator>
       </AutoLogoutWrapper>
