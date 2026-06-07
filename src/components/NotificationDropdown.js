@@ -167,7 +167,7 @@ const NotificationDropdown = ({ visible, onClose, token, userRole }) => {
           </View>
           {isAdminOrPersonal && (
             <View style={styles.filterContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={Platform.OS === 'web'} contentContainerStyle={styles.filterScroll}>
                 {['Todas', 'Reservas', 'Competiciones', 'Membresías', 'Clases y Entrenamientos', 'Nuevos Usuarios', 'Documentación'].map(f => (
                   <TouchableOpacity 
                     key={f} 
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   statusBadgeRejText: { color: '#ef4444', fontWeight: '800', fontSize: 11 },
   filterContainer: {
     marginBottom: 10,
-    maxHeight: 45,
+    paddingBottom: Platform.OS === 'web' ? 8 : 0,
   },
   filterScroll: {
     paddingHorizontal: 2,
