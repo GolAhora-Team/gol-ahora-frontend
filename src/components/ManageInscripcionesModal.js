@@ -12,9 +12,14 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [actualErrorMessage, setActualErrorMessage] = useState('');
 
   useEffect(() => {
     if (visible && actividad) {
+      setShowError(false);
+      setShowSuccess(false);
+      setUserToRemove(null);
+      setActualErrorMessage('');
       loadData();
     }
   }, [visible, actividad]);
@@ -36,7 +41,8 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
       }
       setInscriptos(currentInscriptos);
     } catch (error) {
-      console.error(error);
+      console.error('Error in loadData:', error);
+      setActualErrorMessage(error?.message || 'Error desconocido al cargar datos.');
       setShowError(true);
     } finally {
       setLoading(false);
@@ -62,7 +68,8 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
       if (onUpdate) onUpdate();
       setShowSuccess(true);
     } catch (error) {
-      console.error(error);
+      console.error('Error in executeRemove:', error);
+      setActualErrorMessage(error?.message || 'Error desconocido al eliminar el alumno.');
       setShowError(true);
     } finally {
       setActionLoading(false);
@@ -163,7 +170,7 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
               <MaterialCommunityIcons name="close" size={40} color="#ef4444" />
             </View>
             <Text style={styles.alertTitle}>Error</Text>
-            <Text style={styles.alertMessage}>No se pudo completar la operación. Por favor intenta de nuevo.</Text>
+            <Text style={styles.alertMessage}>{actualErrorMessage || 'No se pudo completar la operación. Por favor intenta de nuevo.'}</Text>
             <TouchableOpacity style={styles.okButtonError} onPress={() => setShowError(false)}>
               <Text style={styles.okButtonText}>CERRAR</Text>
             </TouchableOpacity>
