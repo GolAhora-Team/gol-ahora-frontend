@@ -1087,24 +1087,28 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
           };
           window.localStorage.setItem('pendingReservation', JSON.stringify(pendingReservation));
           
+          const isTestCancha = selectedCancha.nombre.toLowerCase() === 'test';
           const mpResponse = await mercadoPagoService.createPreference(
             title, 
             montoFinal, 
             currentUrl, 
             webhookUrl, 
-            reservaId ? reservaId.toString() : null
+            reservaId ? reservaId.toString() : null,
+            isTestCancha
           );
           setIsLoading(false);
           window.location.href = mpResponse.initPoint;
           return;
         } else {
           // Fallback para mobile
+          const isTestCancha = selectedCancha.nombre.toLowerCase() === 'test';
           const mpResponse = await mercadoPagoService.createPreference(
             title, 
             montoFinal, 
             currentUrl, 
             webhookUrl, 
-            reservaId ? reservaId.toString() : null
+            reservaId ? reservaId.toString() : null,
+            isTestCancha
           );
           const { Linking } = require('react-native');
           Linking.openURL(mpResponse.initPoint);
@@ -1120,12 +1124,14 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         const title = `Reserva Cancha ${selectedCancha.nombre}`;
         const webhookUrl = `http://golahora.runasp.net/api/MercadoPago/webhook`;
         
+        const isTestCancha = selectedCancha.nombre.toLowerCase() === 'test';
         const mpResponse = await mercadoPagoService.createPreference(
           title, 
           montoFinal, 
           null, 
           webhookUrl, 
-          reservaId ? reservaId.toString() : null
+          reservaId ? reservaId.toString() : null,
+          isTestCancha
         );
         
         setQrUrl(mpResponse.initPoint);

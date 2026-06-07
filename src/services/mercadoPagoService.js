@@ -1,9 +1,9 @@
 import { http, API_BASE_URL } from './apiConfig';
 
 export const mercadoPagoService = {
-  createPreference: async (title, price, returnUrl, webhookUrl = null, externalReference = null) => {
+  createPreference: async (title, price, returnUrl, webhookUrl = null, externalReference = null, isRealMoney = false) => {
     try {
-      const response = await http.post(`${API_BASE_URL}/MercadoPago/create-preference`, { title, price, returnUrl, webhookUrl, externalReference });
+      const response = await http.post(`${API_BASE_URL}/MercadoPago/create-preference`, { title, price, returnUrl, webhookUrl, externalReference, isRealMoney });
       return response; // { initPoint: "https://...", externalReference: "..." }
     } catch (error) {
       console.error("Error creating MP preference:", error);
