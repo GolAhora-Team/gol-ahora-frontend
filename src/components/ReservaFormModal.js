@@ -552,7 +552,7 @@ function StepConfirmacion({ cancha, persona, fecha, hora, metodoPago, precioBase
 }
 
 // ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
-export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, nombreUsuario, onReservaCreated, reservaToEdit }) {
+export default function ReservaFormModal({ visible, onClose, canchas = [], clientes = [], reservasActuales = [], currentUserRole, nombreUsuario, idPersona, onReservaCreated, reservaToEdit }) {
   const [step, setStep] = useState(1);
   const [selectedCancha, setSelectedCancha] = useState(null);
   const [clienteMode, setClienteMode] = useState(null);
@@ -677,7 +677,13 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
         setSelectedCancha(null);
         if (currentUserRole === 'CLIENTE') {
           setClienteMode('CLIENTE');
-          const found = clientes.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          let found = null;
+          if (idPersona) {
+            found = clientes.find(c => c.id?.toString() === idPersona.toString());
+          }
+          if (!found) {
+            found = clientes.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          }
           setSelectedCliente(found || null);
         } else {
           setClienteMode(null);

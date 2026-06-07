@@ -638,6 +638,7 @@ export default function ReservaScreen({ route, navigation }) {
         reservasActuales={allReservas}
         currentUserRole={currentUserRole}
         nombreUsuario={currentUserName}
+        idPersona={idPersona}
         onReservaCreated={handleReservaCreated}
       />
 
