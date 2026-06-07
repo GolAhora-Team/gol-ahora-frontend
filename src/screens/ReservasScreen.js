@@ -17,9 +17,10 @@ import { facturaService } from '../services/facturaService';
 import { pagoService } from '../services/pagoService';
 
 export default function ReservaScreen({ route, navigation }) {
-  const { role: currentUserRole, nombreUsuario: currentUserName } = route.params || { 
+  const { role: currentUserRole, nombreUsuario: currentUserName, idPersona } = route.params || { 
     role: "CLIENTE", 
-    nombreUsuario: "Julián Antunes" 
+    nombreUsuario: "Julián Antunes",
+    idPersona: null
   };
 
   const [reservas, setReservas] = useState([]);
@@ -330,6 +331,7 @@ export default function ReservaScreen({ route, navigation }) {
         canchaNombre: r.cancha?.nombre || r.canchaNombre || '',
         canchaType: r.cancha?.tipo || '',
         clienteNombre: r.cliente ? `${r.cliente.nombre} ${r.cliente.apellido || ''}`.trim() : (r.clienteNombre || ''),
+        clienteId: r.cliente?.id || r.clienteId,
         clienteDni: r.cliente?.dni || r.clienteDni || '',
         clienteEdad: r.cliente?.fechaNacimiento ? calculateAge(r.cliente.fechaNacimiento) : null,
         horaInicio: r.horaInicio?.substring(0, 5) || r.horaInicio,
@@ -349,7 +351,12 @@ export default function ReservaScreen({ route, navigation }) {
       setAllReservas(mappedReservas);
 
       if (currentUserRole === 'CLIENTE' || currentUserRole === 'PROFE' || currentUserRole === 'PROFESORES') {
-        mappedReservas = mappedReservas.filter(r => r.clienteNombre === currentUserName);
+        mappedReservas = mappedReservas.filter(r => {
+          if (idPersona) {
+            return r.clienteId?.toString() === idPersona.toString();
+          }
+          return r.clienteNombre === currentUserName;
+        });
       }
 
       setReservas(mappedReservas);
@@ -383,6 +390,9 @@ export default function ReservaScreen({ route, navigation }) {
 
   const puedeOperarTurno = (reserva) => {
     if (currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') return true;
+    if (idPersona) {
+      return reserva.clienteId?.toString() === idPersona.toString();
+    }
     return reserva.clienteNombre === currentUserName;
   };
 
