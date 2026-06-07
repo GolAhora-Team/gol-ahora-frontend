@@ -24,6 +24,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pctSocio, setPctSocio] = useState(10);
   const [pctEfectivo, setPctEfectivo] = useState(10);
+  const [inscriptosActuales, setInscriptosActuales] = useState([]);
 
   // States for Admin QR Modal
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -40,9 +41,10 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       setSelectedCliente(null);
       setMetodoPago(null);
       setSearchTerm('');
+      setInscriptosActuales([]);
       loadData();
     }
-  }, [visible]);
+  }, [visible, actividad]);
 
   const loadData = async () => {
     setLoading(true);
@@ -59,6 +61,20 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       if (isAdminOrPersonal) {
         const data = await clienteService.getAll();
         setClientes(data || []);
+
+        if (actividad) {
+          try {
+            if (actividad.tipo === 'CLASE') {
+              const actData = await claseService.getById(actividad.id);
+              setInscriptosActuales(actData.clientes || actData.alumnos || []);
+            } else if (actividad.tipo === 'ENTRENAMIENTO') {
+              const actData = await entrenamientoService.getById(actividad.id);
+              setInscriptosActuales(actData.clientes || actData.alumnos || []);
+            }
+          } catch(e) {
+            console.error("Error al obtener inscriptos actuales:", e);
+          }
+        }
       } else {
         // Cliente se auto-inscribe
         const data = await clienteService.getAll();
@@ -75,6 +91,13 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
 
   const filteredClientes = searchTerm.length >= 2
     ? clientes.filter(c => {
+        // Excluir si ya está inscripto en la actividad
+        const isAlreadyEnrolled = inscriptosActuales.some(ins => 
+          ins.id?.toString() === c.id?.toString() || 
+          ins.Id?.toString() === c.id?.toString()
+        );
+        if (isAlreadyEnrolled) return false;
+
         const fullname = `${c.nombre} ${c.apellido || ''}`.toLowerCase();
         const dni = c.dni ? c.dni.toString() : '';
         return fullname.includes(searchTerm.toLowerCase()) || dni.includes(searchTerm);
