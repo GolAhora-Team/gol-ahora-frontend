@@ -39,25 +39,30 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
     }
   };
 
-  const handleRemove = (clienteId) => {
-    Alert.alert('Desinscribir', '¿Seguro que desea quitar a este usuario de la actividad?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Quitar', style: 'destructive', onPress: () => executeRemove(clienteId) }
-    ]);
+  const handleRemove = (user) => {
+    Alert.alert(
+      'Eliminar alumno',
+      `¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => executeRemove(user) }
+      ]
+    );
   };
 
-  const executeRemove = async (clienteId) => {
+  const executeRemove = async (user) => {
     setActionLoading(true);
     try {
       if (actividad.tipo === 'CLASE') {
-        await claseService.removeCliente(actividad.id, clienteId);
+        await claseService.removeCliente(actividad.id, user.id);
       } else if (actividad.tipo === 'ENTRENAMIENTO') {
-        await entrenamientoService.removeCliente(actividad.id, clienteId);
+        await entrenamientoService.removeCliente(actividad.id, user.id);
       }
       await loadData();
       if (onUpdate) onUpdate();
+      Alert.alert('Éxito', 'Se eliminó correctamente el alumno de la clase');
     } catch (error) {
-      Alert.alert('Error', 'No se pudo quitar al usuario.');
+      Alert.alert('Error', 'No se pudo eliminar al alumno.');
     } finally {
       setActionLoading(false);
     }
@@ -96,7 +101,7 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
                     </View>
                     <TouchableOpacity 
                       style={styles.removeBtn} 
-                      onPress={() => handleRemove(user.id)}
+                      onPress={() => handleRemove(user)}
                       disabled={actionLoading}
                     >
                       <MaterialCommunityIcons name="account-remove" size={20} color="#ef4444" />
