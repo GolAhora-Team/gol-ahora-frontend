@@ -248,7 +248,7 @@ export default function MisRecibosScreen({ route, navigation }) {
                       <MaterialCommunityIcons name={theme.icon} size={22} color={theme.color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[s.cardConcepto, { color: theme.color }]}>{factura.concepto || 'Pago'}</Text>
+                      <Text style={[s.cardConcepto, { color: theme.color }]}>{factura.concepto || theme.label}</Text>
                       {factura.descripcion ? <Text style={s.cardDesc} numberOfLines={2}>{factura.descripcion}</Text> : null}
                     </View>
                   </View>

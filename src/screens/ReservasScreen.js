@@ -95,6 +95,7 @@ export default function ReservaScreen({ route, navigation }) {
               window.localStorage.removeItem('pendingReservation');
               
               // Forzar actualización manual del backend comprobando el estado antes de mostrar el éxito
+              const urlParams = new URLSearchParams(window.location.search);
               const extRef = urlParams.get('external_reference') || pending.reservaId?.toString();
               const paymentId = urlParams.get('payment_id');
               
