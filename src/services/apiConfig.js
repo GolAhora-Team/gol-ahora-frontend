@@ -153,6 +153,7 @@ export const http = {
     const response = await fetch(url, {
       method: 'GET',
       headers: buildHeaders(),
+      cache: 'no-store', // Previene que el navegador cachee las respuestas vacías
     });
     return handleResponse(response);
   },
