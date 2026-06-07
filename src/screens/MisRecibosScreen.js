@@ -92,7 +92,7 @@ export default function MisRecibosScreen({ route, navigation }) {
       return { icon: 'calendar-clock', color: '#22c55e', bg: '#f0fdf4', border: '#bbf7d0', label: 'Reserva' };
     }
     if (c.includes('membresía') || c.includes('membresia') || c.includes('socio') || c.includes('suscrip')) {
-      return { icon: 'card-account-details', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Membresía' };
+      return { icon: 'card-account-details-star', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Membresía' };
     }
     if (c.includes('clase') || c.includes('entrenamiento') || c.includes('inscripc')) {
       return { icon: 'whistle', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: 'Clase / Entrenamiento' };
