@@ -1023,10 +1023,15 @@ export default function ReservaFormModal({ visible, onClose, canchas = [], clien
       const finH = Math.floor(endMins / 60);
       const finM = endMins % 60;
 
+      let horaFinStr = `${finH.toString().padStart(2, '0')}:${finM.toString().padStart(2, '0')}:00`;
+      if (finH >= 24) {
+        horaFinStr = `23:59:59`;
+      }
+
       const reservaPayload = {
         Fecha: selectedDate.toISOString().split('T')[0],
         HoraInicio: `${selectedHora}:00`,
-        HoraFin: `${finH.toString().padStart(2, '0')}:${finM.toString().padStart(2, '0')}:00`,
+        HoraFin: horaFinStr,
         ClienteId: clienteIdFinal,
         CanchaId: parseInt(selectedCancha.id)
       };
