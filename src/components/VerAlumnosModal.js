@@ -46,15 +46,19 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
   };
 
   const handleDescargarPulsera = async (alumno) => {
-    setDownloadingId(alumno.id);
+    const alumnoId = alumno.id || alumno.Id;
+    const alumnoNombre = alumno.nombre || alumno.Nombre || '';
+    const alumnoApellido = alumno.apellido || alumno.Apellido || '';
+    
+    setDownloadingId(alumnoId);
     try {
       let blob;
       if (esEntrenamiento) {
-        blob = await entrenamientoService.descargarPulsera(claseId, alumno.id);
+        blob = await entrenamientoService.descargarPulsera(claseId, alumnoId);
       } else {
-        blob = await claseService.descargarPulsera(claseId, alumno.id);
+        blob = await claseService.descargarPulsera(claseId, alumnoId);
       }
-      abrirPdfBlob(blob, `Pulsera_${alumno.nombre}_${alumno.apellido}.pdf`);
+      abrirPdfBlob(blob, `Pulsera_${alumnoNombre}_${alumnoApellido}.pdf`);
     } catch (e) {
       Alert.alert('Error', e.message || 'No se pudo generar la pulsera.');
     } finally {
@@ -86,18 +90,25 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
                   <Text style={styles.emptyText}>No hay alumnos inscriptos en esta clase.</Text>
                 </View>
               ) : (
-                alumnos.map((alumno, idx) => (
-                  <View key={alumno.id || idx} style={styles.alumnoCard}>
+                alumnos.map((alumno, idx) => {
+                  const alumnoId = alumno.id || alumno.Id;
+                  const alumnoNombre = alumno.nombre || alumno.Nombre || '';
+                  const alumnoApellido = alumno.apellido || alumno.Apellido || '';
+                  const alumnoDni = alumno.dni || alumno.Dni || '';
+                  const alumnoSocio = alumno.esSocioActivo || alumno.EsSocioActivo;
+
+                  return (
+                  <View key={alumnoId || idx} style={styles.alumnoCard}>
                     <View style={styles.avatar}>
                       <Text style={styles.avatarText}>
-                        {(alumno.nombre?.[0] || '')}{(alumno.apellido?.[0] || '')}
+                        {(alumnoNombre[0] || '')}{(alumnoApellido[0] || '')}
                       </Text>
                     </View>
                     <View style={styles.alumnoInfo}>
-                      <Text style={styles.alumnoName}>{alumno.nombre} {alumno.apellido}</Text>
-                      <Text style={styles.alumnoDni}>DNI: {alumno.dni}</Text>
+                      <Text style={styles.alumnoName}>{alumnoNombre} {alumnoApellido}</Text>
+                      <Text style={styles.alumnoDni}>DNI: {alumnoDni}</Text>
                     </View>
-                    {alumno.esSocioActivo && (
+                    {alumnoSocio && (
                       <View style={styles.socioBadge}>
                         <MaterialCommunityIcons name="star" size={12} color="#fff" />
                         <Text style={styles.socioText}>SOCIO</Text>
@@ -105,17 +116,17 @@ export default function VerAlumnosModal({ visible, onClose, claseId, claseNombre
                     )}
                     {/* ── Botón descarga pulsera PDF ── */}
                     <TouchableOpacity
-                      style={[styles.pulseraBtn, downloadingId === alumno.id && { opacity: 0.5 }]}
+                      style={[styles.pulseraBtn, downloadingId === alumnoId && { opacity: 0.5 }]}
                       onPress={() => handleDescargarPulsera(alumno)}
-                      disabled={downloadingId === alumno.id}
+                      disabled={downloadingId === alumnoId}
                     >
-                      {downloadingId === alumno.id
+                      {downloadingId === alumnoId
                         ? <ActivityIndicator size="small" color="#6366f1" />
                         : <MaterialCommunityIcons name="download" size={18} color="#6366f1" />
                       }
                     </TouchableOpacity>
                   </View>
-                ))
+                )})
               )}
             </ScrollView>
           )}

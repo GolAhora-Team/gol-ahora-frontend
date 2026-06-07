@@ -66,13 +66,16 @@ export default function ClasesProfeScreen({ route, navigation }) {
   };
 
   const handleDescargarPulsera = async (clase, alumno) => {
+    const alumnoId = alumno.id || alumno.Id;
+    const alumnoNombre = alumno.nombre || alumno.Nombre || '';
+    const alumnoApellido = alumno.apellido || alumno.Apellido || '';
     try {
-      const blob = await claseService.descargarPulsera(clase.id, alumno.id);
+      const blob = await claseService.descargarPulsera(clase.id, alumnoId);
       if (Platform.OS === 'web') {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Pulsera_${alumno.nombre}_${alumno.apellido}.pdf`;
+        a.download = `Pulsera_${alumnoNombre}_${alumnoApellido}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
       } else {
@@ -229,10 +232,14 @@ export default function ClasesProfeScreen({ route, navigation }) {
 
                           {/* Lista completa de alumnos */}
                           <Text style={styles.sectionTitle}>Lista de Alumnos</Text>
-                          {alumnos.map((alumno, index) => (
-                            <View key={alumno.id || index} style={styles.alumnoRow}>
+                          {alumnos.map((alumno, index) => {
+                            const alumnoId = alumno.id || alumno.Id;
+                            const alumnoNombre = alumno.nombre || alumno.Nombre || '';
+                            const alumnoApellido = alumno.apellido || alumno.Apellido || '';
+                            return (
+                            <View key={alumnoId || index} style={styles.alumnoRow}>
                               <MaterialCommunityIcons name="account" size={20} color="#009b3a" />
-                              <Text style={[styles.alumnoName, { flex: 1 }]}>{alumno.nombre} {alumno.apellido}</Text>
+                              <Text style={[styles.alumnoName, { flex: 1 }]}>{alumnoNombre} {alumnoApellido}</Text>
                               <TouchableOpacity
                                 style={styles.pulseraSmallBtn}
                                 onPress={() => handleDescargarPulsera(clase, alumno)}
@@ -240,7 +247,7 @@ export default function ClasesProfeScreen({ route, navigation }) {
                                 <MaterialCommunityIcons name="download" size={14} color="#6366f1" />
                               </TouchableOpacity>
                             </View>
-                          ))}
+                          )})}
                         </>
                       )}
                     </View>
