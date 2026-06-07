@@ -123,9 +123,9 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
         </View>
       </View>
 
-      {/* CONFIRM MODAL */}
-      <Modal visible={showConfirm} animationType="fade" transparent={true}>
-        <View style={styles.alertOverlay}>
+      {/* CONFIRM OVERLAY */}
+      {showConfirm && (
+        <View style={[StyleSheet.absoluteFill, styles.alertOverlay]}>
           <View style={styles.alertContent}>
             <View style={styles.iconCircleError}>
               <MaterialCommunityIcons name="alert" size={32} color="#ef4444" />
@@ -144,11 +144,11 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
             </View>
           </View>
         </View>
-      </Modal>
+      )}
 
-      {/* SUCCESS MODAL */}
-      <Modal visible={showSuccess} animationType="fade" transparent={true}>
-        <View style={styles.alertOverlay}>
+      {/* SUCCESS OVERLAY */}
+      {showSuccess && (
+        <View style={[StyleSheet.absoluteFill, styles.alertOverlay]}>
           <View style={styles.alertContent}>
             <View style={styles.iconCircleSuccess}>
               <MaterialCommunityIcons name="check" size={40} color="#009b3a" />
@@ -160,11 +160,11 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      )}
 
-      {/* ERROR MODAL */}
-      <Modal visible={showError} animationType="fade" transparent={true}>
-        <View style={styles.alertOverlay}>
+      {/* ERROR OVERLAY */}
+      {showError && (
+        <View style={[StyleSheet.absoluteFill, styles.alertOverlay]}>
           <View style={styles.alertContent}>
             <View style={styles.iconCircleError}>
               <MaterialCommunityIcons name="close" size={40} color="#ef4444" />
@@ -176,7 +176,7 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      )}
 
     </Modal>
   );
@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
   userDni: { fontSize: 12, color: '#64748b', marginTop: 2 },
   removeBtn: { padding: 8, backgroundColor: '#fee2e2', borderRadius: 8 },
   
-  // Custom Modals
-  alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  // Custom Alerts (Absolute Overlays)
+  alertOverlay: { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
   alertContent: { backgroundColor: '#fff', borderRadius: 24, padding: 25, width: '85%', maxWidth: 350, alignItems: 'center', elevation: 10 },
   iconCircleError: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   iconCircleSuccess: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
