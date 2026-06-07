@@ -159,6 +159,7 @@ export default function Dashboard({ route, navigation }) {
   const [errorModalMessage, setErrorModalMessage] = useState(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [unsubscribeModalVisible, setUnsubscribeModalVisible] = useState(false);
+  const [deleteAptoModalVisible, setDeleteAptoModalVisible] = useState(false);
 
   const getPrecioMembresia = () => {
     try {
@@ -396,6 +397,21 @@ export default function Dashboard({ route, navigation }) {
     }
   };
 
+  const handleDeleteAptoMedico = async () => {
+    try {
+      if (currentCliente && idPersona) {
+        await clienteService.deleteAptoMedico(idPersona);
+        await loadCliente();
+        setSuccessModalMessage("El apto físico se eliminó correctamente.");
+        setDeleteAptoModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error al eliminar apto médico", error);
+      setErrorModalMessage("Ocurrió un error al intentar eliminar el apto físico.");
+      setDeleteAptoModalVisible(false);
+    }
+  };
+
   const handleUploadCertificado = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -582,6 +598,11 @@ export default function Dashboard({ route, navigation }) {
                               {currentCliente.tieneAptoMedicoArchivo ? "ACTUALIZAR APTO MÉDICO" : "SUBIR APTO MÉDICO"}
                             </Text>
                           </TouchableOpacity>
+                          {currentCliente.tieneAptoMedicoArchivo && (
+                            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ef4444' }]} onPress={() => setDeleteAptoModalVisible(true)}>
+                              <Text style={[styles.actionBtnText, { color: '#fff' }]}>ELIMINAR</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       </View>
                     </View>
@@ -740,6 +761,17 @@ export default function Dashboard({ route, navigation }) {
         message="¿Estás seguro de darte de baja como socio de Gol Ahora? Perderás todos tus beneficios exclusivos."
         confirmText="Sí, dar de baja"
         cancelText="Conservar membresía"
+        icon="alert-circle-outline"
+        color="#ef4444"
+      />
+      <ConfirmModal
+        visible={deleteAptoModalVisible}
+        onClose={() => setDeleteAptoModalVisible(false)}
+        onConfirm={handleDeleteAptoMedico}
+        title="Eliminar Apto Físico"
+        message="¿Estas seguro que querés eliminar tu apto fisico actual?"
+        confirmText="Confirmar"
+        cancelText="Cancelar"
         icon="alert-circle-outline"
         color="#ef4444"
       />
