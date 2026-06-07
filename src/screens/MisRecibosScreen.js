@@ -9,6 +9,7 @@ export default function MisRecibosScreen({ route, navigation }) {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortNewest, setSortNewest] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('Todos');
   const [previewVisible, setPreviewVisible] = useState(false);
   const [facturaToPreview, setFacturaToPreview] = useState(null);
 
@@ -80,26 +81,34 @@ export default function MisRecibosScreen({ route, navigation }) {
   });
 
   // Module color mapping based on concepto - matches Dashboard ALL_MODULES colors
-  const getConceptoTheme = (concepto) => {
-    if (!concepto) return { icon: 'receipt', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Pago' };
-    const c = concepto.toLowerCase();
-    if (c.includes('inscripción') || c.includes('inscripc') || c.includes('competencia') || c.includes('torneo') || c.includes('liga')) {
-      return { icon: 'trophy-variant', color: '#eab308', bg: '#fefce8', border: '#fde68a', label: 'Competencias' };
-    }
-    if (c.includes('membresía') || c.includes('membresia') || c.includes('socio')) {
-      return { icon: 'card-account-details', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: 'Membresía' };
+  const getConceptoTheme = (concepto, descripcion) => {
+    if (!concepto && !descripcion) return { icon: 'receipt', color: '#94a3b8', bg: '#f1f5f9', border: '#e2e8f0', label: 'General' };
+    const c = ((concepto || '') + ' ' + (descripcion || '')).toLowerCase();
+
+    if (c.includes('competencia') || c.includes('torneo') || c.includes('liga')) {
+      return { icon: 'trophy-variant', color: '#eab308', bg: '#fefce8', border: '#fde68a', label: 'Competencia' };
     }
     if (c.includes('reserva') || c.includes('cancha') || c.includes('turno')) {
-      return { icon: 'calendar-clock', color: '#a855f7', bg: '#faf5ff', border: '#e9d5ff', label: 'Reservas' };
+      return { icon: 'calendar-clock', color: '#22c55e', bg: '#f0fdf4', border: '#bbf7d0', label: 'Reserva' };
     }
-    if (c.includes('clase') || c.includes('entrenamiento') || c.includes('inscripcion')) {
-      return { icon: 'whistle', color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', label: 'Clases' };
+    if (c.includes('membresía') || c.includes('membresia') || c.includes('socio') || c.includes('suscrip')) {
+      return { icon: 'card-account-details', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Membresía' };
     }
-    if (c.includes('factura') || c.includes('cobro') || c.includes('caja')) {
-      return { icon: 'cash-register', color: '#06b6d4', bg: '#ecfeff', border: '#a5f3fc', label: 'Facturación' };
+    if (c.includes('clase') || c.includes('entrenamiento') || c.includes('inscripc')) {
+      return { icon: 'whistle', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', label: 'Clase / Entrenamiento' };
     }
-    return { icon: 'receipt', color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8', label: 'Pago' };
+    return { icon: 'receipt', color: '#94a3b8', bg: '#f1f5f9', border: '#e2e8f0', label: 'General' };
   };
+
+  const filteredFacturas = sortedFacturas.filter(f => {
+    if (activeFilter === 'Todos') return true;
+    const theme = getConceptoTheme(f.concepto, f.descripcion);
+    if (activeFilter === 'Reservas') return theme.label === 'Reserva';
+    if (activeFilter === 'Clases y Entrenamientos') return theme.label === 'Clase / Entrenamiento';
+    if (activeFilter === 'Competencias') return theme.label === 'Competencia';
+    if (activeFilter === 'Membresías') return theme.label === 'Membresía';
+    return true;
+  });
 
   const generateHtml = (factura) => {
     return `
@@ -207,16 +216,30 @@ export default function MisRecibosScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
+      <View style={{ marginHorizontal: 20, marginBottom: 15 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20, paddingBottom: 5 }}>
+          {['Todos', 'Reservas', 'Clases y Entrenamientos', 'Competencias', 'Membresías'].map(filter => (
+            <TouchableOpacity 
+              key={filter} 
+              style={[s.filterBtn, activeFilter === filter && s.filterBtnActive]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[s.filterBtnText, activeFilter === filter && s.filterBtnTextActive]}>{filter}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
-        {sortedFacturas.length === 0 ? (
+        {filteredFacturas.length === 0 ? (
           <View style={s.emptyState}>
             <MaterialCommunityIcons name="receipt" size={60} color="#475569" />
             <Text style={s.emptyTitle}>Sin recibos</Text>
-            <Text style={s.emptyDesc}>Todavía no tenés comprobantes de pago.</Text>
+            <Text style={s.emptyDesc}>No se encontraron comprobantes para esta categoría.</Text>
           </View>
         ) : (
-          sortedFacturas.map(factura => {
-            const theme = getConceptoTheme(factura.concepto);
+          filteredFacturas.map(factura => {
+            const theme = getConceptoTheme(factura.concepto, factura.descripcion);
             return (
               <View key={factura.id} style={[s.card, { backgroundColor: theme.bg, borderColor: theme.border, borderLeftColor: theme.color, borderLeftWidth: 5 }]}>
                 <View style={s.cardTop}>
@@ -318,6 +341,10 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 2 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   sortBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+  filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  filterBtnActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  filterBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '700' },
+  filterBtnTextActive: { color: '#004d1a', fontWeight: '900' },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '900', color: '#94a3b8', marginTop: 12 },
   emptyDesc: { fontSize: 13, color: '#64748b', marginTop: 4 },
