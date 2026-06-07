@@ -211,6 +211,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       }
     } catch (e) {
       console.warn("No se pudo registrar la factura/pago:", e);
+      Alert.alert('Error de Recibo', 'Hubo un problema al generar el comprobante de pago: ' + (e.message || e));
     }
     return { createdFacturaId, createdPagoId, factura: createdFactura };
   };
@@ -257,6 +258,12 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
       if (metodoPago === 'MERCADOPAGO' && !isAdminOrPersonal) {
         const { createdFacturaId, createdPagoId } = await createPayment(clienteId, montoFinal, 1); // 1 = Pendiente
         
+        if (!createdFacturaId) {
+          Alert.alert('Error', 'No se pudo generar el comprobante. Por favor intenta nuevamente.');
+          setIsSubmitting(false);
+          return;
+        }
+
         try {
           const mpTitle = `Inscripción ${actividad.nombre}`;
           const baseUrl = window.location.href.split('?')[0];
@@ -268,7 +275,7 @@ export default function InscripcionPagoModal({ visible, onClose, actividad, curr
             montoFinal, 
             currentUrl,
             webhookUrl,
-            createdFacturaId ? createdFacturaId.toString() : null
+            createdFacturaId.toString()
           );
           
           if (Platform.OS === 'web') {
