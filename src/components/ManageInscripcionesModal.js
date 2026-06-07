@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { claseService } from '../services/claseService';
 import { entrenamientoService } from '../services/entrenamientoService';
@@ -40,14 +40,21 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
   };
 
   const handleRemove = (user) => {
-    Alert.alert(
-      'Eliminar alumno',
-      `¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => executeRemove(user) }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(`¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`);
+      if (confirm) {
+        executeRemove(user);
+      }
+    } else {
+      Alert.alert(
+        'Eliminar alumno',
+        `¿Está seguro de eliminar al alumno ${user.nombre} ${user.apellido}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Eliminar', style: 'destructive', onPress: () => executeRemove(user) }
+        ]
+      );
+    }
   };
 
   const executeRemove = async (user) => {
@@ -60,9 +67,17 @@ export default function ManageInscripcionesModal({ visible, onClose, actividad, 
       }
       await loadData();
       if (onUpdate) onUpdate();
-      Alert.alert('Éxito', 'Se eliminó correctamente el alumno de la clase');
+      if (Platform.OS === 'web') {
+        window.alert('Se eliminó correctamente el alumno de la clase');
+      } else {
+        Alert.alert('Éxito', 'Se eliminó correctamente el alumno de la clase');
+      }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo eliminar al alumno.');
+      if (Platform.OS === 'web') {
+        window.alert('Error: No se pudo eliminar al alumno.');
+      } else {
+        Alert.alert('Error', 'No se pudo eliminar al alumno.');
+      }
     } finally {
       setActionLoading(false);
     }
