@@ -7,14 +7,18 @@ import {
   Platform,
   Modal,
   FlatList,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../services/apiConfig';
 
-const NotificationDropdown = ({ visible, onClose, token }) => {
+const NotificationDropdown = ({ visible, onClose, token, userRole }) => {
   const [notificaciones, setNotificaciones] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filtro, setFiltro] = useState('Todas');
+  
+  const isAdminOrPersonal = userRole === 'ADMIN' || userRole === 'PERSONAL';
 
   useEffect(() => {
     if (visible && token) {
@@ -73,6 +77,18 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
       console.log(`Error ${accion} invitación:`, e);
     }
   };
+
+  const notificacionesFiltradas = notificaciones.filter(item => {
+    if (!isAdminOrPersonal) return true;
+    if (filtro === 'Todas') return true;
+    if (filtro === 'Reservas') return item.tipo === 'Reserva';
+    if (filtro === 'Competiciones') return item.tipo === 'Equipo' || item.tipo === 'Torneo';
+    if (filtro === 'Membresías') return item.tipo === 'Membresia' || (item.mensaje && (item.mensaje.toLowerCase().includes('socio') || item.mensaje.toLowerCase().includes('membresía')));
+    if (filtro === 'Clases y Entrenamientos') return item.tipo === 'Clase' || item.tipo === 'Entrenamiento';
+    if (filtro === 'Nuevos Usuarios') return item.tipo === 'NuevoRegistro';
+    if (filtro === 'Documentación') return item.tipo === 'Documentacion';
+    return true;
+  });
 
   const renderItem = ({ item }) => {
     const isNew = !item.leida;
@@ -149,14 +165,29 @@ const NotificationDropdown = ({ visible, onClose, token }) => {
               <MaterialCommunityIcons name="close-circle" size={26} color="#ef4444" />
             </TouchableOpacity>
           </View>
-          
+          {isAdminOrPersonal && (
+            <View style={styles.filterContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+                {['Todas', 'Reservas', 'Competiciones', 'Membresías', 'Clases y Entrenamientos', 'Nuevos Usuarios', 'Documentación'].map(f => (
+                  <TouchableOpacity 
+                    key={f} 
+                    style={[styles.filterBtn, filtro === f && styles.filterBtnActive]}
+                    onPress={() => setFiltro(f)}
+                  >
+                    <Text style={[styles.filterBtnText, filtro === f && styles.filterBtnTextActive]}>{f}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {loading ? (
             <ActivityIndicator size="large" color="#ffb300" style={styles.loader} />
-          ) : notificaciones.length === 0 ? (
-            <Text style={styles.emptyText}>No tienes notificaciones nuevas.</Text>
+          ) : notificacionesFiltradas.length === 0 ? (
+            <Text style={styles.emptyText}>No tienes notificaciones en esta categoría.</Text>
           ) : (
             <FlatList
-              data={notificaciones}
+              data={notificacionesFiltradas}
               keyExtractor={item => item.id.toString()}
               renderItem={renderItem}
               style={styles.list}
@@ -299,6 +330,37 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   statusBadgeRejText: { color: '#ef4444', fontWeight: '800', fontSize: 11 },
+  filterContainer: {
+    marginBottom: 10,
+    maxHeight: 45,
+  },
+  filterScroll: {
+    paddingHorizontal: 2,
+    alignItems: 'center',
+  },
+  filterBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  filterBtnActive: {
+    backgroundColor: '#009b3a',
+    borderColor: '#009b3a',
+  },
+  filterBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  filterBtnTextActive: {
+    color: '#fff',
+  },
 });
 
 export default NotificationDropdown;

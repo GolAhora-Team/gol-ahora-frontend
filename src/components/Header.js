@@ -218,6 +218,7 @@ const Header = ({ title, userRole, isWeb, idPersona, idUsuario }) => {
         visible={notificationsVisible}
         onClose={() => setNotificationsVisible(false)}
         token={token}
+        userRole={userRole}
       />
 
       <ConfirmModal
