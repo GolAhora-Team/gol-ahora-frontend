@@ -14,15 +14,16 @@ const DIAS = [
   { key: 'Dom', label: 'Dom' },
 ];
 
-const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+const AVAILABLE_TIMES = [
+  "10:00", "11:00", "12:00", "13:00", "14:00", 
+  "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+];
 
-const sumarUnaHora = (horaStr) => {
-  const match = horaStr.trim().match(timeRegex);
-  if (!match) return '';
-  let horas = parseInt(match[1]);
-  let minutos = match[2];
-  horas = (horas + 1) % 24;
-  return `${horas.toString().padStart(2, '0')}:${minutos}`;
+const getAvailableEndTimes = (startTime) => {
+  if (!startTime) return AVAILABLE_TIMES;
+  const startIndex = AVAILABLE_TIMES.indexOf(startTime);
+  if (startIndex === -1) return AVAILABLE_TIMES;
+  return AVAILABLE_TIMES.slice(startIndex + 1);
 };
 
 const showAlert = (t, msg) => {
@@ -75,6 +76,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
   const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(null); // 'inicio' o 'fin'
 
   useEffect(() => {
     if (visible) {
@@ -153,11 +155,7 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
       return;
     }
     if (!formData.horaInicio || !formData.horaFin) {
-      showAlert('Atención', 'Ingresá la hora de inicio y fin.');
-      return;
-    }
-    if (!timeRegex.test(formData.horaInicio.trim()) || !timeRegex.test(formData.horaFin.trim())) {
-      showAlert('Formato de Horario Inválido', 'El horario debe estar en formato de 24 horas HH:MM (ej: 13:00, 09:30).');
+      showAlert('Atención', 'Seleccioná la hora de inicio y fin.');
       return;
     }
 
@@ -262,22 +260,15 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
             <View style={styles.horarioRow}>
               <View style={styles.horarioField}>
                 <Text style={styles.horarioLabel}>Inicio</Text>
-                <TextInput
-                  style={styles.horarioInput}
-                  placeholder="18:00"
-                  placeholderTextColor="#94a3b8"
-                  value={formData.horaInicio}
-                  onChangeText={text => {
-                    setFormData(prev => {
-                      const newStart = text;
-                      let newEnd = prev.horaFin;
-                      if (timeRegex.test(newStart.trim()) && !newEnd) {
-                        newEnd = sumarUnaHora(newStart);
-                      }
-                      return { ...prev, horaInicio: newStart, horaFin: newEnd };
-                    });
-                  }}
-                />
+                <TouchableOpacity 
+                  style={styles.dropdownBtn}
+                  onPress={() => setShowTimePicker('inicio')}
+                >
+                  <Text style={[styles.dropdownBtnText, !formData.horaInicio && { color: '#94a3b8' }]}>
+                    {formData.horaInicio || 'Seleccionar...'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
+                </TouchableOpacity>
               </View>
               <View style={styles.horarioSeparator}>
                 <MaterialCommunityIcons name="arrow-right" size={20} color="#64748b" />
@@ -285,24 +276,17 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
               <View style={styles.horarioField}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <Text style={styles.horarioLabel}>Fin</Text>
-                  {formData.horaInicio && timeRegex.test(formData.horaInicio.trim()) && (
-                    <TouchableOpacity 
-                      onPress={() => {
-                        setFormData(prev => ({ ...prev, horaFin: sumarUnaHora(prev.horaInicio) }));
-                      }}
-                      style={styles.shortcutBtn}
-                    >
-                      <Text style={styles.shortcutBtnText}>+1 hora</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-                <TextInput
-                  style={styles.horarioInput}
-                  placeholder="19:30"
-                  placeholderTextColor="#94a3b8"
-                  value={formData.horaFin}
-                  onChangeText={text => setFormData({...formData, horaFin: text})}
-                />
+                <TouchableOpacity 
+                  style={styles.dropdownBtn}
+                  onPress={() => setShowTimePicker('fin')}
+                  disabled={!formData.horaInicio}
+                >
+                  <Text style={[styles.dropdownBtnText, !formData.horaFin && { color: '#94a3b8' }]}>
+                    {formData.horaFin || 'Seleccionar...'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -428,6 +412,44 @@ export default function CreateActivityModal({ visible, onClose, onSave, title, t
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* TIME PICKER MODAL */}
+      <Modal visible={!!showTimePicker} animationType="fade" transparent={true}>
+        <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowTimePicker(null)}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>
+              {showTimePicker === 'inicio' ? 'Hora de Inicio' : 'Hora de Fin'}
+            </Text>
+            <ScrollView style={{ maxHeight: 300, width: '100%' }}>
+              {(showTimePicker === 'inicio' ? AVAILABLE_TIMES : getAvailableEndTimes(formData.horaInicio)).map(t => (
+                <TouchableOpacity 
+                  key={t} 
+                  style={styles.pickerRow}
+                  onPress={() => {
+                    if (showTimePicker === 'inicio') {
+                      setFormData(prev => {
+                        const newEnd = (prev.horaFin && getAvailableEndTimes(t).includes(prev.horaFin)) 
+                          ? prev.horaFin 
+                          : getAvailableEndTimes(t)[0] || '';
+                        return { ...prev, horaInicio: t, horaFin: newEnd };
+                      });
+                    } else {
+                      setFormData(prev => ({ ...prev, horaFin: t }));
+                    }
+                    setShowTimePicker(null);
+                  }}
+                >
+                  <Text style={styles.pickerTimeText}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.pickerCancelBtn} onPress={() => setShowTimePicker(null)}>
+              <Text style={styles.pickerCancelText}>CANCELAR</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </Modal>
   );
 }
@@ -455,7 +477,8 @@ const styles = StyleSheet.create({
   horarioRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   horarioField: { flex: 1 },
   horarioLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', marginBottom: 4 },
-  horarioInput: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, fontSize: 15, color: '#1e293b', textAlign: 'center' },
+  dropdownBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12 },
+  dropdownBtnText: { fontSize: 15, color: '#1e293b', fontWeight: '600' },
   horarioSeparator: { paddingTop: 18 },
   
   // Preview
@@ -497,5 +520,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-  }
+  },
+  
+  // Picker Modal
+  pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  pickerContainer: { backgroundColor: '#fff', borderRadius: 22, padding: 22, width: '86%', maxWidth: 300, elevation: 12, alignItems: 'center' },
+  pickerTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 15 },
+  pickerRow: { width: '100%', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', alignItems: 'center' },
+  pickerTimeText: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
+  pickerCancelBtn: { backgroundColor: '#f1f5f9', padding: 13, borderRadius: 12, alignItems: 'center', marginTop: 14, width: '100%' },
+  pickerCancelText: { color: '#64748b', fontWeight: '800' }
 });
