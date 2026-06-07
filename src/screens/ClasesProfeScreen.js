@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
+import AsistenciaModal from '../components/AsistenciaModal';
 import { http, API_BASE_URL } from '../services/apiConfig';
 import { asistenciaService } from '../services/asistenciaService';
 import { claseService } from '../services/claseService';
@@ -18,10 +19,6 @@ export default function ClasesProfeScreen({ route, navigation }) {
 
   const [asistenciaModalVisible, setAsistenciaModalVisible] = useState(false);
   const [selectedClase, setSelectedClase] = useState(null);
-  const [presentesIds, setPresentesIds] = useState([]);
-  const [presentesOriginales, setPresentesOriginales] = useState([]);  // estado al abrir el modal
-  const [asistenciaDate, setAsistenciaDate] = useState(new Date().toISOString().split('T')[0]);
-  const [loadingAsistencia, setLoadingAsistencia] = useState(false);
 
   useEffect(() => {
     fetchClases();
@@ -63,63 +60,9 @@ export default function ClasesProfeScreen({ route, navigation }) {
     }
   };
 
-  const openAsistenciaModal = async (clase) => {
+  const openAsistenciaModal = (clase) => {
     setSelectedClase(clase);
     setAsistenciaModalVisible(true);
-    setLoadingAsistencia(true);
-    try {
-      const result = await asistenciaService.getAsistenciasPorActividadYFecha(clase.id, asistenciaDate, true);
-      if (result && result.length > 0) {
-        const pre = result.filter(a => a.presente).map(a => a.clienteId);
-        setPresentesIds(pre);
-        setPresentesOriginales(pre);
-      } else {
-        setPresentesIds([]);
-        setPresentesOriginales([]);
-      }
-    } catch (e) {
-      console.error(e);
-      setPresentesIds([]);
-      setPresentesOriginales([]);
-    } finally {
-      setLoadingAsistencia(false);
-    }
-  };
-
-  const toggleAsistencia = (alumnoId) => {
-    if (presentesIds.includes(alumnoId)) {
-      setPresentesIds(presentesIds.filter(id => id !== alumnoId));
-    } else {
-      setPresentesIds([...presentesIds, alumnoId]);
-    }
-  };
-
-  const saveAsistencia = async () => {
-    if (!selectedClase) return;
-    try {
-      // Alumnos nuevamente marcados como presentes (no estaban antes)
-      const nuevosPresentes = presentesIds.filter(id => !presentesOriginales.includes(id));
-      // Alumnos desmarcados (estaban presentes y ahora no)
-      const removidos = presentesOriginales.filter(id => !presentesIds.includes(id));
-
-      const promises = [
-        ...nuevosPresentes.map(clienteId =>
-          asistenciaService.registrarManual(selectedClase.id, clienteId, true).catch(() => null)
-        ),
-        ...removidos.map(clienteId =>
-          asistenciaService.eliminarAsistencia(selectedClase.id, clienteId, true).catch(() => null)
-        )
-      ];
-
-      await Promise.all(promises);
-      Alert.alert('Éxito', 'La asistencia fue guardada correctamente.');
-      setAsistenciaModalVisible(false);
-      // Refrescar asistencia de esa clase en el mapa
-      setAsistenciasMap(prev => { const n = { ...prev }; delete n[selectedClase.id]; return n; });
-      loadAsistenciaParaClase(selectedClase.id);
-    } catch (e) {
-      Alert.alert('Error', 'Hubo un error al guardar la asistencia.');
-    }
   };
 
   const handleDescargarPulsera = async (clase, alumno) => {
@@ -309,55 +252,20 @@ export default function ClasesProfeScreen({ route, navigation }) {
         </ScrollView>
       )}
 
-      <Modal visible={asistenciaModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Asistencia - {selectedClase?.nombre}</Text>
-              <TouchableOpacity onPress={() => setAsistenciaModalVisible(false)}>
-                <MaterialCommunityIcons name="close-circle" size={32} color="#009b3a" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.dateSubtitle}>Fecha: {asistenciaDate}</Text>
-
-            {loadingAsistencia ? (
-              <ActivityIndicator size="large" color="#009b3a" style={{ marginVertical: 30 }} />
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={true} style={{ maxHeight: 400 }}>
-                {selectedClase?.alumnos && selectedClase.alumnos.length > 0 ? (
-                  selectedClase.alumnos.map(alumno => {
-                    const isPresente = presentesIds.includes(alumno.id);
-                    return (
-                      <TouchableOpacity
-                        key={alumno.id}
-                        style={styles.asistenciaRow}
-                        onPress={() => toggleAsistencia(alumno.id)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <MaterialCommunityIcons name="account" size={24} color="#64748b" />
-                          <Text style={styles.alumnoNameModal}>{alumno.nombre} {alumno.apellido}</Text>
-                        </View>
-                        <MaterialCommunityIcons
-                          name={isPresente ? "checkbox-marked" : "checkbox-blank-outline"}
-                          size={28}
-                          color={isPresente ? "#009b3a" : "#94a3b8"}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.emptyAlumnosText}>No hay alumnos inscriptos en esta clase.</Text>
-                )}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity style={styles.saveBtn} onPress={saveAsistencia}>
-              <Text style={styles.saveBtnText}>GUARDAR ASISTENCIA</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <AsistenciaModal
+        visible={asistenciaModalVisible}
+        onClose={() => {
+          setAsistenciaModalVisible(false);
+          // Refrescar asistencia de esa clase en el mapa
+          if (selectedClase) {
+            setAsistenciasMap(prev => { const n = { ...prev }; delete n[selectedClase.id]; return n; });
+            loadAsistenciaParaClase(selectedClase.id);
+          }
+        }}
+        claseId={selectedClase?.id}
+        claseNombre={selectedClase?.nombre || ''}
+        esEntrenamiento={false}
+      />
 
     </ScreenTemplate>
   );
@@ -405,14 +313,4 @@ const styles = StyleSheet.create({
   summaryEmpty: { color: '#94a3b8', fontSize: 12, fontStyle: 'italic' },
   summarySeparator: { width: 1, backgroundColor: '#e2e8f0', marginHorizontal: 12 },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContainer: { width: '100%', maxWidth: 500, backgroundColor: '#fff', borderRadius: 24, padding: 25 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  modalHeaderTitle: { fontSize: 20, fontWeight: '900', color: '#009b3a' },
-  dateSubtitle: { fontSize: 14, color: '#64748b', fontWeight: '600', marginBottom: 20 },
-  asistenciaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  alumnoNameModal: { fontSize: 16, color: '#1e293b', fontWeight: '600', marginLeft: 12 },
-  saveBtn: { backgroundColor: '#009b3a', padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 25 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' }
 });

@@ -17,6 +17,7 @@ export default function StaffScreen({ route, navigation }) {
 
   const [todasLasClases, setTodasLasClases] = useState([]);
   const [todosLosEntrenamientos, setTodosLosEntrenamientos] = useState([]);
+  const [profesoresActivos, setProfesoresActivos] = useState([]);
   const [activeTab, setActiveTab] = useState('CLASES');
   const [loading, setLoading] = useState(true);
 
@@ -44,11 +45,17 @@ export default function StaffScreen({ route, navigation }) {
       ]);
       
       const profesoresMap = {};
+      const profesoresActList = [];
       (profesoresData || []).forEach(p => {
         if (p.id) {
           profesoresMap[p.id.toString()] = `${p.nombre} ${p.apellido}`;
         }
+        // Profesor activo = sin fechaBaja
+        if (!p.fechaBaja) {
+          profesoresActList.push(p);
+        }
       });
+      setProfesoresActivos(profesoresActList);
       
       const mappedClases = (clasesData || []).map(c => {
         const profeNombre = c.profesor ? `${c.profesor.nombre} ${c.profesor.apellido}` : (c.profesorNombre || c.profe || 'Sin asignar');
@@ -233,10 +240,10 @@ export default function StaffScreen({ route, navigation }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>
-            {currentUserRole === 'PROFE' ? 'Mis Clases' : 'Gestión de Cuerpo Técnico'}
+            {currentUserRole === 'PROFE' ? 'Cuerpo Técnico' : 'Gestión de Cuerpo Técnico'}
           </Text>
           <Text style={styles.subTitle}>
-            {currentUserRole === 'PROFE' ? `Profesor: ${userName}` : 'Panel Administrativo'}
+            {currentUserRole === 'PROFE' ? 'Profesores activos del club' : 'Panel Administrativo'}
           </Text>
         </View>
       </View>
@@ -254,6 +261,42 @@ export default function StaffScreen({ route, navigation }) {
         </View>
       )}
 
+      {/* ── Vista de Profesores Activos para PROFE ── */}
+      {currentUserRole === 'PROFE' && (
+        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
+          {profesoresActivos.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="account-group-outline" size={48} color="rgba(255,255,255,0.4)" />
+              <Text style={styles.emptyText}>No hay profesores activos para mostrar.</Text>
+            </View>
+          ) : (
+            profesoresActivos.map(prof => (
+              <View key={prof.id} style={styles.claseCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={styles.profesorAvatar}>
+                    <MaterialCommunityIcons name="account-tie" size={28} color="#009b3a" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.claseTitle}>{prof.nombre} {prof.apellido}</Text>
+                    <View style={styles.especialidadBadge}>
+                      <MaterialCommunityIcons name="star-four-points" size={13} color="#6366f1" />
+                      <Text style={styles.especialidadText}>{prof.especialidad || prof.especializacion || 'General'}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.activoBadge}>
+                    <MaterialCommunityIcons name="check-circle" size={14} color="#16a34a" />
+                    <Text style={styles.activoText}>Activo</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── Vista de Clases/Entrenamientos para ADMIN/PERSONAL ── */}
+      {(currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL') && (
+        <>
       <View style={styles.tabsContainer}>
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'CLASES' && styles.tabBtnActive]} 
@@ -363,6 +406,8 @@ export default function StaffScreen({ route, navigation }) {
           </View>
         )}
       </ScrollView>
+        </>
+      )}
 
       <AsistenciaModal 
         visible={asistenciaModalVisible} 
@@ -443,5 +488,24 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: '#009b3a' },
   tabBtnText: { color: '#a1a1aa', fontWeight: '800', fontSize: 13 },
-  tabBtnTextActive: { color: '#ffffff' }
+  tabBtnTextActive: { color: '#ffffff' },
+  
+  // Estilos para la vista de profesores activos (rol PROFE)
+  profesorAvatar: {
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: '#f0fdf4', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#bbf7d0'
+  },
+  especialidadBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#eef2ff', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, alignSelf: 'flex-start', marginTop: 6
+  },
+  especialidadText: { fontSize: 12, fontWeight: '800', color: '#6366f1' },
+  activoBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0'
+  },
+  activoText: { fontSize: 11, fontWeight: '800', color: '#16a34a' }
 });
