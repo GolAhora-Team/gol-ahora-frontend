@@ -3,7 +3,6 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIn
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import { claseService } from '../services/claseService';
-import { competicionService } from '../services/competicionService';
 import { entrenamientoService } from '../services/entrenamientoService';
 import ManageInscripcionesModal from '../components/ManageInscripcionesModal';
 import InscripcionPagoModal from '../components/InscripcionPagoModal';
@@ -121,16 +120,6 @@ export default function InscripcionesScreen({ route, navigation }) {
           };
         })];
       } catch (e) { /* entrenamientos puede fallar */ }
-
-      try {
-        const competencias = await competicionService.getAll();
-        items = [...items, ...(competencias || []).map(c => ({
-          ...c, id: c.id?.toString(), tipo: c.tipo === 1 ? 'LIGA' : 'TORNEO',
-          cupo: c.inscriptos || 0, max: c.maxEquipos || 20,
-          profe: 'N/A',
-          precio: 0
-        }))];
-      } catch (e) { /* competencias puede fallar */ }
 
       setActividades(items);
     } catch (error) {
@@ -315,9 +304,7 @@ export default function InscripcionesScreen({ route, navigation }) {
 
   const sections = [
     { key: "CLASE", titulo: "CLASES", icon: "school", data: actividades.filter(a => a.tipo === 'CLASE') },
-    { key: "ENTRENAMIENTO", titulo: "ENTRENAMIENTOS", icon: "whistle", data: actividades.filter(a => a.tipo === 'ENTRENAMIENTO') },
-    { key: "TORNEO", titulo: "TORNEOS", icon: "tournament", data: actividades.filter(a => a.tipo === 'TORNEO') },
-    { key: "LIGA", titulo: "LIGAS", icon: "format-list-numbered", data: actividades.filter(a => a.tipo === 'LIGA') }
+    { key: "ENTRENAMIENTO", titulo: "ENTRENAMIENTOS", icon: "whistle", data: actividades.filter(a => a.tipo === 'ENTRENAMIENTO') }
   ].filter(s => s.data.length > 0);
 
   return (
