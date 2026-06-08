@@ -98,7 +98,8 @@ export default function InscripcionesScreen({ route, navigation }) {
           cupo: c.cantidadAlumnos || c.alumnos?.length || c.clientes?.length || 0, 
           max: c.capacidadMax || c.maxAlumnos || c.capacidad || 20,
           profe: c.profesor?.nombre ? `${c.profesor.nombre} ${c.profesor.apellido || ''}` : c.profesorNombre || c.profe || 'Sin Asignar',
-          precio: c.precioInscripcion || c.precio || 5000
+          precio: c.precioInscripcion || c.precio || 5000,
+          inscriptos: c.alumnos || c.clientes || []
         }))];
       } catch (e) { /* clases puede fallar */ }
 
@@ -115,7 +116,8 @@ export default function InscripcionesScreen({ route, navigation }) {
             max: e.cupoMaximo || e.capacidad || e.maxAlumnos || 20,
             profe: e.profesor?.nombre ? `${e.profesor.nombre} ${e.profesor.apellido || ''}` : e.profesorNombre || e.profe || 'Sin Asignar',
             precio: e.precioInscripcion || 5000,
-            horario: formattedHorario
+            horario: formattedHorario,
+            inscriptos: e.alumnos || e.clientes || []
           };
         })];
       } catch (e) { /* entrenamientos puede fallar */ }
@@ -233,8 +235,16 @@ export default function InscripcionesScreen({ route, navigation }) {
     return '#009b3a';
   };
 
-  const renderActividad = (item) => (
-    <View key={item.id + item.tipo} style={styles.card}>
+  const renderActividad = (item) => {
+    let yaInscripto = false;
+    if (isCliente && idPersona && item.inscriptos) {
+      yaInscripto = item.inscriptos.some(ins => ins.id?.toString() === idPersona.toString());
+    }
+    const isFull = item.cupo >= item.max;
+    const isDisabled = isFull || yaInscripto;
+
+    return (
+    <View key={item.id + item.tipo} style={[styles.card, yaInscripto && { opacity: 0.6, backgroundColor: '#f1f5f9' }]}>
       <View style={styles.info}>
         <View style={[styles.badge, { backgroundColor: getBadgeColor(item) }]}>
           <Text style={styles.badgeText}>{item.tipo}</Text>
@@ -270,12 +280,12 @@ export default function InscripcionesScreen({ route, navigation }) {
 
         {item.tipo !== 'LIGA' && item.tipo !== 'TORNEO' && (
           <TouchableOpacity 
-            style={[styles.inscribirBtn, item.cupo >= item.max && { opacity: 0.5 }]}
+            style={[styles.inscribirBtn, isDisabled && { opacity: 0.5, backgroundColor: yaInscripto ? '#10b981' : '#009b3a' }]}
             onPress={() => handleInscribirse(item)}
-            disabled={item.cupo >= item.max}
+            disabled={isDisabled}
           >
-            <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-            <Text style={styles.btnTextSmall}>{isCliente ? 'Inscribirme' : 'Inscribir'}</Text>
+            <MaterialCommunityIcons name={yaInscripto ? "check" : "account-plus"} size={20} color="#fff" />
+            <Text style={styles.btnTextSmall}>{yaInscripto ? 'Ya Inscripto' : (isCliente ? 'Inscribirme' : 'Inscribir')}</Text>
           </TouchableOpacity>
         )}
 
@@ -300,7 +310,8 @@ export default function InscripcionesScreen({ route, navigation }) {
         )}
       </View>
     </View>
-  );
+    );
+  };
 
   const sections = [
     { key: "CLASE", titulo: "CLASES", icon: "school", data: actividades.filter(a => a.tipo === 'CLASE') },
