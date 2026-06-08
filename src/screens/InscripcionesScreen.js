@@ -181,7 +181,13 @@ export default function InscripcionesScreen({ route, navigation }) {
         let resolvedId = idPersona;
         if (!resolvedId && nombreUsuario) {
           const clientesData = await clienteService.getAll();
-          const found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          let found = null;
+          if (idPersona) {
+            found = clientesData?.find(c => c.id?.toString() === idPersona?.toString());
+          }
+          if (!found) {
+            found = clientesData?.find(c => `${c.nombre} ${c.apellido || ''}`.trim() === nombreUsuario);
+          }
           if (found) resolvedId = found.id || found.Id;
         }
 
