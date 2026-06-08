@@ -493,7 +493,7 @@ export default function Dashboard({ route, navigation }) {
 
       case 'PROFE': 
       case 'PROFESORES':
-        const allowedProfe = ['staff', 'reservas', 'clases-profe'];
+        const allowedProfe = ['staff', 'clases-profe'];
         return ALL_MODULES
           .filter(m => allowedProfe.includes(m.id))
           .map(m => {
