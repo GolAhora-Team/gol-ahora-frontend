@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } f
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomInput from './CustomInput';
 
-export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, errorMessage }) {
+export default function CanchaFormModal({ visible, onClose, isEditing, formData, setFormData, onSave, errorMessage, canchas }) {
   const tipos = ['F5', 'F7', 'F11'];
   const superficies = ['Sintético', 'Césped Natural', 'Parquet', 'Cemento'];
 
@@ -25,7 +25,7 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
             </View>
           ) : null}
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={true}>
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>1. ESPECIFICACIONES TÉCNICAS</Text>
               <CustomInput 
@@ -40,7 +40,27 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               <Text style={styles.greenLabelBold}>CATEGORIZACIÓN (TIPO)</Text>
               <View style={styles.choiceRow}>
                 {tipos.map(t => (
-                  <TouchableOpacity key={t} style={[styles.choiceBtn, formData.tipo === t && styles.activeBtn]} onPress={() => setFormData({...formData, tipo: t})}>
+                  <TouchableOpacity 
+                    key={t} 
+                    style={[styles.choiceBtn, formData.tipo === t && styles.activeBtn]} 
+                    onPress={() => {
+                      let cap = "0";
+                      let dim = "";
+                      let basePricePerHour = t === 'F5' ? 30000 : t === 'F7' ? 65000 : 120000;
+                      if (canchas && canchas.length > 0) {
+                        const existingCancha = canchas.find(c => c.tipo === t);
+                        if (existingCancha && existingCancha.original?.precioPorHora) {
+                          basePricePerHour = existingCancha.original.precioPorHora;
+                        }
+                      }
+
+                      if (t === 'F5') { cap = "10"; dim = "20x40m"; }
+                      if (t === 'F7') { cap = "14"; dim = "30x50m"; }
+                      if (t === 'F11') { cap = "22"; dim = "45x90m"; }
+                      
+                      setFormData({...formData, tipo: t, capacidad: cap, dimensiones: dim, precioPorHora: basePricePerHour});
+                    }}
+                  >
                     <Text style={[styles.choiceText, formData.tipo === t ? styles.whiteText : styles.greenText]}>{t}</Text>
                   </TouchableOpacity>
                 ))}
@@ -56,10 +76,44 @@ export default function CanchaFormModal({ visible, onClose, isEditing, formData,
               </View>
 
               <CustomInput 
-                label="CAPACIDAD MÁXIMA (Jugadores)" 
-                keyboardType="numeric" 
-                value={formData.capacidad} 
-                onChangeText={v => setFormData({...formData, capacidad: v})} 
+                label="CAPACIDAD MÁXIMA (Jugadores) - Autocalculado" 
+                value={formData.capacidad ? formData.capacidad.toString() : ""} 
+                editable={false}
+                containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
+                labelStyle={styles.greenLabelBold}
+                inputStyle={[styles.greenInputText, { color: '#64748b' }]}
+              />
+
+              <CustomInput 
+                label="PRECIO DEL TURNO - Autocalculado" 
+                value={`$${(formData.precioPorHora || 0) * ((formData.duracionMax || 60) / 60)}`} 
+                editable={false}
+                containerStyle={[styles.cleanInput, { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}
+                labelStyle={styles.greenLabelBold}
+                inputStyle={[styles.greenInputText, { color: '#64748b' }]}
+              />
+
+              <Text style={[styles.greenLabelBold, { marginTop: 15 }]}>DURACIÓN DE RESERVAS (Minutos)</Text>
+              <View style={styles.choiceRow}>
+                {[60, 90].map(d => (
+                  <TouchableOpacity 
+                    key={d} 
+                    style={[styles.choiceBtn, formData.duracionMax === d && styles.activeBtn]} 
+                    onPress={() => {
+                      setFormData({...formData, duracionMax: d});
+                    }}
+                  >
+                    <Text style={[styles.choiceText, formData.duracionMax === d ? styles.whiteText : styles.greenText]}>{d} min</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <CustomInput 
+                label="DURACIÓN PERSONALIZADA (Minutos)" 
+                value={formData.duracionMax ? formData.duracionMax.toString() : ""} 
+                onChangeText={v => {
+                  let d = parseInt(v.replace(/[^0-9]/g, '')) || 0;
+                  setFormData({...formData, duracionMax: d});
+                }}
                 containerStyle={styles.cleanInput}
                 labelStyle={styles.greenLabelBold}
                 inputStyle={styles.greenInputText}

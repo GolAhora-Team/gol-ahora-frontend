@@ -7,10 +7,16 @@ import CanchaCard from '../components/CanchaCard';
 import CanchaFormModal from '../components/CanchaFormModal';
 import DeleteModal from '../components/DeleteModal';
 import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
+import DescuentosModal from '../components/DescuentosModal';
+import PreciosModal from '../components/PreciosModal';
 import { canchaService } from '../services/canchaService';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { reportHistoryService } from '../services/reportHistoryService';
 
 export default function CanchaScreen({ route, navigation }) {
-  const { role: currentUserRole } = route.params || { role: "ADMIN" };
+  const { role: currentUserRole, nombreUsuario = "Administrador" } = route.params || { role: "ADMIN" };
 
   // --- ESTADO INICIAL ---
   const [canchas, setCanchas] = useState([]);
@@ -25,6 +31,10 @@ export default function CanchaScreen({ route, navigation }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [formError, setFormError] = useState('');
+  const [currentPdfHtml, setCurrentPdfHtml] = useState(null);
+  const [confirmReportModalVisible, setConfirmReportModalVisible] = useState(false);
+  const [descuentosModalVisible, setDescuentosModalVisible] = useState(false);
+  const [preciosModalVisible, setPreciosModalVisible] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -69,10 +79,23 @@ export default function CanchaScreen({ route, navigation }) {
   const handleOpenModal = (cancha = null) => {
     setFormError('');
     if (cancha) {
-      setFormData({ ...cancha });
+      let dim = "20x40m";
+      let precio = 30000;
+      if (cancha.tipo === 'F7') { dim = "30x50m"; precio = 65000; }
+      else if (cancha.tipo === 'F11') { dim = "45x90m"; precio = 120000; }
+      
+      const pph = cancha.original?.precioPorHora ?? cancha.original?.PrecioPorHora ?? precio;
+      const dMax = cancha.original?.duracionMax ?? cancha.original?.DuracionMax ?? 60;
+
+      setFormData({ 
+        ...cancha, 
+        dimensiones: dim, 
+        precioPorHora: pph, 
+        duracionMax: dMax 
+      });
       setIsEditing(true);
     } else {
-      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '', enMantenimiento: false });
+      setFormData({ nombre: '', tipo: 'F5', superficie: 'Sintético', capacidad: '10', dimensiones: '20x40m', precioPorHora: 30000, enMantenimiento: false, duracionMax: 60 });
       setIsEditing(false);
     }
     setModalVisible(true);
@@ -100,8 +123,8 @@ export default function CanchaScreen({ route, navigation }) {
           Disponibilidad: formData.original?.disponibilidad ?? true,
           HoraInicio: formData.original?.horaInicio ?? "08:00:00",
           HoraFin: formData.original?.horaFin ?? "23:00:00",
-          DuracionMax: formData.original?.duracionMax ?? 60,
-          PrecioPorHora: formData.original?.precioPorHora ?? 5000
+          DuracionMax: formData.duracionMax || 60,
+          PrecioPorHora: formData.precioPorHora ?? 30000
         };
         await canchaService.update(formData.id, payload);
         setSuccessMessage("Los cambios han sido guardados exitosamente.");
@@ -111,8 +134,8 @@ export default function CanchaScreen({ route, navigation }) {
           Disponibilidad: true,
           HoraInicio: "08:00:00",
           HoraFin: "23:00:00",
-          DuracionMax: 60,
-          PrecioPorHora: 5000
+          DuracionMax: formData.duracionMax || 60,
+          PrecioPorHora: formData.precioPorHora ?? 30000
         };
         await canchaService.create(payload);
         setSuccessMessage("La nueva cancha ha sido registrada exitosamente.");
@@ -152,8 +175,81 @@ export default function CanchaScreen({ route, navigation }) {
   };
 
   const handleGenerateReport = () => {
-    Alert.alert("Reporte de Canchas", "Generando inventario técnico... Se enviará a gerencia.");
+    setConfirmReportModalVisible(true);
   };
+
+  const executeGenerateReport = async () => {
+    const d = new Date();
+    const formattedDate = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}`;
+    const userNameFormatted = nombreUsuario.replace(/\s+/g, '');
+    const fileName = `Reporte-Canchas-${userNameFormatted}-${formattedDate}`;
+
+    let rows = canchas.map(c => `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.nombre}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.tipo}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.superficie}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${c.enMantenimiento ? 'Mantenimiento' : 'Activa'}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #000; }
+            .header { text-align: left; margin-bottom: 30px; }
+            .brand { color: #009b3a; font-size: 50px; font-weight: 900; margin: 0; }
+            .report-type { font-size: 24px; font-weight: bold; margin-top: 10px; margin-bottom: 10px; }
+            .generated-by { font-size: 16px; color: #555; }
+            .line { border-bottom: 2px solid #000; margin: 20px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+            th { background-color: #009b3a; color: white; padding: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="brand">Gol Ahora</h1>
+            <div class="report-type">Reporte de Estado de Canchas</div>
+            <div class="generated-by">Reporte generado por: <b>${nombreUsuario}</b></div>
+            <div class="generated-by">Fecha: ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}</div>
+          </div>
+          <div class="line"></div>
+          <table>
+            <thead>
+              <tr><th>Cancha</th><th>Tipo</th><th>Superficie</th><th>Estado</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    await reportHistoryService.saveReporte(html, fileName);
+    setCurrentPdfHtml({ html, fileName });
+    setSuccessMessage("¡PDF generado exitosamente!");
+    setSuccessModalVisible(true);
+  };
+
+  const downloadPdf = async (pdfData) => {
+    if (Platform.OS === 'web') {
+      const html2pdf = require('html2pdf.js');
+      const element = document.createElement('div');
+      element.innerHTML = pdfData.html;
+      html2pdf().from(element).set({
+        margin: 10,
+        filename: pdfData.fileName + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+    } else {
+      const { uri } = await Print.printToFileAsync({ html: pdfData.html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    }
+  };
+
+
 
   const confirmDelete = (cancha) => {
     setCanchaToDelete(cancha);
@@ -166,6 +262,8 @@ export default function CanchaScreen({ route, navigation }) {
         await canchaService.delete(canchaToDelete.id);
         setCanchas(prev => prev.filter(x => x.id !== canchaToDelete.id));
         setDeleteModalVisible(false);
+        setSuccessMessage("La cancha ha sido eliminada exitosamente.");
+        setSuccessModalVisible(true);
       } catch (error) {
         Alert.alert("Error", "No se pudo eliminar la cancha.");
       }
@@ -175,7 +273,13 @@ export default function CanchaScreen({ route, navigation }) {
   const filteredCanchas = canchas.filter(c => 
     c.nombre.toLowerCase().includes(search.toLowerCase()) || 
     c.tipo.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const sections = [
+    { key: "F5", titulo: "FUTBOL 5", data: filteredCanchas.filter(c => c.tipo === "F5") },
+    { key: "F7", titulo: "FUTBOL 7", data: filteredCanchas.filter(c => c.tipo === "F7") },
+    { key: "F11", titulo: "FUTBOL 11", data: filteredCanchas.filter(c => c.tipo === "F11" || (c.tipo !== "F5" && c.tipo !== "F7")) }
+  ].filter(s => s.data.length > 0);
 
   return (
     <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
@@ -200,35 +304,59 @@ export default function CanchaScreen({ route, navigation }) {
         <Text style={styles.mainTitle}>Gestión de Canchas</Text>
         <View style={styles.headerActions}>
             {canGenerateReport && (
-                <TouchableOpacity style={styles.reportButton} onPress={handleGenerateReport}>
+                <TouchableOpacity style={[styles.reportButton, { flexDirection: 'row', alignItems: 'center' }]} onPress={handleGenerateReport}>
                     <MaterialCommunityIcons name="file-document-edit-outline" size={24} color="#000" />
+                    <Text style={{ fontWeight: '900', color: '#000', marginLeft: 5 }}>GENERAR REPORTE</Text>
                 </TouchableOpacity>
             )}
             {canModify && (
-                <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
-                    <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-                    <Text style={styles.addButtonText}>NUEVA</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center' }]} onPress={() => setPreciosModalVisible(true)}>
+                      <MaterialCommunityIcons name="cash-multiple" size={24} color="#fff" />
+                      <Text style={{ fontWeight: '900', color: '#fff', marginLeft: 5 }}>PRECIOS</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center' }]} onPress={() => setDescuentosModalVisible(true)}>
+                      <MaterialCommunityIcons name="percent" size={24} color="#fff" />
+                      <Text style={{ fontWeight: '900', color: '#fff', marginLeft: 5 }}>DESCUENTOS</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
+                      <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+                      <Text style={styles.addButtonText}>NUEVA</Text>
+                  </TouchableOpacity>
+                </>
             )}
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }}>
         {loading ? (
           <ActivityIndicator size="large" color="#009b3a" style={{ marginTop: 50 }} />
         ) : filteredCanchas.length === 0 ? (
           <Text style={{ textAlign: 'center', marginTop: 50, color: '#94a3b8' }}>No hay canchas disponibles.</Text>
         ) : (
-          filteredCanchas.map(item => (
-            <CanchaCard 
-              key={item.id} 
-              item={item} 
-              onEdit={handleOpenModal} 
-              onDelete={(c) => confirmDelete(c)} 
-              onToggleMaintenance={() => handleToggleMaintenance(item.id)}
-              canModify={canModify} 
-              canToggleMaintenance={canToggleMaintenance}
-            />
+          sections.map(section => (
+            <View key={section.key} style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={{ backgroundColor: '#fbbf24', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
+                  <MaterialCommunityIcons name="soccer-field" size={20} color="#000" />
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8, textTransform: 'uppercase' }}>{section.titulo}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.data.length}</Text>
+                </View>
+              </View>
+              {section.data.map(item => (
+                <CanchaCard 
+                  key={item.id} 
+                  item={item} 
+                  onEdit={handleOpenModal} 
+                  onDelete={(c) => confirmDelete(c)} 
+                  onToggleMaintenance={() => handleToggleMaintenance(item.id)}
+                  canModify={canModify} 
+                  canToggleMaintenance={canToggleMaintenance}
+                />
+              ))}
+            </View>
           ))
         )}
       </ScrollView>
@@ -241,6 +369,7 @@ export default function CanchaScreen({ route, navigation }) {
         setFormData={setFormData} 
         onSave={handleSave} 
         errorMessage={formError}
+        canchas={canchas}
       />
 
       <DeleteModal
@@ -251,10 +380,34 @@ export default function CanchaScreen({ route, navigation }) {
         itemName={canchaToDelete ? canchaToDelete.nombre : ''}
       />
 
+      <ConfirmModal
+        visible={confirmReportModalVisible}
+        onClose={() => setConfirmReportModalVisible(false)}
+        onConfirm={executeGenerateReport}
+        title="Generar Reporte"
+        message="¿Desea generar un reporte con el estado actual de las canchas?"
+        confirmText="SÍ"
+        cancelText="CANCELAR"
+      />
+
       <SuccessModal
         visible={successModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
+        onClose={() => { setSuccessModalVisible(false); setCurrentPdfHtml(null); }}
         message={successMessage}
+        actionButtonText={currentPdfHtml ? "DESCARGAR PDF" : null}
+        onAction={currentPdfHtml ? () => downloadPdf(currentPdfHtml) : null}
+      />
+
+      <DescuentosModal
+        visible={descuentosModalVisible}
+        onClose={() => setDescuentosModalVisible(false)}
+      />
+
+      <PreciosModal
+        visible={preciosModalVisible}
+        onClose={() => setPreciosModalVisible(false)}
+        onPreciosUpdated={loadCanchas}
+        canchas={canchas}
       />
     </ScreenTemplate>
   );

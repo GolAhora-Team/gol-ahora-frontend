@@ -4,6 +4,32 @@ const URL = `${API_BASE_URL}/Administrador`;
 
 export const administradorService = {
   /**
+   * GET /api/Administrador
+   * Obtiene todos los administradores y personal.
+   */
+  getAll: async () => {
+    try {
+      return await http.get(URL);
+    } catch (error) {
+      console.error('Error fetching administradores:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * GET /api/Administrador/{id}
+   * Obtiene un administrador o personal por su id.
+   */
+  getById: async (id) => {
+    try {
+      return await http.get(`${URL}/${id}`);
+    } catch (error) {
+      console.error(`Error fetching administrador con id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * PUT /api/Administrador/{id}/simple
    * Actualización simple de datos del administrador.
    */

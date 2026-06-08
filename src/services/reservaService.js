@@ -63,4 +63,17 @@ export const reservaService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Reserva/{id}/cancelacion-info
+   * Obtiene información de penalización antes de cancelar.
+   */
+  getCancelacionInfo: async (id) => {
+    try {
+      return await http.get(`${URL}/${id}/cancelacion-info`);
+    } catch (error) {
+      console.error(`Error obteniendo info de cancelación para reserva ${id}:`, error);
+      throw error;
+    }
+  },
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -7,17 +7,58 @@ import {
   Platform, 
   StatusBar 
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
 import HeaderSecondary from '../components/HeaderSecondary';
 
-export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false }) {
+export default function ScreenTemplate({ userRole = "ADMIN", navigation, children, isWeb = false, floatingComponent }) {
   
   const handleBack = () => {
     if (navigation && navigation.goBack) navigation.goBack();
   };
+
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        let storedSession = null;
+        if (Platform.OS === 'web') {
+          const item = localStorage.getItem('GOL_AHORA_SESSION');
+          if (item) storedSession = JSON.parse(item);
+        } else {
+          const item = await AsyncStorage.getItem('GOL_AHORA_SESSION');
+          if (item) storedSession = JSON.parse(item);
+        }
+        
+        if (!storedSession) {
+          if (navigation && navigation.replace) {
+            navigation.replace('Login');
+          }
+        }
+      } catch (e) {
+        if (navigation && navigation.replace) navigation.replace('Login');
+      }
+    };
+    verifySession();
+
+    if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      let changed = false;
+      ['role', 'idPersona', 'idUsuario', 'nombreUsuario'].forEach(key => {
+        if (urlParams.has(key)) {
+          urlParams.delete(key);
+          changed = true;
+        }
+      });
+      if (changed) {
+        const newSearch = urlParams.toString();
+        const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '');
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, [navigation]);
 
   return (
     <View style={styles.mainContainer}>
@@ -27,7 +68,9 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={styles.centralContainer}>
             
@@ -51,12 +94,13 @@ export default function ScreenTemplate({ userRole = "ADMIN", navigation, childre
           <Footer />
         </ScrollView>
       </SafeAreaView>
+      {floatingComponent}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1 },
+  mainContainer: { flex: 1, backgroundColor: '#004d1a' },
   safeArea: { 
     flex: 1, 
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 5 : 0 

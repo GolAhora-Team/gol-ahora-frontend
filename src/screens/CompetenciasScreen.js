@@ -1,82 +1,550 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenTemplate from './ScreenTemplate';
 import CompetenciaCard from '../components/CompetenciaCard';
 import CompetenciaFormModal from '../components/CompetenciaFormModal';
-import { confirmarEliminacion } from '../components/Delete';
+import EquipoCard from '../components/EquipoCard';
+import EquipoFormModal from '../components/EquipoFormModal';
+import SuccessModal from '../components/SuccessModal';
+import ConfirmModal from '../components/ConfirmModal';
+import AddJugadoresModal from '../components/AddJugadoresModal';
+import RemoveJugadoresModal from '../components/RemoveJugadoresModal';
+import VerJugadoresModal from '../components/VerJugadoresModal';
+import FormacionModal from '../components/FormacionModal';
+import TorneoFixtureModal from '../components/TorneoFixtureModal';
+import EnrollTeamModal from '../components/EnrollTeamModal';
+import RemoveEquiposCompModal from '../components/RemoveEquiposCompModal';
+import ViewCompetenciaModal from '../components/ViewCompetenciaModal';
+import ClienteInvitarJugadorModal from '../components/ClienteInvitarJugadorModal';
+import ClienteInscripcionCompModal from '../components/ClienteInscripcionCompModal';
+import SetPosicionModal from '../components/SetPosicionModal';
 import { competicionService } from '../services/competicionService';
+import { equipoService } from '../services/equipoService';
+import { jugadorService } from '../services/jugadorService';
+import { partidoService } from '../services/partidoService';
+import { pagoService } from '../services/pagoService';
+import { Platform } from 'react-native';
 
 export default function CompetenciasScreen({ route, navigation }) {
-  const { role: currentUserRole } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
+  const { role: currentUserRole, idPersona, idUsuario } = route.params || { role: "ADMIN", nombreUsuario: "Julián" };
 
+  const [activeTab, setActiveTab] = useState('COMPETENCIAS');
   const [competencias, setCompetencias] = useState([]);
+  const [equipos, setEquipos] = useState([]);
+  const [searchEquipo, setSearchEquipo] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [misInscripciones, setMisInscripciones] = useState([]);
+  const [misJugadores, setMisJugadores] = useState([]); // Array of Jugador entities for the current user
   const [modalVisible, setModalVisible] = useState(false);
-  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '10', fechaInicio: '' };
+  const initialForm = { nombre: '', tipo: 'LIGA', premio: '', maxEquipos: '8', fechaInicio: '', fechaFin: '', descripcion: '', tipoCancha: 5 };
   const [formData, setFormData] = useState(initialForm);
 
-  const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+  // Fixture / Enroll modals
+  const [selectedCompeticion, setSelectedCompeticion] = useState(null);
+  const [fixtureModalVisible, setFixtureModalVisible] = useState(false);
+  const [initialModalTab, setInitialModalTab] = useState('FIXTURE');
+  const [enrollModalVisible, setEnrollModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [competicionToEnroll, setCompeticionToEnroll] = useState(null);
 
-  // CARGA INICIAL DESDE EL BACKEND
+  // Equipo modals
+  const [equipoModalVisible, setEquipoModalVisible] = useState(false);
+  const [editingEquipo, setEditingEquipo] = useState(null);
+
+  // Success modal
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successTitle, setSuccessTitle] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMode, setErrorMode] = useState(false);
+
+  // Delete confirm modal (Equipo)
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [equipoToDelete, setEquipoToDelete] = useState(null);
+
+  // Delete confirm modal (Competicion)
+  const [deleteCompeticionConfirmVisible, setDeleteCompeticionConfirmVisible] = useState(false);
+  const [competicionToDelete, setCompeticionToDelete] = useState(null);
+
+  // Generar Fixture confirm modal
+  const [generarFixtureConfirmVisible, setGenerarFixtureConfirmVisible] = useState(false);
+  const [competicionToGenerarFixture, setCompeticionToGenerarFixture] = useState(null);
+
+  // Iniciar confirm modal
+  const [iniciarConfirmVisible, setIniciarConfirmVisible] = useState(false);
+  const [competicionToIniciar, setCompeticionToIniciar] = useState(null);
+
+  // Remove equipos from competicion
+  const [removeEquiposModalVisible, setRemoveEquiposModalVisible] = useState(false);
+  const [competicionToRemoveFrom, setCompeticionToRemoveFrom] = useState(null);
+
+  // Jugadores modals
+  const [addJugadoresVisible, setAddJugadoresVisible] = useState(false);
+  const [removeJugadoresVisible, setRemoveJugadoresVisible] = useState(false);
+  const [verJugadoresVisible, setVerJugadoresVisible] = useState(false);
+  const [selectedEquipo, setSelectedEquipo] = useState(null);
+
+  // Formación modal
+  const [formacionVisible, setFormacionVisible] = useState(false);
+  const [equipoFormacion, setEquipoFormacion] = useState(null);
+
+  // Cliente-specific modals
+  const [invitarJugadorVisible, setInvitarJugadorVisible] = useState(false);
+  const [equipoParaInvitar, setEquipoParaInvitar] = useState(null);
+  const [inscripcionCompVisible, setInscripcionCompVisible] = useState(false);
+  const [competenciaParaInscripcion, setCompetenciaParaInscripcion] = useState(null);
+  
+  // Posicion Modal
+  const [posicionModalVisible, setPosicionModalVisible] = useState(false);
+  const [equipoParaPosicion, setEquipoParaPosicion] = useState(null);
+
+  const isStaff = currentUserRole === 'ADMIN' || currentUserRole === 'PERSONAL';
+  const isCliente = currentUserRole === 'CLIENTE';
+  const canCreateEquipo = currentUserRole !== 'PROFE';
+
   useEffect(() => {
-    loadCompetencias();
+    loadData();
+
+    if (Platform.OS === 'web') {
+      const status = route.params?.collection_status || new URLSearchParams(window.location.search).get('collection_status');
+      const isMpReturnStr = route.params?.mp_return || new URLSearchParams(window.location.search).get('mp_return');
+      const isMpReturn = isMpReturnStr === 'true' || isMpReturnStr === true;
+
+      if (status === 'approved') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
+        if (pendingStr) {
+          const processReturn = async () => {
+            try {
+              const pending = JSON.parse(pendingStr);
+              window.localStorage.removeItem('pendingInscripcionComp');
+
+              // En competencias no guardábamos el pagoId porque MercadoPago redirige de inmediato 
+              // (y no llama a createPayment() como en clases), en realidad la facturaService sí crea la factura
+              // pero no hay un registro explícito del pago antes de ir a MercadoPago. 
+              // El Webhook puede interceptar la factura, o dejarse como está.
+
+              // Remove params from navigation state to prevent re-triggering
+              navigation.setParams({ collection_status: undefined, mp_return: undefined });
+              
+              setSuccessTitle('¡Inscripción Exitosa!');
+              setSuccessMessage('El pago se ha realizado con éxito. Tu equipo está inscripto en la competencia.');
+              setErrorMode(false);
+              setSuccessModalVisible(true);
+            } catch(e) {
+              console.error("Error procesando inscripcion a comp pendiente", e);
+            }
+          };
+          processReturn();
+        }
+      } else if (isMpReturn || status === 'rejected' || status === 'null') {
+        const pendingStr = window.localStorage.getItem('pendingInscripcionComp');
+        if (pendingStr) {
+          window.localStorage.removeItem('pendingInscripcionComp');
+          navigation.setParams({ collection_status: undefined, mp_return: undefined });
+          
+          setSuccessTitle('Pago Pendiente');
+          setSuccessMessage('El pago no se pudo completar. Tu equipo está inscripto en la competencia pero el pago quedó PENDIENTE.');
+          setErrorMode(true);
+          setSuccessModalVisible(true);
+        }
+      }
+    }
   }, []);
 
-  const loadCompetencias = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       const data = await competicionService.getAll();
       const mapped = (data || []).map(c => ({
-        ...c,
         id: c.id?.toString(),
+        nombre: c.nombre,
+        tipo: c.tipo === 1 ? 'LIGA' : 'TORNEO',
+        descripcion: c.descripcion || '',
+        maxEquipos: c.cantidadEquipos?.toString() || (c.tipo === 1 ? '20' : '16'),
+        inscriptos: c.cantInscriptos || 0,
+        estado: c.estado === 1 ? 'inscripcion' : (c.estado === 2 ? 'en_juego' : 'finalizada'),
+        fechaInicio: c.fechaInicio ? new Date(c.fechaInicio).toLocaleDateString('es-AR') : '',
+        fechaFin: c.fechaFin ? new Date(c.fechaFin).toLocaleDateString('es-AR') : '',
+        premio: 'Trofeo + Medallas',
+        tipoCancha: c.tipoCancha || 5,
+        fixtureGenerado: c.fixtureGenerado || false,
+        precioInscripcion: c.precioInscripcion || 50000
       }));
       setCompetencias(mapped);
+
+      // Para clientes: solo cargar sus propios equipos
+      if (isCliente && idPersona) {
+        const eqData = await equipoService.getByClienteId(idPersona);
+        const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
+        setEquipos(mappedEq);
+
+        try {
+          const jData = await jugadorService.getAll();
+          const misJugs = (jData || []).filter(j => String(j.clienteId) === String(idPersona));
+          setMisJugadores(misJugs);
+        } catch (e) {
+          console.error("Error fetching jugadores", e);
+        }
+      } else {
+        const eqData = await equipoService.getAll();
+        const mappedEq = (eqData || []).map(e => ({ ...e, id: e.id?.toString() }));
+        setEquipos(mappedEq);
+      }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las competencias.');
+      console.error(error);
+      Alert.alert('Error', 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
     }
   };
 
-  const isStaffCheck = isStaff;
-
+  // ── Competencia handlers ──
   const handleCreate = async () => {
-    if (!formData.nombre || !formData.fechaInicio) {
-      return Alert.alert("Atención", "El nombre y la fecha de inicio son obligatorios");
+    if (!formData.nombre) {
+      return Alert.alert("Atención", "El nombre es obligatorio");
     }
+
+    const capitalizeWords = (str) => {
+      if (!str) return '';
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    };
+    const capNombre = capitalizeWords(formData.nombre);
+
+    const backendData = {
+      Nombre: capNombre,
+      Tipo: formData.tipo === 'LIGA' ? 1 : 2,
+      Descripcion: formData.descripcion || '',
+      CantidadEquipos: parseInt(formData.maxEquipos, 10),
+      TipoCancha: formData.tipoCancha,
+      FechaInicio: formData.fechaInicio ? convertDateToISO(formData.fechaInicio) : null,
+      FechaFin: formData.fechaFin ? convertDateToISO(formData.fechaFin) : null
+    };
+
     try {
-      const result = await competicionService.create(formData);
-      const nueva = { ...formData, id: result?.id?.toString() || Date.now().toString(), estado: 'inscripcion', inscriptos: 0 };
+      const result = await competicionService.create(backendData);
+      const nueva = { 
+        id: result?.id?.toString() || Date.now().toString(),
+        nombre: result?.nombre || formData.nombre,
+        tipo: result?.tipo === 1 ? 'LIGA' : 'TORNEO',
+        descripcion: result?.descripcion || formData.descripcion,
+        maxEquipos: result?.cantidadEquipos?.toString() || formData.maxEquipos,
+        inscriptos: result?.cantInscriptos || 0,
+        estado: 'inscripcion',
+        fechaInicio: formData.fechaInicio,
+        fechaFin: formData.fechaFin,
+        premio: formData.premio || 'Trofeo',
+        tipoCancha: result?.tipoCancha || formData.tipoCancha,
+        fixtureGenerado: false
+      };
       setCompetencias(prev => [...prev, nueva]);
       setFormData(initialForm);
       setModalVisible(false);
+      showSuccess('¡Competencia Creada!', `La competencia ${nueva.nombre} ha sido creada exitosamente.`);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo crear la competencia.');
     }
   };
 
+  const convertDateToISO = (dateStr) => {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    return `${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`;
+  };
+
   const handleInscripcion = (item) => {
     if (item.inscriptos >= parseInt(item.maxEquipos)) {
-      return Alert.alert("Cupo Lleno", "Ya no quedan lugares disponibles.");
+      return Alert.alert("Cupo Lleno", "La competición ya tiene el máximo de equipos permitidos.");
     }
-    Alert.alert(
-      "Inscripción",
-      `¿Deseas anotarte en ${item.nombre}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "CONFIRMAR", 
-          onPress: () => {
-            setCompetencias(prev => prev.map(c => c.id === item.id ? { ...c, inscriptos: Number(c.inscriptos) + 1 } : c));
-            setMisInscripciones(prev => [...prev, item.id]);
-            Alert.alert("¡Éxito!", "Inscripción registrada.");
-          } 
-        }
-      ]
-    );
+    const availableEquipos = equipos.filter(e => !e.competicionId);
+    if (availableEquipos.length === 0) {
+      return Alert.alert("Atención", "No tienes equipos disponibles para inscribir. Crea un equipo primero que no esté en otra competición.");
+    }
+    setCompeticionToEnroll(item);
+    setEnrollModalVisible(true);
+  };
+
+  const handleEliminarEquipos = (item) => {
+    const inscriptos = equipos.filter(e => e.competicionId?.toString() === item.id?.toString());
+    if (inscriptos.length === 0) {
+      return Alert.alert("Sin equipos", "No hay equipos inscriptos en la competición.");
+    }
+    setCompeticionToRemoveFrom(item);
+    setRemoveEquiposModalVisible(true);
+  };
+
+  const handleRemoveEquiposConfirm = async (equiposARemover) => {
+    if (!competicionToRemoveFrom || !equiposARemover || equiposARemover.length === 0) return;
+    try {
+      setLoading(true);
+      for (const equipo of equiposARemover) {
+        await equipoService.update(equipo.id, { ...equipo, competicionId: null });
+      }
+      setCompetencias(prev => prev.map(c =>
+        c.id === competicionToRemoveFrom.id
+          ? { ...c, inscriptos: Math.max(0, Number(c.inscriptos) - equiposARemover.length) }
+          : c
+      ));
+      const equipoIds = equiposARemover.map(e => e.id);
+      setEquipos(prev => prev.map(e =>
+        equipoIds.includes(e.id) ? { ...e, competicionId: null } : e
+      ));
+      setRemoveEquiposModalVisible(false);
+      setCompeticionToRemoveFrom(null);
+      showSuccess('Equipos Eliminados', `Se eliminaron ${equiposARemover.length} equipo(s) de ${competicionToRemoveFrom.nombre}.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron eliminar los equipos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerarFixture = (item) => {
+    setCompeticionToGenerarFixture(item);
+    setGenerarFixtureConfirmVisible(true);
+  };
+
+  const ejecutarGenerarFixture = async () => {
+    if (!competicionToGenerarFixture) return;
+    const item = competicionToGenerarFixture;
+    try {
+      setGenerarFixtureConfirmVisible(false);
+      setLoading(true);
+      await partidoService.generarFixture(item.id);
+      // Mark competition as fixture generated
+      setCompetencias(prev => prev.map(c =>
+        c.id === item.id ? { ...c, fixtureGenerado: true } : c
+      ));
+      setLoading(false);
+      // Open fixture modal to show the results
+      setSelectedCompeticion({ ...item, fixtureGenerado: true });
+      setFixtureModalVisible(true);
+      setCompeticionToGenerarFixture(null);
+    } catch (error) {
+      setLoading(false);
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo generar el fixture. Asegurate de tener la cantidad correcta de equipos inscriptos.');
+      setCompeticionToGenerarFixture(null);
+    }
+  };
+
+  const handleIniciarCompeticion = (item) => {
+    setCompeticionToIniciar(item);
+    setIniciarConfirmVisible(true);
+  };
+
+  const ejecutarIniciarCompeticion = async () => {
+    if (!competicionToIniciar) return;
+    const item = competicionToIniciar;
+    try {
+      setIniciarConfirmVisible(false);
+      setLoading(true);
+      await competicionService.iniciar(item.id);
+      setCompetencias(prev => prev.map(c =>
+        c.id === item.id ? { ...c, estado: 'en_juego' } : c
+      ));
+      showSuccess('Torneo Iniciado', `La competición ${item.nombre} ha iniciado oficialmente.`);
+      setCompeticionToIniciar(null);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', error.response?.data?.mensaje || 'No se pudo iniciar la competición.');
+      setCompeticionToIniciar(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEstadoTorneo = (item) => {
+    // For now, it opens TorneoFixtureModal which also manages results
+    // We could create a dedicated dashboard later if needed.
+    setSelectedCompeticion(item);
+    setInitialModalTab('FIXTURE');
+    setFixtureModalVisible(true);
+  };
+
+  const handleSelectEquiposParaInscribir = async (equiposSeleccionados) => {
+    if (!competicionToEnroll || !equiposSeleccionados || equiposSeleccionados.length === 0) return;
+    try {
+      setLoading(true);
+      for (const equipo of equiposSeleccionados) {
+        await equipoService.update(equipo.id, { ...equipo, competicionId: competicionToEnroll.id });
+      }
+      setCompetencias(prev => prev.map(c => 
+        c.id === competicionToEnroll.id 
+          ? { ...c, inscriptos: Number(c.inscriptos) + equiposSeleccionados.length } 
+          : c
+      ));
+      setMisInscripciones(prev => [...prev, competicionToEnroll.id]);
+      const equipoIds = equiposSeleccionados.map(e => e.id);
+      setEquipos(prev => prev.map(e => 
+        equipoIds.includes(e.id) ? { ...e, competicionId: competicionToEnroll.id } : e
+      ));
+      setEnrollModalVisible(false);
+      setCompeticionToEnroll(null);
+      showSuccess('¡Inscripción Exitosa!', `Se inscribieron ${equiposSeleccionados.length} equipo(s) en ${competicionToEnroll.nombre}.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron inscribir los equipos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerDetalle = (item) => {
+    setSelectedCompeticion(item);
+    setViewModalVisible(true);
+  };
+
+  const handleVerFixture = (item) => {
+    setSelectedCompeticion(item);
+    setInitialModalTab('FIXTURE');
+    setFixtureModalVisible(true);
+  };
+
+  const handleVerTabla = (item) => {
+    setSelectedCompeticion(item);
+    setInitialModalTab('TABLA');
+    setFixtureModalVisible(true);
+  };
+
+  const askDeleteCompeticion = (item) => {
+    setCompeticionToDelete(item);
+    setDeleteCompeticionConfirmVisible(true);
+  };
+
+  const handleDeleteCompeticion = async () => {
+    if (!competicionToDelete) return;
+    try {
+      await competicionService.delete(competicionToDelete.id);
+      setCompetencias(prev => prev.filter(c => c.id !== competicionToDelete.id));
+      showSuccess('Competición Eliminada', `La competición ${competicionToDelete.nombre} ha sido eliminada.`);
+      setDeleteCompeticionConfirmVisible(false);
+      setCompeticionToDelete(null);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
+    }
+  };
+
+  // ── Equipo handlers ──
+  const handleCreateEquipo = async (equipoFormData) => {
+    try {
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const equipoToSave = {
+        ...equipoFormData,
+        nombre: capitalizeWords(equipoFormData.nombre)
+      };
+
+      // Si es cliente, agregar CreadoPorClienteId automáticamente
+      const dataToSend = isCliente && idPersona
+        ? { ...equipoToSave, creadoPorClienteId: idPersona }
+        : equipoToSave;
+      const result = await equipoService.create(dataToSend);
+      const nuevo = { ...result, id: result?.id?.toString() || Date.now().toString() };
+      setEquipos(prev => [...prev, nuevo]);
+      setEquipoModalVisible(false);
+      showSuccess('¡Equipo Registrado!', 'El equipo fue creado exitosamente.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo crear el equipo.');
+    }
+  };
+
+  const handleEditEquipo = (equipo) => {
+    setEditingEquipo(equipo);
+    setEquipoModalVisible(true);
+  };
+
+  const handleUpdateEquipo = async (equipoFormData) => {
+    try {
+      const capitalizeWords = (str) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+      const equipoToUpdate = {
+        ...equipoFormData,
+        nombre: capitalizeWords(equipoFormData.nombre)
+      };
+
+      await equipoService.update(editingEquipo.id, equipoToUpdate);
+      setEquipos(prev => prev.map(e => e.id === editingEquipo.id ? { ...e, ...equipoToUpdate } : e));
+      setEquipoModalVisible(false);
+      setEditingEquipo(null);
+      showSuccess('¡Cambios Guardados!', 'El equipo se actualizó correctamente.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo actualizar el equipo.');
+    }
+  };
+
+  const askDeleteEquipo = (equipo) => {
+    setEquipoToDelete(equipo);
+    setDeleteConfirmVisible(true);
+  };
+
+  const handleDeleteEquipo = async () => {
+    if (!equipoToDelete) return;
+    try {
+      await equipoService.delete(equipoToDelete.id);
+      setEquipos(prev => prev.filter(e => e.id !== equipoToDelete.id));
+      showSuccess('Equipo Eliminado', `El equipo ${equipoToDelete.nombre} ha sido eliminado.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo eliminar el equipo.');
+    }
+  };
+
+  // ── Jugadores handlers ──
+  const openAddJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setAddJugadoresVisible(true);
+  };
+
+  const openRemoveJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setRemoveJugadoresVisible(true);
+  };
+
+  const openVerJugadores = (equipo) => {
+    setSelectedEquipo(equipo);
+    setVerJugadoresVisible(true);
+  };
+
+  const openFormacion = (equipo) => {
+    setEquipoFormacion(equipo);
+    setFormacionVisible(true);
+  };
+
+  const handleFormacionSaved = (payload) => {
+    // Actualizar el equipo en el estado local con las formaciones guardadas
+    setEquipos(prev => prev.map(e =>
+      e.id === equipoFormacion?.id
+        ? { ...e, formaciones: payload.formaciones }
+        : e
+    ));
+  };
+
+  const handleAddJugadores = async (jugadoresSeleccionados) => {
+    try {
+      for (const jugador of jugadoresSeleccionados) {
+        await jugadorService.create({
+          numero: jugador.numero,
+          posicion: jugador.posicion,
+          clienteId: jugador.clienteId,
+          equipoId: parseInt(selectedEquipo.id)
+        });
+      }
+      setAddJugadoresVisible(false);
+      showSuccess('¡Jugadores Agregados!', `Se agregaron ${jugadoresSeleccionados.length} jugador(es) correctamente al equipo.`);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron agregar los jugadores.');
+    }
+  };
+
+  // ── Helpers ──
+  const showSuccess = (title, message) => {
+    setSuccessTitle(title);
+    setSuccessMessage(message);
+    setSuccessModalVisible(true);
   };
 
   if (loading) {
@@ -84,7 +552,7 @@ export default function CompetenciasScreen({ route, navigation }) {
       <ScreenTemplate userRole={currentUserRole} navigation={navigation}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#009b3a" />
-          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando competencias...</Text>
+          <Text style={{ color: '#fff', marginTop: 10, fontWeight: '600' }}>Cargando datos...</Text>
         </View>
       </ScreenTemplate>
     );
@@ -105,42 +573,316 @@ export default function CompetenciasScreen({ route, navigation }) {
         </ScrollView>
       </View>
 
-      <View style={styles.headerRow}>
-        <Text style={styles.mainTitle}>Ligas y Torneos</Text>
-        {isStaff && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>NUEVA</Text>
-          </TouchableOpacity>
-        )}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity style={[styles.tabBtn, activeTab === 'COMPETENCIAS' && styles.tabBtnActive]} onPress={() => setActiveTab('COMPETENCIAS')}>
+          <Text style={[styles.tabText, activeTab === 'COMPETENCIAS' && styles.tabTextActive]}>Competencias</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tabBtn, activeTab === 'EQUIPOS' && styles.tabBtnActive]} onPress={() => setActiveTab('EQUIPOS')}>
+          <Text style={[styles.tabText, activeTab === 'EQUIPOS' && styles.tabTextActive]}>{isCliente ? 'Mis equipos' : 'Equipos'}</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {competencias.map(item => (
-          <CompetenciaCard 
-            key={item.id} 
-            item={item} 
-            canModify={isStaff}
-            yaInscripto={misInscripciones.includes(item.id)}
-            onInscribir={() => handleInscripcion(item)}
-            onDelete={async () => {
-              try {
-                await competicionService.delete(item.id);
-                setCompetencias(prev => prev.filter(c => c.id !== item.id));
-              } catch (error) {
-                Alert.alert('Error', error.message || 'No se pudo eliminar la competencia.');
-              }
-            }}
-          />
-        ))}
-      </ScrollView>
+      {activeTab === 'COMPETENCIAS' ? (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.mainTitle}>Ligas y Torneos</Text>
+            {isStaff && (
+              <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+                <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>NUEVA</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
+            {[
+              { key: "TORNEO", titulo: "TORNEOS", icon: "tournament", data: competencias.filter(c => c.tipo === "TORNEO") },
+              { key: "LIGA", titulo: "LIGAS", icon: "format-list-numbered", data: competencias.filter(c => c.tipo === "LIGA") }
+            ].filter(s => s.data.length > 0).map(section => (
+              <View key={section.key} style={{ marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                  <View style={{ backgroundColor: '#fbbf24', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
+                    <MaterialCommunityIcons name={section.icon} size={20} color="#000" />
+                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 16, marginLeft: 8, textTransform: 'uppercase' }}>{section.titulo}</Text>
+                  </View>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, marginLeft: 10 }}>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{section.data.length}</Text>
+                  </View>
+                </View>
+                {section.data.map(item => {
+                  const cupoCompleto = item.inscriptos >= parseInt(item.maxEquipos);
+                  return isCliente ? (
+                    <View key={item.id} style={styles.clienteCompCard}>
+                      <View style={styles.clienteCompInfo}>
+                        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
+                          <View style={[styles.badge, { backgroundColor: item.tipo === 'LIGA' ? '#009b3a' : '#fbbf24' }]}>
+                            <Text style={styles.badgeText}>{item.tipo}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.clienteCompTitle}>{item.nombre}</Text>
+                        <Text style={styles.clienteCompDate}>Inicia: {item.fechaInicio}{item.fechaFin ? ` — Fin: ${item.fechaFin}` : ''}</Text>
+                        <Text style={styles.clienteCompDetail}>Cupos: {item.inscriptos} / {item.maxEquipos}</Text>
+                        <Text style={styles.clienteCompPrice}>Inscripción: ${(item.precioInscripcion || 50000).toLocaleString('es-AR')}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                        <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerDetalle(item)}>
+                          <Text style={styles.clienteCompBtnText}>VER</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerFixture(item)}>
+                          <Text style={styles.clienteCompBtnText}>FIXTURE</Text>
+                        </TouchableOpacity>
+                        {item.tipo === 'LIGA' && (
+                          <TouchableOpacity style={styles.clienteCompBtn} onPress={() => handleVerTabla(item)}>
+                            <Text style={styles.clienteCompBtnText}>TABLA</Text>
+                          </TouchableOpacity>
+                        )}
+                        {item.estado === 'inscripcion' && (
+                          <TouchableOpacity 
+                            style={[styles.clienteInscribirBtn, cupoCompleto && { backgroundColor: '#e2e8f0' }]}
+                            onPress={!cupoCompleto ? () => { setCompetenciaParaInscripcion(item); setInscripcionCompVisible(true); } : null}
+                            disabled={cupoCompleto}
+                          >
+                            <MaterialCommunityIcons name="trophy" size={16} color={cupoCompleto ? '#94a3b8' : '#fff'} />
+                            <Text style={[styles.clienteInscribirText, cupoCompleto && { color: '#94a3b8' }]}>INSCRIBIR MI EQUIPO</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    <CompetenciaCard 
+                      key={item.id} 
+                      item={item} 
+                      canModify={isStaff}
+                      onInscribir={() => handleInscripcion(item)}
+                      onEliminarEquipos={() => handleEliminarEquipos(item)}
+                      onVerDetalle={() => handleVerDetalle(item)}
+                      onVerFixture={() => handleVerFixture(item)}
+                      onVerTabla={() => handleVerTabla(item)}
+                      onGenerarFixture={() => handleGenerarFixture(item)}
+                      onDelete={() => askDeleteCompeticion(item)}
+                      onIniciar={() => handleIniciarCompeticion(item)}
+                      onEstado={() => handleEstadoTorneo(item)}
+                    />
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+        </>
+      ) : (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.mainTitle}>{isCliente ? 'Mis Equipos' : 'Equipos Registrados'}</Text>
+            {canCreateEquipo && (
+              <TouchableOpacity style={styles.addButton} onPress={() => { setEditingEquipo(null); setEquipoModalVisible(true); }}>
+                <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
+                <Text style={styles.addButtonText}>{isCliente ? 'Crear Equipo' : 'Agregar Equipo'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
+          <View style={[styles.searchWrapper, isSearchFocused && styles.searchWrapperFocused]}>
+            <View style={styles.searchInner}>
+                <MaterialCommunityIcons name="magnify" size={22} color={isSearchFocused ? "#009b3a" : "#94a3b8"} />
+                <TextInput 
+                  style={[styles.searchInputNav, { outlineStyle: 'none' }]}
+                  placeholder="Buscar equipo por nombre..."
+                  value={searchEquipo}
+                  onChangeText={setSearchEquipo}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  placeholderTextColor="#94a3b8"
+                />
+            </View>
+          </View>
+
+            <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 100 }}>
+            {equipos
+              .filter(item => (item.nombre || '').toLowerCase().includes(searchEquipo.toLowerCase()))
+              .map(item => {
+                const myJugador = misJugadores.find(j => String(j.equipoId) === String(item.id));
+                const necesitaPosicion = isCliente && myJugador && (myJugador.posicion === 0 || myJugador.posicion === null);
+                const esMiembro = isCliente && !!myJugador;
+
+                return (
+                  <EquipoCard 
+                    key={item.id} 
+                    item={item} 
+                    canModify={isStaff || (isCliente && item.creadoPorClienteId == idPersona)}
+                    onEdit={() => handleEditEquipo(item)}
+                    onDelete={() => askDeleteEquipo(item)}
+                    onAddJugadores={() => isCliente ? (function(){ setEquipoParaInvitar(item); setInvitarJugadorVisible(true); })() : openAddJugadores(item)}
+                    onRemoveJugadores={() => openRemoveJugadores(item)}
+                    onVerJugadores={() => openVerJugadores(item)}
+                    onFormacion={() => openFormacion(item)}
+                    necesitaPosicion={necesitaPosicion}
+                    esMiembro={esMiembro}
+                    onDefinirPosicion={() => { setEquipoParaPosicion({ ...item, jugadorId: myJugador.id }); setPosicionModalVisible(true); }}
+                  />
+                );
+              })}
+            {equipos.length === 0 && (
+              <Text style={{color: '#94a3b8', textAlign: 'center', marginTop: 20}}>{isCliente ? 'No tenés equipos creados. ¡Creá uno!' : 'No hay equipos registrados.'}</Text>
+            )}
+          </ScrollView>
+        </>
+      )}
+
+      {/* ── Modals ── */}
       <CompetenciaFormModal 
         visible={modalVisible} 
         onClose={() => setModalVisible(false)} 
         formData={formData} 
         setFormData={setFormData} 
         onSave={handleCreate} 
+      />
+
+      <EquipoFormModal 
+        visible={equipoModalVisible}
+        onClose={() => { setEquipoModalVisible(false); setEditingEquipo(null); }}
+        onSave={editingEquipo ? handleUpdateEquipo : handleCreateEquipo}
+        editData={editingEquipo}
+      />
+
+      <ConfirmModal
+        visible={deleteConfirmVisible}
+        onClose={() => setDeleteConfirmVisible(false)}
+        onConfirm={handleDeleteEquipo}
+        title="Eliminar Equipo"
+        message={`¿Está seguro que desea eliminar el equipo "${equipoToDelete?.nombre}"?`}
+        confirmText="ELIMINAR"
+        cancelText="Cancelar"
+        icon="alert-circle-outline"
+        color="#ef4444"
+      />
+
+      <ConfirmModal
+        visible={deleteCompeticionConfirmVisible}
+        onClose={() => setDeleteCompeticionConfirmVisible(false)}
+        onConfirm={handleDeleteCompeticion}
+        title="Eliminar Competición"
+        message={`¿Está seguro que desea eliminar la competición "${competicionToDelete?.nombre}"?`}
+        confirmText="ELIMINAR"
+        cancelText="Cancelar"
+        icon="alert-circle-outline"
+        color="#ef4444"
+      />
+
+      <ConfirmModal
+        visible={generarFixtureConfirmVisible}
+        onClose={() => { setGenerarFixtureConfirmVisible(false); setCompeticionToGenerarFixture(null); }}
+        onConfirm={ejecutarGenerarFixture}
+        title="Generar Fixture"
+        message={`¿Deseas generar el fixture de manera aleatoria para "${competicionToGenerarFixture?.nombre}"?`}
+        confirmText="Generar"
+        cancelText="Cancelar"
+        color="#3b82f6"
+        icon="shuffle-variant"
+      />
+
+      <ConfirmModal
+        visible={iniciarConfirmVisible}
+        onClose={() => { setIniciarConfirmVisible(false); setCompeticionToIniciar(null); }}
+        onConfirm={ejecutarIniciarCompeticion}
+        title="Iniciar Competición"
+        message={`¿Estás seguro de que deseas iniciar oficialmente la competición "${competicionToIniciar?.nombre}"? Ya no podrás inscribir ni eliminar equipos.`}
+        confirmText="Iniciar"
+        cancelText="Cancelar"
+        color="#10b981"
+        icon="play-circle"
+      />
+
+      <AddJugadoresModal
+        visible={addJugadoresVisible}
+        onClose={() => setAddJugadoresVisible(false)}
+        onConfirm={handleAddJugadores}
+        equipoId={selectedEquipo?.id}
+      />
+
+      <RemoveJugadoresModal
+        visible={removeJugadoresVisible}
+        onClose={() => setRemoveJugadoresVisible(false)}
+        equipoId={selectedEquipo?.id}
+        equipoNombre={selectedEquipo?.nombre}
+      />
+
+      <VerJugadoresModal
+        visible={verJugadoresVisible}
+        onClose={() => setVerJugadoresVisible(false)}
+        equipoId={selectedEquipo?.id}
+        equipoNombre={selectedEquipo?.nombre}
+      />
+
+      <FormacionModal
+        visible={formacionVisible}
+        onClose={() => { setFormacionVisible(false); setEquipoFormacion(null); }}
+        equipo={equipoFormacion}
+        onSaved={handleFormacionSaved}
+      />
+
+      <SuccessModal
+        visible={successModalVisible}
+        onClose={() => {
+          setSuccessModalVisible(false);
+          setErrorMode(false);
+        }}
+        title={successTitle}
+        message={successMessage}
+        isError={errorMode}
+      />
+
+      <TorneoFixtureModal 
+        visible={fixtureModalVisible}
+        onClose={() => setFixtureModalVisible(false)}
+        competicion={selectedCompeticion}
+        isStaff={isStaff}
+        initialTab={initialModalTab}
+      />
+
+      <EnrollTeamModal 
+        visible={enrollModalVisible}
+        onClose={() => { setEnrollModalVisible(false); setCompeticionToEnroll(null); }}
+        availableEquipos={equipos.filter(e => !e.competicionId)}
+        onSelectEquipo={handleSelectEquiposParaInscribir}
+        maxSlots={competicionToEnroll ? Math.max(0, parseInt(competicionToEnroll.maxEquipos) - competicionToEnroll.inscriptos) : 999}
+      />
+
+      <ViewCompetenciaModal
+        visible={viewModalVisible}
+        onClose={() => setViewModalVisible(false)}
+        competicion={selectedCompeticion}
+      />
+
+      <RemoveEquiposCompModal
+        visible={removeEquiposModalVisible}
+        onClose={() => { setRemoveEquiposModalVisible(false); setCompeticionToRemoveFrom(null); }}
+        enrolledEquipos={competicionToRemoveFrom ? equipos.filter(e => e.competicionId?.toString() === competicionToRemoveFrom.id?.toString()) : []}
+        onRemove={handleRemoveEquiposConfirm}
+      />
+
+      {/* ── Cliente Modals ── */}
+      <ClienteInvitarJugadorModal
+        visible={invitarJugadorVisible}
+        onClose={() => { setInvitarJugadorVisible(false); setEquipoParaInvitar(null); }}
+        equipo={equipoParaInvitar}
+        idUsuario={idUsuario}
+        onSuccess={() => loadData()}
+      />
+
+      <ClienteInscripcionCompModal
+        visible={inscripcionCompVisible}
+        onClose={() => { setInscripcionCompVisible(false); setCompetenciaParaInscripcion(null); }}
+        competencia={competenciaParaInscripcion}
+        idPersona={idPersona}
+        idUsuario={idUsuario}
+        onSuccess={() => loadData()}
+      />
+
+      <SetPosicionModal
+        visible={posicionModalVisible}
+        onClose={() => { setPosicionModalVisible(false); setEquipoParaPosicion(null); }}
+        jugadorId={equipoParaPosicion?.jugadorId}
+        equipoNombre={equipoParaPosicion?.nombre}
+        onSuccess={() => { setPosicionModalVisible(false); loadData(); }}
       />
     </ScreenTemplate>
   );
@@ -152,8 +894,30 @@ const styles = StyleSheet.create({
   monitorCard: { backgroundColor: '#004d1a', padding: 15, borderRadius: 20, marginRight: 12, minWidth: 160, borderWidth: 1, borderColor: '#009b3a' },
   monitorTitle: { color: '#fff', fontWeight: '900', fontSize: 13, marginTop: 5 },
   monitorSub: { color: '#ffb300', fontWeight: '800', fontSize: 10, marginTop: 2 },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginBottom: 20 },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabBtnActive: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  tabText: { fontWeight: '700', color: '#64748b' },
+  tabTextActive: { color: '#009b3a', fontWeight: '900' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  mainTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  searchWrapper: { width: '100%', backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, elevation: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+  searchWrapperFocused: { borderColor: '#009b3a', borderWidth: 1.5 },
+  searchInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 55 },
+  searchInputNav: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '600', color: '#1e293b' },
+  mainTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
   addButton: { backgroundColor: '#009b3a', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   addButtonText: { fontWeight: '900', marginLeft: 6, color: '#fff' },
+  // Client competencias view
+  clienteCompCard: { backgroundColor: '#fff', borderRadius: 18, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', justifyContent: 'space-between' },
+  clienteCompInfo: { flex: 1, marginRight: 10 },
+  clienteCompTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b', marginBottom: 3 },
+  clienteCompDate: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+  clienteCompDetail: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+  clienteCompPrice: { fontSize: 13, color: '#009b3a', fontWeight: '900', marginTop: 4 },
+  clienteCompBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  clienteCompBtnText: { fontSize: 10, fontWeight: '900', color: '#475569' },
+  clienteInscribirBtn: { backgroundColor: '#009b3a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, gap: 5, marginTop: 2 },
+  clienteInscribirText: { fontSize: 9, fontWeight: '900', color: '#fff' },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  badgeText: { fontSize: 10, fontWeight: '900', color: '#fff' },
 });

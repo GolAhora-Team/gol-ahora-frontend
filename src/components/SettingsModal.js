@@ -16,16 +16,42 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [showObraSocialSuggestions, setShowObraSocialSuggestions] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Username states
+  const [currentUsername, setCurrentUsername] = useState('');
+  const [editedUsername, setEditedUsername] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null); // null = not checked, true = available, false = taken
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameCheckTimer, setUsernameCheckTimer] = useState(null);
+
+  const topObrasSociales = [
+    "OSDE", "Swiss Medical", "Galeno", "Sancor Salud", "Medifé", 
+    "OSECAC", "IOMA", "PAMI", "Accord Salud", "Omint", 
+    "Unión Personal", "ObSBA", "OSPRERA", "OSPE", "Prevención Salud", 
+    "Jerárquicos Salud", "Luis Pasteur", "OSDEPYM", "OSUTHGRA", "Hospital Italiano"
+  ];
 
   const [perfil, setPerfil] = useState({
     nombre: '',
     apellido: '',
-    email: '', // DNI
+    dni: '',
+    email: '',
     telefono: '',
-    direccion: ''
+    direccion: '',
+    obraSocial: '',
+    codigoPostal: '',
+    localidad: '',
+    provincia: '',
+    pais: '',
+    contactoEmergencia: ''
   });
+
+  const filteredObrasSociales = perfil.obraSocial 
+    ? topObrasSociales.filter(os => os.toLowerCase().includes(perfil.obraSocial.toLowerCase()))
+    : topObrasSociales;
   
   // Para la actualizacion se requiere enviar el DTO completo dependiendo del rol
   const [fullData, setFullData] = useState(null);
@@ -59,10 +85,31 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         setPerfil({
           nombre: data.nombre || '',
           apellido: data.apellido || '',
-          email: data.dni?.toString() || '',
+          dni: data.dni?.toString() || '',
+          email: data.email || '',
           telefono: data.telefono || '',
-          direccion: data.direccion || ''
+          direccion: data.direccion || '',
+          obraSocial: data.obraSocial || '',
+          codigoPostal: data.codigoPostal || '',
+          localidad: data.localidad || '',
+          provincia: data.provincia || '',
+          pais: data.pais || '',
+          contactoEmergencia: data.contactoEmergencia || ''
         });
+      }
+
+      // Load username from all-usernames endpoint (map by personaId)
+      try {
+        const usernamesData = await userService.getAllUsernames();
+        if (usernamesData && Array.isArray(usernamesData)) {
+          const match = usernamesData.find(u => u.personaId === idPersona);
+          if (match) {
+            setCurrentUsername(match.username || '');
+            setEditedUsername(match.username || '');
+          }
+        }
+      } catch (e) {
+        console.error('Error loading username:', e);
       }
     } catch (error) {
       console.error("Error al cargar datos del usuario", error);
@@ -76,6 +123,17 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
       Alert.alert("Atención", "El nombre y apellido son obligatorios.");
       return;
     }
+
+    if (isEditingInfo && editedUsername !== currentUsername && editedUsername.length >= 3) {
+      if (usernameChecking || usernameAvailable === null) {
+        Alert.alert("Atención", "Validando disponibilidad del nombre de usuario, por favor esperá un momento.");
+        return;
+      }
+      if (usernameAvailable === false) {
+        Alert.alert("Atención", "El nombre de usuario no está disponible.");
+        return;
+      }
+    }
     
     setIsLoading(true);
     try {
@@ -83,8 +141,15 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         ...fullData,
         nombre: perfil.nombre,
         apellido: perfil.apellido,
+        email: perfil.email,
         telefono: perfil.telefono,
-        direccion: perfil.direccion
+        direccion: perfil.direccion,
+        obraSocial: perfil.obraSocial,
+        codigoPostal: perfil.codigoPostal,
+        localidad: perfil.localidad,
+        provincia: perfil.provincia,
+        pais: perfil.pais,
+        contactoEmergencia: perfil.contactoEmergencia
       };
 
       if (userRole === 'CLIENTE') {
@@ -93,6 +158,16 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
         await profesorService.updateSimple(idPersona, updatedData);
       } else if (userRole === 'ADMIN' || userRole === 'PERSONAL') {
         await administradorService.updateSimple(idPersona, updatedData);
+      }
+
+      // If username was changed, update it too
+      if (editedUsername && editedUsername !== currentUsername && usernameAvailable === true) {
+        try {
+          await userService.updateUsername(idUsuario, editedUsername);
+          setCurrentUsername(editedUsername);
+        } catch (e) {
+          Alert.alert('Error', e.message || 'No se pudo actualizar el nombre de usuario.');
+        }
       }
       
       setSuccessMsg("¡Cambios guardados correctamente!");
@@ -112,6 +187,16 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
     }
     if (passwords.newPass !== passwords.confirmPass) {
       Alert.alert("Atención", "Las nuevas contraseñas no coinciden.");
+      return;
+    }
+
+    // Regla de contraseña: mínimo 8 caracteres, una mayúscula y un carácter especial
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>_+\-\[\]\\\/]).{8,}$/;
+    if (!passwordRegex.test(passwords.newPass)) {
+      Alert.alert(
+        "Contraseña débil",
+        "La nueva contraseña debe tener como mínimo 8 caracteres, al menos una letra mayúscula y al menos un carácter especial (ej: @, $, !, #)."
+      );
       return;
     }
 
@@ -154,31 +239,124 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             </View>
 
             {perfilMode === 'INFO' ? (
-              <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.form} showsVerticalScrollIndicator={true}>
                 {isLoading && !fullData ? (
                   <ActivityIndicator size="small" color="#009b3a" style={{marginVertical: 20}} />
                 ) : (
                   <>
-                    <Text style={styles.label}>Nombre</Text>
-                    <TextInput 
-                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
-                      value={perfil.nombre} 
-                      onChangeText={(t)=>setPerfil({...perfil, nombre:t})} 
-                      editable={isEditingInfo}
-                    />
-                    <Text style={styles.label}>Apellido</Text>
-                    <TextInput 
-                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
-                      value={perfil.apellido} 
-                      onChangeText={(t)=>setPerfil({...perfil, apellido:t})} 
-                      editable={isEditingInfo}
-                    />
-                    <Text style={styles.label}>DNI / Usuario (No editable)</Text>
+                    <Text style={styles.label}>Nombre (No editable)</Text>
                     <TextInput 
                       style={[styles.input, styles.inputDisabled]} 
-                      value={perfil.email} 
+                      value={perfil.nombre} 
+                      onChangeText={(t)=>setPerfil({...perfil, nombre:t})} 
+                      editable={false}
+                    />
+                    <Text style={styles.label}>Apellido (No editable)</Text>
+                    <TextInput 
+                      style={[styles.input, styles.inputDisabled]} 
+                      value={perfil.apellido} 
+                      onChangeText={(t)=>setPerfil({...perfil, apellido:t})} 
+                      editable={false}
+                    />
+                    <Text style={styles.label}>DNI (No editable)</Text>
+                    <TextInput 
+                      style={[styles.input, styles.inputDisabled]} 
+                      value={perfil.dni} 
                       editable={false} 
                     />
+                    <Text style={styles.label}>Nombre de Usuario</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TextInput 
+                        style={[styles.input, !isEditingInfo && styles.inputDisabled, { flex: 1 }]} 
+                        value={editedUsername}
+                        onChangeText={(t) => {
+                          const clean = t.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+                          setEditedUsername(clean);
+                          setUsernameAvailable(null);
+                          if (usernameCheckTimer) clearTimeout(usernameCheckTimer);
+                          if (clean === currentUsername) {
+                            setUsernameAvailable(null);
+                            return;
+                          }
+                          if (clean.length < 3) {
+                            setUsernameAvailable(null);
+                            return;
+                          }
+                          setUsernameChecking(true);
+                          const timer = setTimeout(async () => {
+                            try {
+                              const result = await userService.checkUsernameAvailable(clean, idUsuario);
+                              setUsernameAvailable(result.available);
+                            } catch (e) {
+                              setUsernameAvailable(null);
+                            } finally {
+                              setUsernameChecking(false);
+                            }
+                          }, 500);
+                          setUsernameCheckTimer(timer);
+                        }}
+                        editable={isEditingInfo}
+                        autoCapitalize="none"
+                        placeholder="Ej: juanperez"
+                        placeholderTextColor="#999"
+                      />
+                      {isEditingInfo && editedUsername !== currentUsername && editedUsername.length >= 3 && (
+                        <View style={{ marginLeft: 8, width: 28, alignItems: 'center' }}>
+                          {usernameChecking ? (
+                            <ActivityIndicator size="small" color="#94a3b8" />
+                          ) : usernameAvailable === true ? (
+                            <MaterialCommunityIcons name="check-circle" size={24} color="#22c55e" />
+                          ) : usernameAvailable === false ? (
+                            <MaterialCommunityIcons name="close-circle" size={24} color="#ef4444" />
+                          ) : null}
+                        </View>
+                      )}
+                    </View>
+                    {isEditingInfo && usernameAvailable === false && (
+                      <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '700', marginTop: 4 }}>Ese nombre de usuario no está disponible</Text>
+                    )}
+                    <Text style={styles.label}>Correo Electrónico</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.email} 
+                      onChangeText={(t)=>setPerfil({...perfil, email:t})} 
+                      editable={isEditingInfo}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                    <Text style={styles.label}>Obra Social</Text>
+                    <View style={{ zIndex: 10 }}>
+                      <TextInput 
+                        style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                        value={perfil.obraSocial} 
+                        onChangeText={(t) => {
+                          setPerfil({...perfil, obraSocial:t});
+                          setShowObraSocialSuggestions(true);
+                        }} 
+                        onFocus={() => isEditingInfo && setShowObraSocialSuggestions(true)}
+                        editable={isEditingInfo}
+                        placeholder={isEditingInfo ? "Ej: OSDE, Swiss Medical..." : ""}
+                        placeholderTextColor="#999"
+                      />
+                      {isEditingInfo && showObraSocialSuggestions && filteredObrasSociales.length > 0 && (
+                        <View style={styles.suggestionsContainer}>
+                          <ScrollView nestedScrollEnabled style={{ maxHeight: 150 }}>
+                            {filteredObrasSociales.map((os, index) => (
+                              <TouchableOpacity 
+                                key={index} 
+                                style={styles.suggestionItem}
+                                onPress={() => {
+                                  setPerfil({...perfil, obraSocial:os});
+                                  setShowObraSocialSuggestions(false);
+                                }}
+                              >
+                                <Text style={styles.suggestionText}>{os}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.label}>Teléfono</Text>
                     <TextInput 
                       style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
@@ -191,6 +369,41 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                       style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
                       value={perfil.direccion} 
                       onChangeText={(t)=>setPerfil({...perfil, direccion:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>C.P.</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.codigoPostal} 
+                      onChangeText={(t)=>setPerfil({...perfil, codigoPostal:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Localidad</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.localidad} 
+                      onChangeText={(t)=>setPerfil({...perfil, localidad:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Provincia</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.provincia} 
+                      onChangeText={(t)=>setPerfil({...perfil, provincia:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>País</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.pais} 
+                      onChangeText={(t)=>setPerfil({...perfil, pais:t})} 
+                      editable={isEditingInfo}
+                    />
+                    <Text style={styles.label}>Contacto de Emergencia</Text>
+                    <TextInput 
+                      style={[styles.input, !isEditingInfo && styles.inputDisabled]} 
+                      value={perfil.contactoEmergencia} 
+                      onChangeText={(t)=>setPerfil({...perfil, contactoEmergencia:t})} 
                       editable={isEditingInfo}
                     />
 
@@ -212,7 +425,7 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
                 )}
               </ScrollView>
             ) : (
-              <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.form} showsVerticalScrollIndicator={true}>
                 <Text style={styles.label}>Contraseña Actual</Text>
                 <TextInput 
                   style={styles.input} 
@@ -241,30 +454,9 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             )}
           </View>
         );
-      case 'PAGOS':
-        return (
-          <View style={styles.form}>
-            <Text style={styles.infoTxt}>Registrá tu tarjeta para abonar reservas de canchas e inscripciones (RNF-IN-01).</Text>
-            <Text style={styles.label}>Número de Tarjeta</Text>
-            <TextInput style={styles.input} placeholder="XXXX XXXX XXXX XXXX" keyboardType="numeric" />
-            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-              <View style={{width: '45%'}}>
-                <Text style={styles.label}>Vencimiento</Text>
-                <TextInput style={styles.input} placeholder="MM/YY" />
-              </View>
-              <View style={{width: '45%'}}>
-                <Text style={styles.label}>CVV</Text>
-                <TextInput style={styles.input} placeholder="123" secureTextEntry />
-              </View>
-            </View>
-            <TouchableOpacity style={[styles.saveBtn, {backgroundColor: '#06b6d4'}]}>
-              <Text style={styles.saveText}>GUARDAR TARJETA</Text>
-            </TouchableOpacity>
-          </View>
-        );
       case 'INFO':
         return (
-          <ScrollView style={styles.aboutContainer} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.aboutContainer} showsVerticalScrollIndicator={true}>
             <Text style={styles.aboutTitle}>GOL AHORA</Text>
             <Text style={styles.aboutText}>
               Plataforma integral para la gestión de complejo de canchas de futbol, desarrollada para Ingeniería de Software I.
@@ -275,7 +467,6 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
             <Text style={styles.memberName}>• Espindola, Nadia</Text>
             <Text style={styles.memberName}>• Fabbio, Benjamin </Text>
             <Text style={styles.memberName}>• Florentin, Javier</Text>
-            <Text style={styles.memberName}>• Roldan, Nicolas</Text>
             <Text style={styles.memberName}>• Salas, Alejandro</Text>
             <Text style={styles.memberName}>• Zalazar, Ezequiel</Text>
 
@@ -294,12 +485,6 @@ export default function SettingsModal({ visible, onClose, userRole, idPersona, i
               <TouchableOpacity onPress={() => setActiveTab('PERFIL')} style={[styles.tab, activeTab === 'PERFIL' && styles.activeTab]}>
                 <MaterialCommunityIcons name="account-cog" size={22} color={activeTab === 'PERFIL' ? '#009b3a' : '#94a3b8'} />
               </TouchableOpacity>
-
-              {userRole === 'CLIENTE' && (
-                <TouchableOpacity onPress={() => setActiveTab('PAGOS')} style={[styles.tab, activeTab === 'PAGOS' && styles.activeTab]}>
-                  <MaterialCommunityIcons name="credit-card-plus" size={22} color={activeTab === 'PAGOS' ? '#009b3a' : '#94a3b8'} />
-                </TouchableOpacity>
-              )}
 
               <TouchableOpacity onPress={() => setActiveTab('INFO')} style={[styles.tab, activeTab === 'INFO' && styles.activeTab]}>
                 <MaterialCommunityIcons name="information-outline" size={22} color={activeTab === 'INFO' ? '#009b3a' : '#94a3b8'} />
@@ -352,5 +537,8 @@ const styles = StyleSheet.create({
   subTabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   subTabActive: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
   subTabText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  subTabTextActive: { color: '#009b3a' }
+  subTabTextActive: { color: '#009b3a' },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginTop: 5, marginBottom: 15, paddingVertical: 5, elevation: 3, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 3 },
+  suggestionItem: { paddingVertical: 10, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  suggestionText: { color: '#333', fontSize: 13, fontWeight: '600' }
 });

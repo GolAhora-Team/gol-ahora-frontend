@@ -62,4 +62,16 @@ export const competicionService = {
       throw error;
     }
   },
+
+  /**
+   * PUT /api/Competicion/{id}/iniciar
+   */
+  iniciar: async (id) => {
+    try {
+      return await http.put(`${URL}/${id}/iniciar`);
+    } catch (error) {
+      console.error(`Error initiating competición con id ${id}:`, error);
+      throw error;
+    }
+  },
 };

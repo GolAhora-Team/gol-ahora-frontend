@@ -62,4 +62,28 @@ export const facturaService = {
       throw error;
     }
   },
+
+  /**
+   * GET /api/Factura/por-cliente/{clienteId}
+   */
+  getByClienteId: async (clienteId) => {
+    try {
+      return await http.get(`${URL}/por-cliente/${clienteId}`);
+    } catch (error) {
+      console.error(`Error fetching facturas por cliente ${clienteId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * POST /api/Factura/enviar-email
+   */
+  enviarFacturaEmail: async (payload) => {
+    try {
+      return await http.post(`${URL}/enviar-email`, payload);
+    } catch (error) {
+      console.error('Error enviando factura por email:', error);
+      throw error;
+    }
+  },
 };

@@ -37,4 +37,9 @@ export const canchaService = {
   delete: async (id) => {
     return await http.delete(`${ENDPOINT}/${id}`);
   },
+
+  // Actualizar precios globales
+  updatePrecios: async (preciosData) => {
+    return await http.put(`${ENDPOINT}/precios`, preciosData);
+  },
 };

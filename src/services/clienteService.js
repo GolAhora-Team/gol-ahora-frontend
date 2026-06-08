@@ -47,4 +47,13 @@ export const clienteService = {
       throw error;
     }
   },
+
+  deleteAptoMedico: async (id) => {
+    try {
+      return await http.delete(`${URL}/${id}/apto-medico`);
+    } catch (error) {
+      console.error(`Error deleting apto medico para cliente con id ${id}:`, error);
+      throw error;
+    }
+  },
 };

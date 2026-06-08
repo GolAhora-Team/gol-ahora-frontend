@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../services/userService';
-import { 
-  StyleSheet, Text, View, TextInput, TouchableOpacity, 
-  SafeAreaView, ScrollView, Dimensions, Platform, 
-  KeyboardAvoidingView, StatusBar 
+import { setAuthToken } from '../services/apiConfig';
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  SafeAreaView, ScrollView, Dimensions, Platform,
+  KeyboardAvoidingView, StatusBar, Modal, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,21 +12,97 @@ import * as NavigationBar from 'expo-navigation-bar';
 import Background from '../components/Background';
 import BackgroundLogin from '../components/BackgroundLogin';
 import Footer from '../components/Footer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' && windowWidth > 768;
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSecure, setIsSecure] = useState(true);
   const [focusedInput, setFocusedInput] = useState(null);
   const [errorMessage, setErrorMessage] = useState(''); // Estado para el error
+  const [showInactivityModal, setShowInactivityModal] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const [failedAttempts, setFailedAttempts] = useState({});
+  const [lockouts, setLockouts] = useState({});
+
+  const [showForceChangeModal, setShowForceChangeModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [pendingSessionData, setPendingSessionData] = useState(null);
+  const [forceChangeError, setForceChangeError] = useState('');
+
+  useEffect(() => {
+    if (route?.params?.sessionClosedByInactivity) {
+      setShowInactivityModal(true);
+      const timer = setTimeout(() => {
+        setShowInactivityModal(false);
+      }, 60000); // 1 minuto
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.sessionClosedByInactivity]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('#004d1a');
     }
+
+    const loadRememberedUser = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem('GOL_AHORA_REMEMBER_USER');
+        if (savedUser) {
+          setEmail(savedUser);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.log('Error loading remembered user', error);
+      }
+    };
+    loadRememberedUser();
+
+    // Auto-login if session exists
+    if (Platform.OS === 'web') {
+      try {
+        const savedSession = localStorage.getItem('GOL_AHORA_SESSION');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          const rawParams = new URLSearchParams(window.location.search);
+          const extraParams = {};
+          rawParams.forEach((value, key) => { extraParams[key] = value; });
+          
+          navigation.replace('Dashboard', { ...parsed, ...(route?.params || {}), ...extraParams });
+        }
+      } catch (e) { }
+    }
+
+    const checkLockout = async () => {
+      try {
+        const lockoutsData = await AsyncStorage.getItem('GOL_AHORA_LOCKOUTS');
+        if (lockoutsData) {
+          const parsedLockouts = JSON.parse(lockoutsData);
+          const now = Date.now();
+          let hasChanges = false;
+          
+          for (const key in parsedLockouts) {
+            if (parsedLockouts[key] <= now) {
+              delete parsedLockouts[key];
+              hasChanges = true;
+            }
+          }
+          
+          setLockouts(parsedLockouts);
+          
+          if (hasChanges) {
+            await AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(parsedLockouts));
+          }
+        }
+      } catch (e) { }
+    };
+    checkLockout();
+
   }, []);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +114,28 @@ const LoginScreen = ({ navigation }) => {
       setErrorMessage("Por favor, completa todos los campos.");
       return;
     }
+    
+    const userKey = email.trim().toLowerCase();
+    const userLockoutTime = lockouts[userKey];
+
+    if (userLockoutTime) {
+      const remainingTime = Math.ceil((userLockoutTime - Date.now()) / 1000);
+      if (remainingTime > 0) {
+        setErrorMessage(`Demasiados intentos para este usuario. Espera ${remainingTime} segundos.`);
+        return;
+      } else {
+        const newLockouts = { ...lockouts };
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        
+        setFailedAttempts(prev => {
+          const newAttempts = { ...prev };
+          delete newAttempts[userKey];
+          return newAttempts;
+        });
+      }
+    }
 
     setIsLoading(true);
     try {
@@ -45,6 +144,11 @@ const LoginScreen = ({ navigation }) => {
         email: email.trim(),
         password: password,
       });
+
+      // Guardar el token JWT para las peticiones autenticadas
+      if (response.token) {
+        await setAuthToken(response.token);
+      }
 
       // El backend retorna tipoUsuario como número (1: Cliente, 2: Profesor, 3: Administrador)
       let role = 'CLIENTE';
@@ -61,14 +165,95 @@ const LoginScreen = ({ navigation }) => {
         ? `${response.nombre} ${response.apellido || ''}`
         : email;
 
-      navigation.navigate('Dashboard', { 
-        role: role.toUpperCase(), 
+      const sessionData = {
+        role: role.toUpperCase(),
         nombreUsuario,
         idPersona: response.idPersona,
-        idUsuario: response.idUsuario
+        idUsuario: response.idUsuario,
+        token: response.token
+      };
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('GOL_AHORA_REMEMBER_USER', email.trim());
+      } else {
+        await AsyncStorage.removeItem('GOL_AHORA_REMEMBER_USER');
+      }
+      
+      setFailedAttempts(prev => {
+        const newAttempts = { ...prev };
+        delete newAttempts[userKey];
+        return newAttempts;
       });
+      
+      const newLockouts = { ...lockouts };
+      if (newLockouts[userKey]) {
+        delete newLockouts[userKey];
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+      }
+
+      if (password === "1234") {
+        setPendingSessionData(sessionData);
+        setShowForceChangeModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (Platform.OS === 'web') {
+        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(sessionData));
+      }
+
+      navigation.replace('Dashboard', sessionData);
     } catch (error) {
-      setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      const currentAttempts = (failedAttempts[userKey] || 0) + 1;
+      setFailedAttempts(prev => ({ ...prev, [userKey]: currentAttempts }));
+      
+      if (currentAttempts >= 3) {
+        const end = Date.now() + 30000;
+        const newLockouts = { ...lockouts, [userKey]: end };
+        setLockouts(newLockouts);
+        AsyncStorage.setItem('GOL_AHORA_LOCKOUTS', JSON.stringify(newLockouts));
+        setErrorMessage(`Demasiados intentos fallidos. Usuario bloqueado por 30 segundos.`);
+      } else {
+        setErrorMessage(error.message || 'Usuario o contraseña incorrectos.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForceChangePassword = async () => {
+    setForceChangeError('');
+    if (!newPassword || !confirmNewPassword) {
+      setForceChangeError('Por favor, completa ambos campos.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setForceChangeError('Las contraseñas no coinciden.');
+      return;
+    }
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!regex.test(newPassword)) {
+      setForceChangeError('La contraseña debe tener al menos 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await userService.changePassword({
+        idUsuario: pendingSessionData.idUsuario,
+        currentPassword: '1234',
+        newPassword: newPassword
+      });
+      
+      setShowForceChangeModal(false);
+      
+      if (Platform.OS === 'web') {
+        localStorage.setItem('GOL_AHORA_SESSION', JSON.stringify(pendingSessionData));
+      }
+      navigation.replace('Dashboard', pendingSessionData);
+    } catch (err) {
+      setForceChangeError(err.message || 'Error al cambiar la contraseña.');
     } finally {
       setIsLoading(false);
     }
@@ -79,22 +264,24 @@ const LoginScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="#06230e" />
       <Background />
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#006400' }}>
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer} 
-            showsVerticalScrollIndicator={false}
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
+            bounces={false}
+            overScrollMode="never"
           >
             <View style={[styles.pitchContainer, !isWeb && styles.pitchMobile]}>
               <BackgroundLogin />
 
               <View style={[StyleSheet.absoluteFillObject, styles.contentOverlay]}>
-                
-                <View style={styles.headerClean}>   
+
+                <View style={styles.headerClean}>
                   <Text style={styles.preTitle}>Complejo</Text>
                   <Text style={styles.mainTitle}>GOL AHORA</Text>
                   <View style={styles.badgeLine}>
@@ -104,20 +291,30 @@ const LoginScreen = ({ navigation }) => {
 
                 <View style={styles.solidGlassCard}>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Usuario / DNI</Text>
+                    <Text style={styles.label}>DNI, Usuario o Email</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'user' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="account" 
-                        size={22} 
-                        color={focusedInput === 'user' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={22}
+                        color={focusedInput === 'user' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu usuario o DNI" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu DNI, Usuario o Email"
                         placeholderTextColor="#999"
                         onFocus={() => { setFocusedInput('user'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={setEmail}
+                        onChangeText={(text) => {
+                          if (typeof text === 'string') {
+                            setEmail(text);
+                          } else if (text && typeof text === 'object') {
+                            const val = text.email || text.username || text.nombre || '';
+                            setEmail(String(val));
+                          } else {
+                            setEmail('');
+                          }
+                        }}
+                        keyboardType="default"
                         value={email}
                         autoCapitalize="none"
                         underlineColorAndroid="transparent"
@@ -129,19 +326,19 @@ const LoginScreen = ({ navigation }) => {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Contraseña</Text>
                     <View style={[styles.inputWrapper, focusedInput === 'pass' && styles.inputFocused]}>
-                      <MaterialCommunityIcons 
-                        name="lock" 
-                        size={22} 
-                        color={focusedInput === 'pass' ? '#009b3a' : '#666'} 
+                      <MaterialCommunityIcons
+                        name="lock"
+                        size={22}
+                        color={focusedInput === 'pass' ? '#009b3a' : '#666'}
                       />
-                      <TextInput 
-                        style={styles.input} 
-                        placeholder="Ingresa tu contraseña" 
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ingresa tu contraseña"
                         placeholderTextColor="#999"
                         secureTextEntry={isSecure}
                         onFocus={() => { setFocusedInput('pass'); setErrorMessage(''); }}
                         onBlur={() => setFocusedInput(null)}
-                        onChangeText={setPassword}
+                        onChangeText={(text) => setPassword(typeof text === 'string' ? text : '')}
                         value={password}
                         underlineColorAndroid="transparent"
                         returnKeyType="done"
@@ -154,6 +351,21 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                   </View>
 
+                  {/* CHECKBOX RECORDAR USUARIO */}
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }}
+                    onPress={() => setRememberMe(!rememberMe)}
+                  >
+                    <MaterialCommunityIcons
+                      name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"}
+                      size={24}
+                      color={rememberMe ? "#009b3a" : "#666"}
+                    />
+                    <Text style={{ marginLeft: 8, color: '#1e293b', fontSize: 14, fontWeight: '600' }}>
+                      Mantener la sesión iniciada
+                    </Text>
+                  </TouchableOpacity>
+
                   {/* MENSAJE DE ERROR DINÁMICO */}
                   {errorMessage !== '' && (
                     <View style={styles.errorContainer}>
@@ -162,13 +374,14 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  <TouchableOpacity 
-                    style={styles.mainButton} 
+                  <TouchableOpacity
+                    style={[styles.mainButton, isLoading && { opacity: 0.7 }]}
                     activeOpacity={0.8}
                     onPress={handleLogin}
+                    disabled={isLoading}
                   >
                     <LinearGradient colors={['#ffb300', '#ff9100']} style={styles.gradientButton}>
-                      <Text style={styles.buttonText}>INGRESAR AL CAMPO</Text>
+                      <Text style={styles.buttonText}>{isLoading ? 'INICIANDO SESIÓN...' : 'INGRESAR AL CAMPO'}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -184,20 +397,135 @@ const LoginScreen = ({ navigation }) => {
               </View>
             </View>
             <Footer />
+            <View style={styles.dataFiscalContainer}>
+              <View style={styles.dataFiscalTextContainer}>
+                <Text style={styles.dataFiscalText}>Complejo Gol Ahora</Text>
+                <Text style={styles.dataFiscalText}>S.A. CUIT: 30-12345678-3</Text>
+              </View>
+              <Image
+                source={{ uri: 'https://www.afip.gob.ar/images/f960/DATAWEB.jpg' }}
+                style={styles.dataFiscalImage}
+              />
+            </View>
+
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <LinearGradient 
+          colors={['transparent', 'rgba(0, 30, 0, 0.6)']}
+          style={{ width: '100%', paddingVertical: 12, alignItems: 'center', zIndex: 10 }}
+        >
+          <TouchableOpacity onPress={() => navigation?.navigate('DesarrolladoPor')}>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 'bold' }}>Desarrollado por GRUPO 4</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
       </SafeAreaView>
+
+      <Modal visible={showInactivityModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', padding: 25, borderRadius: 20, alignItems: 'center', width: '80%', maxWidth: 400 }}>
+            <MaterialCommunityIcons name="timer-sand" size={50} color="#ffb300" />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 15, textAlign: 'center' }}>
+              Sesión cerrada
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748b', marginTop: 10, textAlign: 'center' }}>
+              Tu sesión se ha cerrado por inactividad.
+            </Text>
+            <TouchableOpacity
+              style={{ marginTop: 20, backgroundColor: '#009b3a', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }}
+              onPress={() => setShowInactivityModal(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL FORZAR CAMBIO CLAVE */}
+      <Modal visible={showForceChangeModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', padding: 25, borderRadius: 20, width: '90%', maxWidth: 400 }}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <MaterialCommunityIcons name="shield-lock-outline" size={50} color="#ffb300" />
+              <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 10, textAlign: 'center' }}>
+                Cambio de Contraseña Obligatorio
+              </Text>
+              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 20 }}>
+                Estás usando la contraseña por defecto. Por seguridad, debes cambiarla antes de continuar.
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nueva Contraseña</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Mín. 8 caracteres, 1 Mayus, 1 Num, 1 Especial"
+                  placeholderTextColor="#999"
+                  secureTextEntry={isSecure}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <TouchableOpacity onPress={() => setIsSecure(!isSecure)} style={{ padding: 5 }}>
+                  <MaterialCommunityIcons name={isSecure ? "eye-off" : "eye"} size={22} color="#666" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmar Nueva Contraseña</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Repetí la contraseña"
+                  placeholderTextColor="#999"
+                  secureTextEntry={isSecure}
+                  value={confirmNewPassword}
+                  onChangeText={setConfirmNewPassword}
+                />
+              </View>
+            </View>
+
+            {forceChangeError !== '' && (
+              <View style={styles.errorContainer}>
+                <MaterialCommunityIcons name="alert-circle" size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{forceChangeError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={{ marginTop: 15, backgroundColor: '#009b3a', paddingVertical: 15, borderRadius: 12, alignItems: 'center' }}
+              onPress={handleForceChangePassword}
+              disabled={isLoading}
+            >
+              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>
+                {isLoading ? 'GUARDANDO...' : 'GUARDAR Y CONTINUAR'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{ marginTop: 10, paddingVertical: 10, alignItems: 'center' }}
+              onPress={() => { setShowForceChangeModal(false); setPendingSessionData(null); }}
+              disabled={isLoading}
+            >
+              <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 14 }}>CANCELAR Y SALIR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 },
-  headerClean: { alignItems: 'center', marginBottom: 25 },
-  preTitle: { color: '#fff', fontSize: 16, fontWeight: '300', letterSpacing: 3 },
-  mainTitle: { fontSize: 50, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 20 : 10 },
+  headerClean: { alignItems: 'center', marginBottom: isWeb ? 25 : 15, marginTop: isWeb ? 0 : 15 },
+  preTitle: { color: '#fff', fontSize: isWeb ? 16 : 14, fontWeight: '300', letterSpacing: 3, ...Platform.select({ web: { userSelect: 'none' } }) },
+  mainTitle: { fontSize: isWeb ? 50 : 38, fontWeight: '900', color: '#fff', letterSpacing: -1, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
   badgeLine: { backgroundColor: '#ffb300', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 4, marginTop: 5 },
-  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  subtitleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1, ...Platform.select({ web: { userSelect: 'none' } }) },
   pitchContainer: {
     width: isWeb ? 450 : '92%', 
     height: isWeb ? 850 : windowHeight * 0.85, 
@@ -208,12 +536,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     position: 'relative'
   },
-  contentOverlay: { justifyContent: 'center', alignItems: 'center' },
-  solidGlassCard: { width: '88%', padding: 25, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
-  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
+  pitchMobile: {
+    width: '95%',
+    height: undefined,
+    minHeight: windowHeight * 0.78,
+    flex: 1,
+  },
+  contentOverlay: { justifyContent: 'center', alignItems: 'center', paddingVertical: isWeb ? 0 : 20 },
+  solidGlassCard: { width: isWeb ? '88%' : '95%', padding: isWeb ? 25 : 20, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.93)', elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 10 },
+  label: { color: '#333', fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4, ...Platform.select({ web: { userSelect: 'none' } }) },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 58, borderRadius: 12, paddingHorizontal: 15, backgroundColor: '#f5f5f5', borderWidth: 1.5, borderColor: '#eee' },
   inputFocused: { borderColor: '#009b3a', backgroundColor: '#fff' },
-  input: { 
+  input: {
     flex: 1, color: '#000', marginLeft: 10, fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } })
   },
@@ -235,9 +569,15 @@ const styles = StyleSheet.create({
   },
   mainButton: { marginTop: 10, borderRadius: 15, overflow: 'hidden', elevation: 5 },
   gradientButton: { height: 60, justifyContent: 'center', alignItems: 'center' },
-  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
+  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5, ...Platform.select({ web: { userSelect: 'none' } }) },
   footerLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25, paddingHorizontal: 5 },
-  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700' },
+  linkText: { color: '#009b3a', fontSize: 13, fontWeight: '700', ...Platform.select({ web: { userSelect: 'none' } }) },
+  dataFiscalContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, paddingTop: 10 },
+  dataFiscalTextContainer: { marginRight: 15, alignItems: 'center' },
+  dataFiscalText: { color: '#cbd5e1', fontWeight: 'bold', fontSize: 13, textAlign: 'center', ...Platform.select({ web: { userSelect: 'none' } }) },
+  dataFiscalImage: { width: 45, height: 60, resizeMode: 'contain', borderRadius: 4, ...Platform.select({ web: { userSelect: 'none' } }) },
+  devLinkContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, opacity: 0.7 },
+  devLinkText: { color: 'rgba(255,255,255,0.5)', marginLeft: 5, fontSize: 12 },
 });
 
 export default LoginScreen;

@@ -88,4 +88,34 @@ export const claseService = {
       throw error;
     }
   },
+
+  /**
+   * DELETE /api/Clase/{claseId}/cliente/{clienteId}
+   * Desinscribe un cliente de una clase.
+   */
+  removeCliente: async (claseId, clienteId) => {
+    try {
+      return await http.delete(`${URL}/${claseId}/cliente/${clienteId}`);
+    } catch (error) {
+      console.error(`Error desinscribiendo cliente ${clienteId} de clase ${claseId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * GET /api/Clase/{claseId}/cliente/{clienteId}/pulsera
+   * Descarga el PDF de la pulsera con código de barras del alumno.
+   * Retorna un Blob para abrir/descargar en el navegador.
+   */
+  descargarPulsera: async (claseId, clienteId) => {
+    const response = await fetch(
+      `${URL}/${claseId}/cliente/${clienteId}/pulsera`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Error al generar la pulsera');
+    }
+    return await response.blob();
+  },
 };
